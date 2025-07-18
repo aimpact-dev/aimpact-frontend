@@ -65,6 +65,7 @@ export interface EditorUpdate {
 export type OnChangeCallback = (update: EditorUpdate) => void;
 export type OnScrollCallback = (position: ScrollPosition) => void;
 export type OnSaveCallback = () => void;
+export type OnBlurCallback = () => void;
 
 interface Props {
   theme: Theme;
@@ -77,6 +78,7 @@ interface Props {
   onChange?: OnChangeCallback;
   onScroll?: OnScrollCallback;
   onSave?: OnSaveCallback;
+  onBlur?: OnBlurCallback;
   className?: string;
   settings?: EditorSettings;
 }
@@ -133,6 +135,7 @@ export const CodeMirrorEditor = memo(
     onScroll,
     onChange,
     onSave,
+    onBlur,
     theme,
     settings,
     className = '',
@@ -152,6 +155,7 @@ export const CodeMirrorEditor = memo(
     const onScrollRef = useRef(onScroll);
     const onChangeRef = useRef(onChange);
     const onSaveRef = useRef(onSave);
+    const onBlurRef = useRef(onBlur);
 
     /**
      * This effect is used to avoid side effects directly in the render function
@@ -161,6 +165,7 @@ export const CodeMirrorEditor = memo(
       onScrollRef.current = onScroll;
       onChangeRef.current = onChange;
       onSaveRef.current = onSave;
+      onBlurRef.current = onBlur;
       docRef.current = doc;
 
       // Update the module-level reference for use in tooltip functions
@@ -257,7 +262,7 @@ export const CodeMirrorEditor = memo(
       const theme = themeRef.current!;
 
       if (!doc) {
-        const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, [
+        const state = newEditorState('', theme, settings, onScrollRef, debounceScroll, onSaveRef, onBlurRef, [
           languageCompartment.of([]),
           envMaskingCompartment.of([]),
         ]);
@@ -280,7 +285,7 @@ export const CodeMirrorEditor = memo(
       let state = editorStates.get(doc.filePath);
 
       if (!state) {
-        state = newEditorState(doc.value, theme, settings, onScrollRef, debounceScroll, onSaveRef, [
+        state = newEditorState(doc.value, theme, settings, onScrollRef, debounceScroll, onSaveRef, onBlurRef, [
           languageCompartment.of([]),
           envMaskingCompartment.of([createEnvMaskingExtension(() => docRef.current?.filePath)]),
         ]);
@@ -330,6 +335,7 @@ function newEditorState(
   onScrollRef: MutableRefObject<OnScrollCallback | undefined>,
   debounceScroll: number,
   onFileSaveRef: MutableRefObject<OnSaveCallback | undefined>,
+  onBlurRef: MutableRefObject<OnBlurCallback | undefined>,
   extensions: Extension[],
 ) {
   return EditorState.create({
@@ -343,6 +349,9 @@ function newEditorState(
 
           onScrollRef.current?.({ left: view.scrollDOM.scrollLeft, top: view.scrollDOM.scrollTop });
         }, debounceScroll),
+        blur: () => {
+          onBlurRef.current?.();
+        },
         keydown: (event, view) => {
           if (view.state.readOnly) {
             view.dispatch({
