@@ -1,7 +1,6 @@
 import styles from './styles.module.scss';
 
 const BackgroundRays = () => {
-  return null;
   return (
     <div className={`${styles.rayContainer} `}>
       <div className={`${styles.lightRay} ${styles.ray1}`}></div>

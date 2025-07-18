@@ -17,7 +17,7 @@ import { toast } from "react-toastify"
 import { useWallet } from "@solana/wallet-adapter-react"
 
 export default function Leaderboard() {
-  const { jwtToken } = useAuth();
+  const { jwtToken, isAuthorized } = useAuth();
   const { publicKey } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey])
   
@@ -128,9 +128,14 @@ export default function Leaderboard() {
                     </div>
                   )
                 })
-              ) : (
-                <p className="text-center">Loading...</p>
-              )}
+              ) : 
+                (isAuthorized ? (
+                    <p className="text-center">Loading...</p>
+                  ) : (
+                    <p className="text-center">Loading...</p>
+                  )
+                )
+              }
             </div>
 
             {/* show outside top */}
