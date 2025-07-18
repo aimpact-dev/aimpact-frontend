@@ -130,7 +130,7 @@ export default function Leaderboard() {
                 })
               ) : 
                 (isAuthorized ? (
-                    <p className="text-center">Loading...</p>
+                    <p className="text-center">Plesase connect wallet</p>
                   ) : (
                     <p className="text-center">Loading...</p>
                   )
