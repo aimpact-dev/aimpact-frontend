@@ -106,10 +106,10 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   }) => {
     try {
       const data = await getDeployRequest(projectId);
-      setFinalDeployLink(data.url);
+      setFinalDeployLink(data.finalUrl);
 
-      if (enableMessages && data.url) {
-        formattedLinkToast(data.url);
+      if (enableMessages && data.finalUrl) {
+        formattedLinkToast(data.finalUrl);
       }
     } catch (error) {
       const failMessage = `Failed to publish app. Try again later.`;
