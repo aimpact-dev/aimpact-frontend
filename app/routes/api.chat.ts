@@ -41,6 +41,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   }>();
   let { messages } = body;
   const { files, promptId, contextOptimization, authToken } = body;
+  console.log("BODY MESSAGES");
+  console.log(messages);
+  // return;
 
   const apiKeys: Record<string, string> = {
     OpenAI: getEnvVar(context, "OPENAI_API_KEY") as string,
@@ -91,108 +94,108 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let summary: string | undefined = undefined;
         let messageSliceId = 0;
 
-        // if (messages.length > 3) {
-        //   messageSliceId = messages.length - 3;
-        // }
+        if (messages.length > 3) {
+          messageSliceId = messages.length - 3;
+        }
 
         if (filePaths.length > 0 && contextOptimization) {
-          logger.debug('Generating Chat Summary');
-          dataStream.writeData({
-            type: 'progress',
-            label: 'summary',
-            status: 'in-progress',
-            order: progressCounter++,
-            message: 'Analysing Request',
-          } satisfies ProgressAnnotation);
+          // logger.debug('Generating Chat Summary');
+          // dataStream.writeData({
+          //   type: 'progress',
+          //   label: 'summary',
+          //   status: 'in-progress',
+          //   order: progressCounter++,
+          //   message: 'Analysing Request',
+          // } satisfies ProgressAnnotation);
 
           // Create a summary of the chat
           console.log(`Messages count: ${messages.length}`);
 
-          summary = await createSummary({
-            messages: [...messages],
-            env: context.cloudflare?.env,
-            apiKeys,
-            providerSettings,
-            promptId,
-            contextOptimization,
-            onFinish(resp) {
-              if (resp.usage) {
-                logger.debug('createSummary token usage', JSON.stringify(resp.usage));
-                cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-              }
-            },
-          });
-          dataStream.writeData({
-            type: 'progress',
-            label: 'summary',
-            status: 'complete',
-            order: progressCounter++,
-            message: 'Analysis Complete',
-          } satisfies ProgressAnnotation);
+          // summary = await createSummary({
+          //   messages: [...messages],
+          //   env: context.cloudflare?.env,
+          //   apiKeys,
+          //   providerSettings,
+          //   promptId,
+          //   contextOptimization,
+          //   onFinish(resp) {
+          //     if (resp.usage) {
+          //       logger.debug('createSummary token usage', JSON.stringify(resp.usage));
+          //       cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+          //       cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+          //       cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+          //     }
+          //   },
+          // });
+          // dataStream.writeData({
+          //   type: 'progress',
+          //   label: 'summary',
+          //   status: 'complete',
+          //   order: progressCounter++,
+          //   message: 'Analysis Complete',
+          // } satisfies ProgressAnnotation);
 
-          dataStream.writeMessageAnnotation({
-            type: 'chatSummary',
-            summary,
-            chatId: messages.slice(-1)?.[0]?.id,
-          } as ContextAnnotation);
+          // dataStream.writeMessageAnnotation({
+          //   type: 'chatSummary',
+          //   summary,
+          //   chatId: messages.slice(-1)?.[0]?.id,
+          // } as ContextAnnotation);
 
           // Update context buffer
-          logger.debug('Updating Context Buffer');
-          dataStream.writeData({
-            type: 'progress',
-            label: 'context',
-            status: 'in-progress',
-            order: progressCounter++,
-            message: 'Determining Files to Read',
-          } satisfies ProgressAnnotation);
+          // logger.debug('Updating Context Buffer');
+          // dataStream.writeData({
+          //   type: 'progress',
+          //   label: 'context',
+          //   status: 'in-progress',
+          //   order: progressCounter++,
+          //   message: 'Determining Files to Read',
+          // } satisfies ProgressAnnotation);
 
-          // Select context files
-          console.log(`Messages count: ${messages.length}`);
-          filteredFiles = await selectContext({
-            messages: [...messages],
-            env: context.cloudflare?.env,
-            apiKeys,
-            files,
-            providerSettings,
-            promptId,
-            contextOptimization,
-            summary,
-            onFinish(resp) {
-              if (resp.usage) {
-                logger.debug('selectContext token usage', JSON.stringify(resp.usage));
-                cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
-                cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
-                cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
-              }
-            },
-          });
+          // // Select context files
+          // console.log(`Messages count: ${messages.length}`);
+          // filteredFiles = await selectContext({
+          //   messages: [...messages],
+          //   env: context.cloudflare?.env,
+          //   apiKeys,
+          //   files,
+          //   providerSettings,
+          //   promptId,
+          //   contextOptimization,
+          //   summary,
+          //   onFinish(resp) {
+          //     if (resp.usage) {
+          //       logger.debug('selectContext token usage', JSON.stringify(resp.usage));
+          //       cumulativeUsage.completionTokens += resp.usage.completionTokens || 0;
+          //       cumulativeUsage.promptTokens += resp.usage.promptTokens || 0;
+          //       cumulativeUsage.totalTokens += resp.usage.totalTokens || 0;
+          //     }
+          //   },
+          // });
 
-          if (filteredFiles) {
-            logger.debug(`files in context : ${JSON.stringify(Object.keys(filteredFiles))}`);
-          }
+          // if (filteredFiles) {
+          //   logger.debug(`files in context : ${JSON.stringify(Object.keys(filteredFiles))}`);
+          // }
 
-          dataStream.writeMessageAnnotation({
-            type: 'codeContext',
-            files: Object.keys(filteredFiles).map((key) => {
-              let path = key;
+          // dataStream.writeMessageAnnotation({
+          //   type: 'codeContext',
+          //   files: Object.keys(filteredFiles).map((key) => {
+          //     let path = key;
 
-              if (path.startsWith(WORK_DIR)) {
-                path = path.replace(WORK_DIR, '');
-              }
+          //     if (path.startsWith(WORK_DIR)) {
+          //       path = path.replace(WORK_DIR, '');
+          //     }
 
-              return path;
-            }),
-          } as ContextAnnotation);
+          //     return path;
+          //   }),
+          // } as ContextAnnotation);
 
-          dataStream.writeData({
-            type: 'progress',
-            label: 'context',
-            status: 'complete',
-            order: progressCounter++,
-            message: 'Code Files Selected',
-          } satisfies ProgressAnnotation);
+          // dataStream.writeData({
+          //   type: 'progress',
+          //   label: 'context',
+          //   status: 'complete',
+          //   order: progressCounter++,
+          //   message: 'Code Files Selected',
+          // } satisfies ProgressAnnotation);
 
           // logger.debug('Code Files Selected');
         }

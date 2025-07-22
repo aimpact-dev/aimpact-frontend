@@ -52,7 +52,8 @@ export async function streamText(props: {
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
 
-  let processedMessages = messages.map((message) => {
+  const filteredMessages = messages.filter(message => message.annotations ? !message.annotations.includes("dont-use") : true);
+  let processedMessages = filteredMessages.map((message) => {
     if (message.role === 'user') {
       const { model, provider, content } = extractPropertiesFromMessage(message);
       logger.info(content);
@@ -80,6 +81,10 @@ export async function streamText(props: {
 
     return message;
   });
+
+  if (props.messageSliceId) {
+    processedMessages = processedMessages.slice(props.messageSliceId);
+  }
 
   const provider = PROVIDER_LIST.find((p) => p.name === currentProvider) || DEFAULT_PROVIDER;
 

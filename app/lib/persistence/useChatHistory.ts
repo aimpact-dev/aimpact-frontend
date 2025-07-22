@@ -13,6 +13,9 @@ import { detectProjectCommands, createCommandActionsString } from '~/utils/proje
 import type { ContextAnnotation } from '~/types/context';
 import { useHttpDb } from './http-db';
 import { filterIgnoreFiles } from '~/utils/ignoreFiles';
+import { JapaneseYen } from 'lucide-react';
+import { stripIndents } from '~/utils/stripIndent';
+import { keyframes } from 'framer-motion';
 
 export interface ChatHistoryItem {
   id: string;
@@ -97,32 +100,38 @@ export function useChatHistory() {
               }
 
               setArchivedMessages(archivedMessages);
+              
+              const files = Object.entries(validSnapshot?.files || {})
+                .map(([key, value]) => {
+                  if (value?.type !== 'file') {
+                    return null;
+                  }
+
+                  return {
+                    content: value.content,
+                    path: key,
+                  };
+                })
+                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
+              const projectCommands = await detectProjectCommands(files);
+
+              // Call the modified function to get only the command actions string
+              const commandActionsString = createCommandActionsString(projectCommands);
 
               if (startingIdx > 0) {
-                const files = Object.entries(validSnapshot?.files || {})
-                  .map(([key, value]) => {
-                    if (value?.type !== 'file') {
-                      return null;
-                    }
+                const excludedFiles: FileMap = {};
+                const snapshotFiles: FileMap = Object.fromEntries(Object.entries(snapshot?.files || {}).filter(([key, value]) => {
+                  console.log("KEY", key);
+                  const excluded = key.endsWith("-lock.yaml");
+                  if (excluded && value) excludedFiles[key] = value;
+                  return !excluded;
+                }));
+                
+                console.log("SNAPSHOT:", !!snapshot);
+                console.log(Object.keys(snapshotFiles || {}));
+                console.log(Object.keys(excludedFiles || {}));
 
-                    return {
-                      content: value.content,
-                      path: key,
-                    };
-                  })
-                  .filter((x): x is { content: string; path: string } => !!x); // Type assertion
-                const projectCommands = await detectProjectCommands(files);
-
-                // Call the modified function to get only the command actions string
-                const commandActionsString = createCommandActionsString(projectCommands);
-
-                filteredMessages = [
-                  {
-                    id: generateId(),
-                    role: 'user',
-                    content: `Restore project from snapshot`, // Removed newline
-                    annotations: ['no-store', 'hidden'],
-                  },
+                const newMessages: Message[] = [
                   {
                     id: storedMessages.messages[snapshotIndex].id,
                     role: 'assistant',
@@ -130,7 +139,7 @@ export function useChatHistory() {
                     // Combine followup message and the artifact with files and command actions
                     content: `AImpact Restored your chat from a snapshot. You can revert this message to load the full chat history.
                     <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
-                    ${Object.entries(snapshot?.files || {})
+                    ${Object.entries(snapshotFiles)
                       .map(([key, value]) => {
                         if (value?.type === 'file') {
                           return `
@@ -143,7 +152,7 @@ export function useChatHistory() {
                         }
                       })
                       .join('\n')}
-                    ${commandActionsString} 
+                    ${commandActionsString}
                     </boltArtifact>
                     `, // Added commandActionsString, followupMessage, updated id and title
                     annotations: [
@@ -159,18 +168,65 @@ export function useChatHistory() {
                         : []),
                     ],
                   },
-
-                  // Remove the separate user and assistant messages for commands
-                  /*
-                   *...(commands !== null // This block is no longer needed
-                   *  ? [ ... ]
-                   *  : []),
-                   */
-                  ...filteredMessages,
                 ];
+                newMessages.push(
+                  {
+                    id: generateId(),
+                    role: 'assistant',
+                    content: `Lock files import...
+                    <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
+                      ${Object.entries(excludedFiles)
+                        .map(([key, value]) => {
+                          if (value?.type === 'file') {
+                            return `
+                            <boltAction type="file" filePath="${key}">
+                              ${value.content}
+                            </boltAction>
+                            `
+                          }
+                        })
+                      }
+                    </boltArtifact>`,
+                    annotations: ['no-store', 'dont-use'],
+                  },
+                );
+
+                filteredMessages = [
+                  {
+                    id: generateId(),
+                    role: 'user',
+                    content: `Restore project from snapshot`, // Removed newline
+                    annotations: ['no-store', 'hidden'],
+                  },
+                  ...newMessages,
+                  ...filteredMessages,
+                ]
                 restoreSnapshot(mixedId);
+              } else {
+                console.log("DAMN")
+                filteredMessages = [
+                  ...filteredMessages,
+                  {
+                    id: generateId(),
+                    role: 'user',
+                    content: `Restore project from snapshot`, // Removed newline
+                    annotations: ['no-store'],
+                  },
+                  {
+                    id: generateId(),
+                    role: "assistant",
+                    content: `Installing project...
+                    <boltArtifact>
+                      ${commandActionsString}
+                    </boltArtifact>`,
+                    annotations: [
+                      'no-store',
+                    ]
+                  }
+                ]
               }
               
+              console.log("FILETERD", filteredMessages);
               setInitialMessages(filteredMessages);
 
               description.set(storedMessages.description);

@@ -45,6 +45,8 @@ WebContainer has the ability to run a web server but requires to use an npm pack
   - Always define dependencies in \`package.json\`.
   - Prefer to use \`pnpm\` for better performance.
   - Always run \`pnpm install\` after scaffolding (\`npx create-*\`) or modifying \`package.json\`. This is the first step before any other action.
+  - Don't use \`pnpm add {package_name}\`, it's broken inside of webcontainer. Write package.json instead.  
+  - @solana/web3.js is not preinstalled.
 
 **Code Quality:** Write clean, modular code. Split features into smaller, reusable files and connect them with imports.
 **UI Defaults:**
