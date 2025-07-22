@@ -1,4 +1,4 @@
-import { captureRemixErrorBoundaryError } from "@sentry/remix";
+import { captureRemixErrorBoundaryError } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
@@ -10,6 +10,7 @@ import React, { Suspense, useEffect, useState, type FC, type PropsWithChildren }
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
+import { CivicAuthProvider } from '@civic/auth-web3/react';
 
 import { logStore } from './lib/stores/logs';
 import type { SolanaProviderProps } from './components/providers/SolanaProvider';
@@ -21,8 +22,7 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
-
-const SolanaProvider = React.lazy(() => import('./components/providers/SolanaProvider'));
+import SolanaProvider from './components/providers/SolanaProvider';
 
 export const links: LinksFunction = () => [
   {
@@ -94,11 +94,17 @@ function Providers({ children }: { children: React.ReactNode }) {
       {() => (
         <Suspense fallback="">
           <SolanaProvider>
-            <RefCodeProvider>
-              <AuthProvider>
-                <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-              </AuthProvider>
-            </RefCodeProvider>
+            <CivicAuthProvider
+              autoCreateWallet
+              autoConnectEmbeddedWallet
+              clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}
+            >
+              <RefCodeProvider>
+                <AuthProvider>
+                  <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+                </AuthProvider>
+              </RefCodeProvider>
+            </CivicAuthProvider>
           </SolanaProvider>
         </Suspense>
       )}
