@@ -47,7 +47,7 @@
   transform: rotate(65deg);
   top: -500px;
   left: -100px;
-  filter: blur(80px);
+  filter: blur(20px);
   opacity: 0.6;
   animation: float1 15s infinite ease-in-out;
 }
@@ -59,7 +59,7 @@
   transform: rotate(-30deg);
   top: -300px;
   left: 200px;
-  filter: blur(60px);
+  filter: blur(15px);
   opacity: 0.6;
   animation: float2 18s infinite ease-in-out;
 }
@@ -70,7 +70,7 @@
   background: var(--ray-gradient-accent);
   top: -320px;
   left: 500px;
-  filter: blur(65px);
+  filter: blur(18px);
   opacity: 0.5;
   animation: float3 20s infinite ease-in-out;
 }
@@ -81,7 +81,7 @@
   background: var(--ray-gradient-secondary);
   top: -350px;
   left: 800px;
-  filter: blur(55px);
+  filter: blur(12px);
   opacity: 0.55;
   animation: float4 17s infinite ease-in-out;
 }
@@ -93,7 +93,7 @@
   transform: rotate(-45deg);
   top: -250px;
   left: 1000px;
-  filter: blur(45px);
+  filter: blur(9px);
   opacity: 0.6;
   animation: float5 16s infinite ease-in-out;
 }
@@ -105,7 +105,7 @@
   transform: rotate(75deg);
   top: -400px;
   left: 600px;
-  filter: blur(75px);
+  filter: blur(18px);
   opacity: 0.45;
   animation: float6 19s infinite ease-in-out;
 }
@@ -343,7 +343,7 @@
   top: 55%;
   left: -250px;
   transform: rotate(-18deg);
-  animation: waterFlow5 40s infinite linear;
+  animation: waterFlow5 20s infinite linear;
   animation-delay: -12s;
 }
 
@@ -739,5 +739,19 @@
   75% {
     transform: translate(40px, -15px) scale(0.9);
     opacity: 0.4;
+  }
+}
+
+.lightRay,
+.waterStream,
+.waterRipple,
+.waterParticle {
+  will-change: transform, opacity, filter;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

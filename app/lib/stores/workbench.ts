@@ -132,6 +132,44 @@ export class WorkbenchStore {
     return this.deployAlert;
   }
 
+  cleanup() {
+    console.log('Cleaning up WorkbenchStore...');
+    
+    // Clear file modifications tracking
+    this.modifiedFiles.clear();
+    this.#reloadedMessages.clear();
+    this.artifactIdList = [];
+    
+    // Reset atoms to default values
+    this.resetStoreState();
+    
+    // Clean up webcontainer
+    this.cleanupWebContainer();
+
+    // Clean up sampler
+    this.actionStreamSampler.cancel();
+  }
+
+  private resetStoreState() {
+    this.showWorkbench.set(false);
+    this.currentView.set('code');
+    this.unsavedFiles.set(new Set<string>());
+    this.actionAlert.set(undefined);
+    this.supabaseAlert.set(undefined);
+    this.deployAlert.set(undefined);
+  }
+
+  private async cleanupWebContainer() {
+    try {
+      const wc = await webcontainer;
+      if (wc && typeof wc.teardown === 'function') {
+        await wc.teardown();
+      }
+    } catch (error) {
+      console.error('Error cleaning up WebContainer:', error);
+    }
+  }
+
   clearDeployAlert() {
     this.deployAlert.set(undefined);
   }

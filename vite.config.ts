@@ -9,6 +9,8 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import babel from 'vite-plugin-babel';
+import { visualizer } from "rollup-plugin-visualizer";
+
 
 dotenv.config();
 
@@ -75,6 +77,13 @@ const pkg = getPackageJson();
 const gitInfo = getGitInfo();
 
 export default defineConfig((config) => {
+  const isDev = process.env.ENVIROMENT == "development";
+  if (isDev) {
+    console.log("App running in dev mode!")
+  }
+  
+  const isSsrBuild = Boolean(config.isSsrBuild);
+
   return {
     define: {
       __COMMIT_HASH: JSON.stringify(gitInfo.commitHash),
@@ -94,13 +103,9 @@ export default defineConfig((config) => {
       __PKG_OPTIONAL_DEPENDENCIES: JSON.stringify(pkg.optionalDependencies),
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
     },
-    // resolve: {
-    //   alias: {
-    //     "util/types": "node:util"
-    //   },
-    // },
     build: {
       target: 'esnext',
+      cssCodeSplit: true,
       rollupOptions: {
         external: [
           'vite',
@@ -118,11 +123,36 @@ export default defineConfig((config) => {
           'electron-store',
           '@remix-run/node',
         ],
+        treeshake: {
+          preset: 'recommended',
+          propertyReadSideEffects: false,
+          tryCatchDeoptimization: false
+        },
+        output: {
+          manualChunks: isSsrBuild
+            ? undefined
+            : {
+                vendor: ["react", "react-dom"],
+                ai: [
+                  "@ai-sdk/react",
+                  "@ai-sdk/anthropic",
+                  "@ai-sdk/openai",
+                  "ai",
+                ],
+                editor: ["@codemirror/state", "@codemirror/view"],
+              },
+        }
       },
     },
     plugins: [
       UnoCSS(),
-      // tailwindcss(),
+      !isDev && visualizer({
+        filename: 'dist/stats.html',
+        open: false,
+        gzipSize: true,
+        brotliSize: true,
+        template: 'treemap' // or 'sunburst', 'network'
+      }),
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {

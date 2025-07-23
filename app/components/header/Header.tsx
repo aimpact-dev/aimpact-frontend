@@ -7,7 +7,7 @@ import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import DepositButton from '../chat/DepositButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
-import React, {
+import {
   type CSSProperties,
   type PropsWithChildren,
   type ReactElement,
