@@ -1,29 +1,38 @@
 import { logger } from "~/utils/logger";
 import { TerminalStore } from "../stores/terminal";
 import { path as nodePath } from '~/utils/path';;
-import type { WebContainer } from "@webcontainer/api";
+import type { WebContainer, WebContainerProcess } from "@webcontainer/api";
 import type { BoltShell } from "~/utils/shell";
 
 
 export class DeployService {
   #webcontainer: Promise<WebContainer>;
-  #shellTerminal: () => BoltShell;
+  #activeBuildProcess: WebContainerProcess | null = null;
 
   constructor(
     webcontainerPromise: Promise<WebContainer>,
-    getShellTerminal: () => BoltShell,
   ) {
     this.#webcontainer = webcontainerPromise;
-    this.#shellTerminal = getShellTerminal;
   }
 
-  async runDeployScript() {
-    const terminalStore = new TerminalStore(this.#webcontainer);
+  cleanup() {
+    logger.debug('Cleaning up DeployService, killing active process...');
+    if (this.#activeBuildProcess) {
+      try {
+        this.#activeBuildProcess.kill();
+      } catch (error) {
+        logger.error('Error killing active build process during cleanup:', error);
+      }
+      this.#activeBuildProcess = null;
+    }
+  }
 
+  async runDeployScript() {;
     const webcontainer = await this.#webcontainer;
 
     // Create a new terminal specifically for the build
     const buildProcess = await webcontainer.spawn('pnpm', ['run', 'build']);
+    this.#activeBuildProcess = buildProcess;
 
     console.log(buildProcess);
     let output = '';
@@ -44,7 +53,6 @@ export class DeployService {
     );
 
     buildProcess.exit.then(exitCode => {
-      // clearTimeout(timeout);
       console.log(`Process exited with code: ${exitCode}`);
     });
 
@@ -57,11 +65,8 @@ export class DeployService {
       throw new Error('Build Failed' + "\n" + output || 'No Output Available');
     }
 
-    // Trigger build success alert
-    // ...
-
     // Check for common build directories
-    const commonBuildDirs = ['dist'];
+    const commonBuildDirs = ['dist', 'build'];
 
     let buildDir = '';
 

@@ -141,10 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [connected, isAuthorized]);
 
   useEffect(() => {
+    if (!connected || !isAuthorized) {
+        return;
+    }
+
     const req = async () => {
       const authToken = Cookies.get('authToken');
 
-      if (!connected || !isAuthorized || !authToken) {
+      if (!authToken) {
         return;
       }
 

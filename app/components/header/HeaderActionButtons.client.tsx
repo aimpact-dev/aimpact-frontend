@@ -5,14 +5,11 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
-import { ArrowSquareOutIcon, RocketIcon } from '@phosphor-icons/react';
 import { chatId, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { toast, type Id as ToastId } from 'react-toastify';
-import { DeployStatusEnum, type DeployResponse } from '~/types/deploy';
 import { useGetDeploy, usePostDeploy } from '~/lib/hooks/tanstack/useDeploy';
 import { DeployService } from '~/lib/services/deployService';
 import { webcontainer } from '~/lib/webcontainer';
-import { TerminalStore } from '~/lib/stores/terminal';
 
 interface HeaderActionButtonsProps {}
 
@@ -40,14 +37,31 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const chatIdx = useStore(lastChatIdx);
   const chatSummary = useStore(lastChatSummary);
 
-  const terminalStore = new TerminalStore(webcontainer);
-  const deployService = new DeployService(
-    webcontainer,
-    () => terminalStore.boltTerminal,
-  );
+  // TODO: Add AbortController for canceling deploy
+  const deployService = useRef<DeployService>();
+  const toastIds = useRef<Set<ToastId>>(new Set());
+
+  useEffect(() => {
+    if (!deployService.current) {
+      deployService.current = new DeployService(
+        webcontainer,
+      );
+    }
+
+    return () => {
+      deployService.current?.cleanup?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      toastIds.current.forEach(id => toast.dismiss(id));
+      toastIds.current.clear();
+    };
+  }, []);
 
   const formattedLinkToast = (url: string) => {
-    toast.success(
+    const toastId = toast.success(
       <div>
         Project is published. You can click to the button in the "Publish" dropdown and go to app.
         <br /> <br />
@@ -57,6 +71,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       </div>,
       { autoClose: false },
     );
+    toastIds.current.add(toastId);
   };
 
   useEffect(() => {
@@ -118,7 +133,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         return;
       }
 
-      const deployResult = await deployService.runDeployScript();
+      if (!deployService?.current) {
+        toast.error("Failed to init deploy service. Try to reload page");
+        return;
+      }
+
+      const deployResult = await deployService.current.runDeployScript();
       
       console.log(deployResult);
       if (deployResult.exitCode !== 0 && deployResult.exitCode !== 143) {
@@ -140,7 +160,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       setFinalDeployLink(data.url);
       formattedLinkToast(data.url);
     } catch (error) {
-      toast.error(`Failed to publish app. Try again later.`);
+      toast.error(`Failed to publish app. Maybe you have some errors in your app's code.`);
       console.error(error);
     } finally {
       setIsDeploying(false);
@@ -222,7 +242,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               onClick={onDeploy}
               className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
             >
-              <RocketIcon alt="deploy icon" size={28} />
+              <div className="i-ph:rocket h-[28px] w-[28px]"></div>
               <span className="mx-auto">Publish project</span>
             </Button>
 
@@ -231,7 +251,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               onClick={handleClickFinalLink}
               className="flex items-center w-full px-4 py-2 text-sm text-gray-200 gap-2 rounded-md"
             >
-              <ArrowSquareOutIcon size={24} />
+              <div className="i-ph:arrow-square-out w-6 h-6"></div>
               <span className="mx-auto">Project link</span>
             </Button>
           </div>

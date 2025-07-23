@@ -2,6 +2,9 @@ import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
 import { basename } from 'node:path';
 import { defineConfig, presetIcons, presetUno, transformerDirectives, presetWind } from 'unocss';
+import { getIcons } from '@iconify/utils';
+import type { IconifyJSON } from '@iconify/types';
+import phIcons from '@iconify-json/ph/icons.json';
 
 const iconPaths = globSync('./icons/*.svg');
 
@@ -18,6 +21,9 @@ const customIconCollection = iconPaths.reduce(
   },
   {} as Record<string, Record<string, () => Promise<string>>>,
 );
+
+const phosphorIconsFile = await fs.readFile("./icons.json", "utf-8");
+const phosphorIcons = JSON.parse(phosphorIconsFile) as string[];
 
 const range = (start: number, stop: number, step = 1) =>
   Array.from({ length: (stop - start) / step + 1 }, (_, i) => start + i * step);
@@ -277,6 +283,11 @@ export default defineConfig({
       warn: true,
       collections: {
         ...customIconCollection,
+        ph: async () => 
+          getIcons(
+            await import("@iconify-json/ph/icons.json").then(i => i.default) as IconifyJSON,
+            phosphorIcons,
+          ) as IconifyJSON
       },
       unit: 'em',
     }),

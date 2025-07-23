@@ -39,10 +39,6 @@ export default function getMessagesButton() {
   const [twitterHandle, setTwitterHandle] = useState("");
   const { mutateAsync: requestMessages } = useRequestMessages();
 
-  const detectMobileScreen = () => {
-    return window.innerWidth <= 768;
-  };
-
   const twitterHandleRegex = /^@[A-Za-z0-9_]{4,15}$/;
 
   const handleTwitterHandleInput = (event: FormEvent<HTMLInputElement>) => {

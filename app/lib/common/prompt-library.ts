@@ -1,5 +1,4 @@
 import { getSystemPrompt } from './prompts/prompts';
-import optimized from './prompts/optimized';
 
 export interface PromptOptions {
   cwd: string;
@@ -28,11 +27,6 @@ export class PromptLibrary {
       label: 'Default Prompt',
       description: 'This is the battle tested default system Prompt',
       get: (options) => getSystemPrompt(options.cwd),
-    },
-    optimized: {
-      label: 'Optimized Prompt (experimental)',
-      description: 'an Experimental version of the prompt for lower token usage',
-      get: (options) => optimized(options),
     },
   };
   static getList() {

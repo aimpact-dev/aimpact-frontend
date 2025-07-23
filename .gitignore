@@ -50,3 +50,8 @@ docs/instructions/Roadmap.md
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+bundle-analysis.html
+
+# eslint
+.eslintcache
