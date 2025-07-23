@@ -12,26 +12,26 @@
       "/home/project/src": {
         "type": "folder"
       },
-      "/home/project/src\\App.tsx": {
+      "/home/project/src/App.tsx": {
         "type": "file",
         "content": "function App() {\r\n\r\n  return (\r\n    <>\r\n      <div className=\"flex items-center justify-center w-screen h-screen\">\r\n        <h1 className='text-gray-300'>Hello world</h1>\r\n      </div>\r\n    </>\r\n  )\r\n}\r\n\r\nexport default App;\r\n"
       },
-      "/home/project/src\\index.css": {
+      "/home/project/src/index.css": {
         "type": "file",
         "content": "@import \"tailwindcss\";\r\n/* @import \"tw-animate-css\"; */\r\n"
       },
-      "/home/project/src\\main.tsx": {
+      "/home/project/src/main.tsx": {
         "type": "file",
         "content": "import { StrictMode } from 'react'\r\nimport { createRoot } from 'react-dom/client'\r\nimport './index.css'\r\nimport App from './App'\r\n\r\ncreateRoot(document.getElementById('root')!).render(\r\n  <StrictMode>\r\n    <App />\r\n  </StrictMode>\r\n)\r\n"
       },
-      "/home/project/src\\utils": {
+      "/home/project/src/utils": {
         "type": "folder"
       },
-      "/home/project/src\\utils\\utils.ts": {
+      "/home/project/src/utils/utils.ts": {
         "type": "file",
         "content": "import { clsx, type ClassValue } from \"clsx\"\r\nimport { twMerge } from \"tailwind-merge\"\r\n\r\nexport function cn(...inputs: ClassValue[]) {\r\n  return twMerge(clsx(inputs))\r\n}\r\n"
       },
-      "/home/project/src\\vite-env.d.ts": {
+      "/home/project/src/vite-env.d.ts": {
         "type": "file",
         "content": "/// <reference types=\"vite/client\" />\r\n"
       },
