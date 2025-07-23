@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, useId } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
@@ -284,6 +284,7 @@ export const Workbench = memo(
     const [isSyncing, setIsSyncing] = useState(false);
     const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
+    const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
@@ -360,6 +361,15 @@ export const Workbench = memo(
       workbenchStore.currentView.set('diff');
     }, []);
 
+    // Reset autosave when streaming starts
+    useEffect(() => {
+      if (isStreaming) {
+        setIsAutoSaveEnabled(false);
+      }
+    }, [isStreaming]);
+
+    const autoSaveToggleId = useId();
+
     return (
       chatStarted && (
         <motion.div
@@ -385,7 +395,24 @@ export const Workbench = memo(
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (
-                    <div className="flex overflow-y-auto">
+                    <div className="flex items-center gap-2 overflow-y-auto">
+                      <PanelHeaderButton
+                        className={classNames("mr-1 text-sm flex items-center gap-2", {
+                          "bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent": isAutoSaveEnabled
+                        })}
+                        onClick={() => setIsAutoSaveEnabled((v) => !v)}
+                        aria-pressed={isAutoSaveEnabled}
+                      >
+                        <span className="text-sm">Auto-save</span>
+                        <span className="relative ml-1 flex items-center h-5">
+                          <span
+                            className={`block w-8 h-4 rounded-full transition-colors duration-200 ${isAutoSaveEnabled ? 'bg-accent-500' : 'bg-gray-600'}`}
+                          ></span>
+                          <span
+                            className={`absolute left-0 top-0 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 border border-gray-300 translate-y-1/9 ${isAutoSaveEnabled ? 'translate-x-4' : ''}`}
+                          ></span>
+                        </span>
+                      </PanelHeaderButton>
                       <PanelHeaderButton
                         className="mr-1 text-sm"
                         onClick={() => {
@@ -398,7 +425,8 @@ export const Workbench = memo(
                       <DropdownMenu.Root>
                         <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
                           <div className="i-ph:box-arrow-up" />
-                          Sync & Export
+                          {/* Sync & Export */}
+                          Export
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content
                           className={classNames(
@@ -425,7 +453,7 @@ export const Workbench = memo(
                               <span>Download Code</span>
                             </div>
                           </DropdownMenu.Item>
-                          <DropdownMenu.Item
+                          {/* <DropdownMenu.Item
                             className={classNames(
                               'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
                             )}
@@ -436,7 +464,7 @@ export const Workbench = memo(
                               {isSyncing ? <div className="i-ph:spinner" /> : <div className="i-ph:cloud-arrow-down" />}
                               <span>{isSyncing ? 'Syncing...' : 'Sync Files'}</span>
                             </div>
-                          </DropdownMenu.Item>
+                          </DropdownMenu.Item> */}
                         </DropdownMenu.Content>
                       </DropdownMenu.Root>
                     </div>
@@ -468,6 +496,7 @@ export const Workbench = memo(
                       onEditorChange={onEditorChange}
                       onFileSave={onFileSave}
                       onFileReset={onFileReset}
+                      isAutoSaveEnabled={isAutoSaveEnabled}
                     />
                   </View>
                   <View

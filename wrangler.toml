@@ -6,7 +6,7 @@ pages_build_output_dir = "./build/client"
 send_metrics = false
 
 [vars]
-PUBLIC_BACKEND_URL = "https://t7s6acu4sta5774h5kboadp7ms.ingress.d3akash.cloud"
+PUBLIC_BACKEND_URL = "https://eblo7vdluldh7a74tp8o30v31g.ingress.d3akash.cloud"
 VITE_DEPOSIT_ADDRESS = "GorN1wMsaWp75QJYtU8NrCu9GCgTtPiUeDRX3ccLZ5jj"
 VITE_REWARDS_SHARING_PERCENT = "10"
 VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"

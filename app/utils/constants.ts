@@ -17,9 +17,9 @@ export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
 export const DEFAULT_MODEL = 'anthropic/claude-sonnet-4';
-export const DEFAULT_MINI_MODEL = 'gpt-4.1-mini';
+export const DEFAULT_MINI_MODEL = 'openai/gpt-4.1-mini';
 export const DEFAULT_PROVIDER_NAME = 'OpenRouter';
-export const DEFAULT_MINI_PROVIDER_NAME = 'OpenAI';
+export const DEFAULT_MINI_PROVIDER_NAME = 'OpenRouter';
 export const PROMPT_COOKIE_KEY = 'cachedPrompt';
 
 const llmManager = LLMManager.getInstance(import.meta.env);
