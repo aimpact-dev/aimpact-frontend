@@ -329,6 +329,7 @@ export const Workbench = memo(
         .saveCurrentDocument()
         .then(() => {
           // Explicitly refresh all previews after a file save
+          console.log("Before")
           const previewStore = usePreviewStore();
           previewStore.refreshAllPreviews();
         })
