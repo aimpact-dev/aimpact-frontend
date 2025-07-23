@@ -73,10 +73,12 @@ export function useChatHistory() {
               const validSnapshot = snapshot || { chatIndex: '', files: {} }; // Ensure snapshot is not undefined
               const summary = validSnapshot.summary;
 
-              const rewindId = searchParams.get('rewindTo') ?? storedMessages.messages.at(-1)?.id;
+              const rewindId = searchParams.get('rewindTo');
 
               let startingIdx = -1;
-              const endingIdx = storedMessages.messages.length;
+              const endingIdx = rewindId
+                ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
+                : storedMessages.messages.length;
               const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
               
               if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
