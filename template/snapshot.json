@@ -7,11 +7,7 @@
       },
       "/home/project/package.json": {
         "type": "file",
-        "content": "{\r\n  \"name\": \"vite-template\",\r\n  \"private\": true,\r\n  \"version\": \"0.0.1\",\r\n  \"type\": \"module\",\r\n  \"scripts\": {\r\n    \"dev\": \"vite\",\r\n    \"build\": \"tsc -b && vite build\",\r\n    \"preview\": \"vite preview\"\r\n  },\r\n  \"dependencies\": {\r\n    \"@coral-xyz/anchor\": \"^0.31.1\",\r\n    \"@tailwindcss/vite\": \"^4.1.11\",\r\n    \"clsx\": \"^2.1.1\",\r\n    \"lucide-react\": \"^0.525.0\",\r\n    \"react\": \"^19.1.0\",\r\n    \"react-dom\": \"^19.1.0\",\r\n    \"recharts\": \"^3.1.0\",\r\n    \"tailwind-merge\": \"^3.3.0\",\r\n    \"tailwindcss\": \"^4.1.7\",\r\n    \"tw-animate-css\": \"^1.3.0\",\r\n    \"vite-plugin-node-polyfills\": \"0.24.0\"\r\n  },\r\n  \"devDependencies\": {\r\n    \"@types/node\": \"^22.15.21\",\r\n    \"@types/react\": \"^19.1.2\",\r\n    \"@types/react-dom\": \"^19.1.2\",\r\n    \"@vitejs/plugin-react\": \"^4.7.0\",\r\n    \"autoprefixer\": \"^10.4.21\",\r\n    \"globals\": \"^16.3.0\",\r\n    \"postcss\": \"^8.5.3\",\r\n    \"typescript\": \"~5.8.3\",\r\n    \"vite\": \"^6.3.5\"\r\n  },\r\n  \"packageManager\": \"pnpm@10.10.0\"\r\n}\r\n"
-      },
-      "/home/project/README.md": {
-        "type": "file",
-        "content": "# React + TypeScript + Vite\\n\\nThis template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.\r\n"
+        "content": "{\n  \"name\": \"vite-template\",\n  \"private\": true,\n  \"version\": \"0.0.1\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"@coral-xyz/anchor\": \"^0.31.1\",\n    \"@tailwindcss/vite\": \"^4.1.11\",\n    \"clsx\": \"^2.1.1\",\n    \"lucide-react\": \"^0.525.0\",\n    \"react\": \"^19.1.0\",\n    \"react-dom\": \"^19.1.0\",\n    \"recharts\": \"^3.1.0\",\n    \"tailwind-merge\": \"^3.3.0\",\n    \"tailwindcss\": \"^4.1.7\",\n    \"tw-animate-css\": \"^1.3.0\",\n    \"vite-plugin-node-polyfills\": \"0.24.0\"\n  },\n  \"devDependencies\": {\n    \"@types/node\": \"^22.15.21\",\n    \"@types/react\": \"^19.1.2\",\n    \"@types/react-dom\": \"^19.1.2\",\n    \"@vitejs/plugin-react\": \"^4.7.0\",\n    \"autoprefixer\": \"^10.4.21\",\n    \"globals\": \"^16.3.0\",\n    \"postcss\": \"^8.5.3\",\n    \"typescript\": \"~5.8.3\",\n    \"vite\": \"^6.3.5\"\n  },\n  \"packageManager\": \"pnpm@10.10.0\"\n}\n"
       },
       "/home/project/src": {
         "type": "folder"
