@@ -1,59 +1,59 @@
 {
   "vite-react-app": {
     "files": {
+      "/home/project/README.md": {
+        "type": "file",
+        "content": "# React + TypeScript + Vite\\n\\nThis template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.\n"
+      },
       "/home/project/index.html": {
         "type": "file",
-        "content": "<!doctype html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"UTF-8\" />\r\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\r\n    <title>Vite + React + TS</title>\r\n  </head>\r\n  <body>\r\n    <div id=\"root\"></div>\r\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\r\n  </body>\r\n</html>\r\n"
+        "content": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Vite + React + TS</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\n  </body>\n</html>\n"
       },
       "/home/project/package.json": {
         "type": "file",
-        "content": "{\r\n  \"name\": \"vite-template\",\r\n  \"private\": true,\r\n  \"version\": \"0.0.1\",\r\n  \"type\": \"module\",\r\n  \"scripts\": {\r\n    \"dev\": \"vite\",\r\n    \"build\": \"tsc -b && vite build\",\r\n    \"preview\": \"vite preview\"\r\n  },\r\n  \"dependencies\": {\r\n    \"@coral-xyz/anchor\": \"^0.31.1\",\r\n    \"@tailwindcss/vite\": \"^4.1.11\",\r\n    \"clsx\": \"^2.1.1\",\r\n    \"lucide-react\": \"^0.525.0\",\r\n    \"react\": \"^19.1.0\",\r\n    \"react-dom\": \"^19.1.0\",\r\n    \"recharts\": \"^3.1.0\",\r\n    \"tailwind-merge\": \"^3.3.0\",\r\n    \"tailwindcss\": \"^4.1.7\",\r\n    \"tw-animate-css\": \"^1.3.0\",\r\n    \"vite-plugin-node-polyfills\": \"0.24.0\"\r\n  },\r\n  \"devDependencies\": {\r\n    \"@types/node\": \"^22.15.21\",\r\n    \"@types/react\": \"^19.1.2\",\r\n    \"@types/react-dom\": \"^19.1.2\",\r\n    \"@vitejs/plugin-react\": \"^4.7.0\",\r\n    \"autoprefixer\": \"^10.4.21\",\r\n    \"globals\": \"^16.3.0\",\r\n    \"postcss\": \"^8.5.3\",\r\n    \"typescript\": \"~5.8.3\",\r\n    \"vite\": \"^6.3.5\"\r\n  },\r\n  \"packageManager\": \"pnpm@10.10.0\"\r\n}\r\n"
-      },
-      "/home/project/README.md": {
-        "type": "file",
-        "content": "# React + TypeScript + Vite\\n\\nThis template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.\r\n"
+        "content": "{\n  \"name\": \"vite-template\",\n  \"private\": true,\n  \"version\": \"0.0.1\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"@coral-xyz/anchor\": \"^0.31.1\",\n    \"@tailwindcss/vite\": \"^4.1.11\",\n    \"clsx\": \"^2.1.1\",\n    \"lucide-react\": \"^0.525.0\",\n    \"react\": \"^19.1.0\",\n    \"react-dom\": \"^19.1.0\",\n    \"recharts\": \"^3.1.0\",\n    \"tailwind-merge\": \"^3.3.0\",\n    \"tailwindcss\": \"^4.1.7\",\n    \"tw-animate-css\": \"^1.3.0\",\n    \"vite-plugin-node-polyfills\": \"0.24.0\"\n  },\n  \"devDependencies\": {\n    \"@types/node\": \"^22.15.21\",\n    \"@types/react\": \"^19.1.2\",\n    \"@types/react-dom\": \"^19.1.2\",\n    \"@vitejs/plugin-react\": \"^4.7.0\",\n    \"autoprefixer\": \"^10.4.21\",\n    \"globals\": \"^16.3.0\",\n    \"postcss\": \"^8.5.3\",\n    \"typescript\": \"~5.8.3\",\n    \"vite\": \"^6.3.5\"\n  },\n  \"packageManager\": \"pnpm@10.10.0\"\n}\n"
       },
       "/home/project/src": {
         "type": "folder"
       },
-      "/home/project/src\\App.tsx": {
+      "/home/project/src/App.tsx": {
         "type": "file",
-        "content": "function App() {\r\n\r\n  return (\r\n    <>\r\n      <div className=\"flex items-center justify-center w-screen h-screen\">\r\n        <h1 className='text-gray-300'>Hello world</h1>\r\n      </div>\r\n    </>\r\n  )\r\n}\r\n\r\nexport default App;\r\n"
+        "content": "function App() {\n\n  return (\n    <>\n      <div className=\"flex items-center justify-center w-screen h-screen\">\n        <h1 className='text-gray-300'>Hello world</h1>\n      </div>\n    </>\n  )\n}\n\nexport default App;\n"
       },
-      "/home/project/src\\index.css": {
+      "/home/project/src/index.css": {
         "type": "file",
-        "content": "@import \"tailwindcss\";\r\n/* @import \"tw-animate-css\"; */\r\n"
+        "content": "@import \"tailwindcss\";\n/* @import \"tw-animate-css\"; */\n"
       },
-      "/home/project/src\\main.tsx": {
+      "/home/project/src/main.tsx": {
         "type": "file",
-        "content": "import { StrictMode } from 'react'\r\nimport { createRoot } from 'react-dom/client'\r\nimport './index.css'\r\nimport App from './App'\r\n\r\ncreateRoot(document.getElementById('root')!).render(\r\n  <StrictMode>\r\n    <App />\r\n  </StrictMode>\r\n)\r\n"
+        "content": "import { StrictMode } from 'react'\nimport { createRoot } from 'react-dom/client'\nimport './index.css'\nimport App from './App'\n\ncreateRoot(document.getElementById('root')!).render(\n  <StrictMode>\n    <App />\n  </StrictMode>\n)\n"
       },
-      "/home/project/src\\utils": {
+      "/home/project/src/utils": {
         "type": "folder"
       },
-      "/home/project/src\\utils\\utils.ts": {
+      "/home/project/src/utils/utils.ts": {
         "type": "file",
-        "content": "import { clsx, type ClassValue } from \"clsx\"\r\nimport { twMerge } from \"tailwind-merge\"\r\n\r\nexport function cn(...inputs: ClassValue[]) {\r\n  return twMerge(clsx(inputs))\r\n}\r\n"
+        "content": "import { clsx, type ClassValue } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n\nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n"
       },
-      "/home/project/src\\vite-env.d.ts": {
+      "/home/project/src/vite-env.d.ts": {
         "type": "file",
-        "content": "/// <reference types=\"vite/client\" />\r\n"
+        "content": "/// <reference types=\"vite/client\" />\n"
       },
       "/home/project/tsconfig.app.json": {
         "type": "file",
-        "content": "{\r\n  \"compilerOptions\": {\r\n    \"tsBuildInfoFile\": \"./node_modules/.tmp/tsconfig.app.tsbuildinfo\",\r\n    \"target\": \"ES2020\",\r\n    \"useDefineForClassFields\": true,\r\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\r\n    \"module\": \"ESNext\",\r\n    \"skipLibCheck\": true,\r\n\r\n    /* Bundler mode */\r\n    \"moduleResolution\": \"bundler\",\r\n    \"allowImportingTsExtensions\": true,\r\n    \"verbatimModuleSyntax\": false,\r\n    \"moduleDetection\": \"force\",\r\n    \"noEmit\": true,\r\n    \"jsx\": \"react-jsx\",\r\n\r\n    /* Linting */\r\n    \"strict\": true,\r\n    \"noUnusedLocals\": false,\r\n    \"noUnusedParameters\": false,\r\n    \"erasableSyntaxOnly\": false,\r\n    \"noFallthroughCasesInSwitch\": true,\r\n    \"noUncheckedSideEffectImports\": true,\r\n    \"baseUrl\": \".\",\r\n    \"paths\": {\r\n      \"@/*\": [\"./*\"]\r\n    }\r\n  },\r\n  \"include\": [\"src\"]\r\n}\r\n"
+        "content": "{\n  \"compilerOptions\": {\n    \"tsBuildInfoFile\": \"./node_modules/.tmp/tsconfig.app.tsbuildinfo\",\n    \"target\": \"ES2020\",\n    \"useDefineForClassFields\": true,\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\n    \"module\": \"ESNext\",\n    \"skipLibCheck\": true,\n\n    /* Bundler mode */\n    \"moduleResolution\": \"bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"verbatimModuleSyntax\": false,\n    \"moduleDetection\": \"force\",\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\",\n\n    /* Linting */\n    \"strict\": true,\n    \"noUnusedLocals\": false,\n    \"noUnusedParameters\": false,\n    \"erasableSyntaxOnly\": false,\n    \"noFallthroughCasesInSwitch\": true,\n    \"noUncheckedSideEffectImports\": true,\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"./*\"]\n    }\n  },\n  \"include\": [\"src\"]\n}\n"
       },
       "/home/project/tsconfig.json": {
         "type": "file",
-        "content": "{\r\n  \"files\": [],\r\n  \"references\": [\r\n    { \"path\": \"./tsconfig.app.json\" },\r\n    { \"path\": \"./tsconfig.node.json\" }\r\n  ],\r\n  \"compilerOptions\": {\r\n    \"baseUrl\": \".\",\r\n    \"paths\": {\r\n      \"@/*\": [\"./*\"]\r\n    }\r\n  }\r\n}\r\n"
+        "content": "{\n  \"files\": [],\n  \"references\": [\n    { \"path\": \"./tsconfig.app.json\" },\n    { \"path\": \"./tsconfig.node.json\" }\n  ],\n  \"compilerOptions\": {\n    \"baseUrl\": \".\",\n    \"paths\": {\n      \"@/*\": [\"./*\"]\n    }\n  }\n}\n"
       },
       "/home/project/tsconfig.node.json": {
         "type": "file",
-        "content": "{\r\n  \"compilerOptions\": {\r\n    \"tsBuildInfoFile\": \"./node_modules/.tmp/tsconfig.node.tsbuildinfo\",\r\n    \"target\": \"ES2022\",\r\n    \"lib\": [\"ES2023\"],\r\n    \"module\": \"ESNext\",\r\n    \"skipLibCheck\": true,\r\n\r\n    /* Bundler mode */\r\n    \"moduleResolution\": \"bundler\",\r\n    \"allowImportingTsExtensions\": true,\r\n    \"verbatimModuleSyntax\": false,\r\n    \"moduleDetection\": \"force\",\r\n    \"noEmit\": true,\r\n\r\n    /* Linting */\r\n    \"strict\": true,\r\n    \"noUnusedLocals\": true,\r\n    \"noUnusedParameters\": true,\r\n    \"erasableSyntaxOnly\": false,\r\n    \"noFallthroughCasesInSwitch\": true,\r\n    \"noUncheckedSideEffectImports\": true,\r\n  },\r\n  \"include\": [\"vite.config.ts\"]\r\n}\r\n"
+        "content": "{\n  \"compilerOptions\": {\n    \"tsBuildInfoFile\": \"./node_modules/.tmp/tsconfig.node.tsbuildinfo\",\n    \"target\": \"ES2022\",\n    \"lib\": [\"ES2023\"],\n    \"module\": \"ESNext\",\n    \"skipLibCheck\": true,\n\n    /* Bundler mode */\n    \"moduleResolution\": \"bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"verbatimModuleSyntax\": false,\n    \"moduleDetection\": \"force\",\n    \"noEmit\": true,\n\n    /* Linting */\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true,\n    \"erasableSyntaxOnly\": false,\n    \"noFallthroughCasesInSwitch\": true,\n    \"noUncheckedSideEffectImports\": true,\n  },\n  \"include\": [\"vite.config.ts\"]\n}\n"
       },
       "/home/project/vite.config.ts": {
         "type": "file",
-        "content": "/// <reference types=\"vite/client\" />\r\n\r\nimport { defineConfig } from 'vite'\r\nimport react from '@vitejs/plugin-react'\r\nimport tailwindcss from '@tailwindcss/vite'\r\nimport { fileURLToPath } from 'node:url';\r\nimport { nodePolyfills } from \"vite-plugin-node-polyfills\";\r\n\r\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\r\n\r\n// https://vite.dev/config/\r\nexport default defineConfig({\r\n  plugins: [react(), tailwindcss(), nodePolyfills()],\r\n  resolve: {\r\n    alias: {\r\n      \"@\": __dirname\r\n    },\r\n  },\r\n})\r\n"
+        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\nimport tailwindcss from '@tailwindcss/vite'\nimport { fileURLToPath } from 'node:url';\nimport { nodePolyfills } from \"vite-plugin-node-polyfills\";\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), nodePolyfills()],\n  resolve: {\n    alias: {\n      \"@\": __dirname\n    },\n  },\n})\n"
       }
     }
   }
