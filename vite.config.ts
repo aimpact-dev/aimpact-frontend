@@ -77,12 +77,12 @@ const pkg = getPackageJson();
 const gitInfo = getGitInfo();
 
 export default defineConfig((config) => {
-  const isDev = process.env.ENVIROMENT == "development";
+  const isDev = process.env.ENVIRONMENT == "development";
+  const isSsrBuild = Boolean(config.isSsrBuild);
   if (isDev) {
     console.log("App running in dev mode!")
   }
   
-  const isSsrBuild = Boolean(config.isSsrBuild);
 
   return {
     define: {
