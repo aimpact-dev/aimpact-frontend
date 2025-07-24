@@ -198,7 +198,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex mr-1">
-      <Tooltip content={(isSaving && "test") || (!activePreview && "Run a project before saving") || (isStreaming && "Wait until streaming ends") || "Save current project"} side='bottom'>
+      <Tooltip content={(isSaving && "Saving...") || (!activePreview && "Run a project before saving") || (isStreaming && "Wait until streaming ends") || "Save current project"} side='bottom'>
         <Button
           active
           onClick={handleSaveSnapshot}
