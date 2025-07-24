@@ -18,6 +18,7 @@ export const PortDropdown = memo(
     setIsDropdownOpen,
     setHasSelectedPreview,
     previews,
+    ...props
   }: PortDropdownProps) => {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,6 +52,7 @@ export const PortDropdown = memo(
         <button
           className="flex items-center group-focus-within:text-bolt-elements-preview-addressBar-text bg-white group-focus-within:bg-bolt-elements-preview-addressBar-background dark:bg-bolt-elements-preview-addressBar-backgroundHover rounded-full px-2 py-1 gap-1.5"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          {...props}
         >
           <span className="i-ph:plug text-base"></span>
           {previews.length > 0 && activePreviewIndex >= 0 && activePreviewIndex < previews.length ? (
