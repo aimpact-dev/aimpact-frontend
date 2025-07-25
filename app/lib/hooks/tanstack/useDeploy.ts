@@ -1,29 +1,73 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { client } from '../../api/backend/api';
 import type { Dirent } from '~/lib/stores/files';
 
-interface PostDeployPayload {
+export interface IcpDeployResponse {
   projectId: string;
-  snapshot: { [k: string]: Dirent | undefined; };
+  deploymentId: string;
+  status: string;
+  isDeployed: boolean;
+  message: string;
+  logs: Array<Record<string, unknown>>;
+  finalUrl: string;
+  provider: string;
+  createdAt: string;
 }
 
-export const useGetDeploy = () => {
-  return useMutation({
-    mutationFn: async (projectId: string) => {
-      const { data, request } = await client.get('/deploy-app/s3-deployment', {
-        params: { projectId },
-      });
+export interface S3DeployResponse {
+  url: string;
+}
 
+export interface PostDeployResponse {
+  url: string;
+}
+
+export interface PostDeployPayload {
+  projectId: string;
+  snapshot: Record<string, Dirent | undefined>;
+}
+
+export const useGetIcpDeploy = () =>
+  useMutation<IcpDeployResponse, AxiosError, string>({
+    mutationFn: async (projectId) => {
+      const { data } = await client.get<IcpDeployResponse>(
+        '/deploy-app/icp-deployment',
+        { params: { projectId } }
+      );
       return data;
     },
   });
-};
 
-export const usePostDeploy = () => {
-  return useMutation({
-    mutationFn: async (payload: PostDeployPayload) => {
-      const { data } = await client.post('/deploy-app/s3-deployment', payload);
+export const usePostIcpDeploy = () =>
+  useMutation<PostDeployResponse, AxiosError, PostDeployPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<PostDeployResponse>(
+        '/deploy-app/icp-deployment',
+        payload
+      );
       return data;
     },
   });
-};
+
+export const useGetS3Deploy = () =>
+  useMutation<S3DeployResponse, AxiosError, string>({
+    mutationFn: async (projectId) => {
+      const { data } = await client.get<S3DeployResponse>(
+        '/deploy-app/s3-deployment',
+        { params: { projectId } }
+      );
+      return data;
+    },
+  });
+
+export const usePostS3Deploy = () =>
+  useMutation<PostDeployResponse, AxiosError, PostDeployPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<PostDeployResponse>(
+        '/deploy-app/s3-deployment',
+        payload
+      );
+      return data;
+    },
+  });
