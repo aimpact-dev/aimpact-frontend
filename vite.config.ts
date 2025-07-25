@@ -128,25 +128,25 @@ export default defineConfig((config) => {
           propertyReadSideEffects: false,
           tryCatchDeoptimization: false
         },
-        output: {
-          manualChunks: isSsrBuild
-            ? undefined
-            : {
-                vendor: ["react", "react-dom"],
-                ai: [
-                  "@ai-sdk/react",
-                  "@ai-sdk/anthropic",
-                  "@ai-sdk/openai",
-                  "ai",
-                ],
-                editor: ["@codemirror/state", "@codemirror/view"],
-              },
-        }
+        // output: {
+        //   manualChunks: isSsrBuild
+        //     ? undefined
+        //     : {
+        //         vendor: ["react", "react-dom"],
+        //         ai: [
+        //           "@ai-sdk/react",
+        //           "@ai-sdk/anthropic",
+        //           "@ai-sdk/openai",
+        //           "ai",
+        //         ],
+        //         editor: ["@codemirror/state", "@codemirror/view"],
+        //       },
+        // }
       },
     },
     plugins: [
       UnoCSS(),
-      !isDev && visualizer({
+      isDev && visualizer({
         filename: 'dist/stats.html',
         open: false,
         gzipSize: true,

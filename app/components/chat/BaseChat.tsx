@@ -424,7 +424,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </ClientOnly>
                   <div
                     className={classNames(
-                      'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg transition-all duration-200',
+                      'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg transition-all duration-150',
                       ...((!isAuthorized || !userInfoData?.messagesLeft) ? ['blur-[2px] pointer-events-none select-none'] : [])
                     )}
                   >
@@ -433,7 +433,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       disabled={isDisabled}
                       className={classNames(
                         'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-                        'transition-all duration-200',
+                        'transition-all duration-150',
                         'hover:border-bolt-elements-focus',
                       )}
                       onDragEnter={(e) => {

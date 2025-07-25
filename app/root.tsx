@@ -137,8 +137,8 @@ export default function App() {
     });
 
     return () => {
-      console.log('App unmounting, cleaning up...');
-      workbenchStore.cleanup();
+      // console.log('App unmounting, cleaning up...');
+      // workbenchStore.cleanup();
     };
   }, []);
 
