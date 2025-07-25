@@ -49,6 +49,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const { mutateAsync: getS3DeployRequest } = useGetS3Deploy();
   const { mutateAsync: createaS3DeployRequest } = usePostS3Deploy();
   const [finalDeployLink, setFinalDeployLink] = useState<string>('');
+  const deployStatusInterval = useRef<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const { takeSnapshot } = useChatHistory();
@@ -58,6 +59,14 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   // TODO: Add AbortController for canceling deploy
   const deployService = useRef<DeployService>();
   const toastIds = useRef<Set<ToastId>>(new Set());
+  const deployingToastId = useRef<ToastId | null>(null);
+
+  const clearDeployStatusInterval = () => {
+    deployStatusInterval.current ? clearTimeout(deployStatusInterval.current) : undefined;
+    deployStatusInterval.current = null;
+    console.log("Deploy status and interval", deployStatusInterval);
+  };
+
 
   useEffect(() => {
     if (!deployService.current) {
@@ -118,6 +127,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       showError: false,
       provider: DeployProviders.ICP,
     });
+
+    return clearDeployStatusInterval;
   }, [chatId])
 
   const fetchDeployRequest = async ({
@@ -143,12 +154,21 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         throw new Error('Invalid provider');
       }
       setFinalDeployLink(url);
-
+      
+      if (url) {
+        if (deployingToastId.current) {
+          toast.dismiss(deployingToastId.current);
+        }
+        clearDeployStatusInterval();
+        setIsDeploying(false);
+      }
       if (enableMessages && url) {
         formattedLinkToast(url, provider);
       }
     } catch (error) {
       const failMessage = `Failed to publish app. Try again later.`;
+      clearDeployStatusInterval();
+      setIsDeploying(false);
       if (showError) {
         toast.error(failMessage);
         console.error(error);
@@ -196,26 +216,29 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           snapshot: filteredFiles,
         });
         url = data.url;
+        formattedLinkToast(url, provider);
+        setIsDeploying(false);
+        toast.dismiss(toastId);
       } else if (provider === DeployProviders.ICP) {
         data = await createIcpDeployRequest({
           projectId: currentChatId,
           snapshot: filteredFiles,
         });
+        clearDeployStatusInterval();
+        deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
         url = data.url;
+        if (deployingToastId.current) {
+          toast.dismiss(deployingToastId.current);
+        }
+        deployingToastId.current = toastId;
       } else {
         throw new Error('Invalid provider');
       }
 
       setFinalDeployLink(url);
-      formattedLinkToast(url, provider);
     } catch (error) {
       toast.error(`Failed to publish app. Maybe you have some errors in your app's code.`);
       console.error(error);
-    } finally {
-      setIsDeploying(false);
-      if (toastId) {
-        toast.dismiss(toastId);
-      }
     }
   }
 
