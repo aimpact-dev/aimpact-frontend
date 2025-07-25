@@ -11,6 +11,7 @@ import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, typ
 import { DeployService } from '~/lib/services/deployService';
 import { webcontainer } from '~/lib/webcontainer';
 import type { UseMutateAsyncFunction } from '@tanstack/react-query';
+import { Tooltip } from '../chat/Tooltip';
 
 interface HeaderActionButtonsProps {}
 enum DeployProviders {
@@ -269,7 +270,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex mr-1">
-      {activePreview && (
+      <Tooltip content={(isSaving && "Saving...") || (!activePreview && "Run a project before saving") || (isStreaming && "Wait until streaming ends") || "Save current project"} side='bottom'>
         <Button
           active
           onClick={handleSaveSnapshot}
@@ -288,7 +289,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             </>
           )}
         </Button>
-      )}
+      </Tooltip>
 
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 mr-4 text-sm h-full">
@@ -347,30 +348,34 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         )}
       </div>
       <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-3">
-        <Button
-          active={showChat}
-          disabled={!canHideChat || isSmallViewport} // expand button is disabled on mobile as it's not needed
-          onClick={() => {
-            if (canHideChat) {
-              chatStore.setKey('showChat', !showChat);
-            }
-          }}
-        >
-          <div className="i-bolt:chat text-sm" />
-        </Button>
+        <Tooltip content={showChat ? "Hide chat" : "Show chat"} side='bottom'>
+          <Button
+            active={showChat}
+            disabled={!canHideChat || isSmallViewport} // expand button is disabled on mobile as it's not needed
+            onClick={() => {
+              if (canHideChat) {
+                chatStore.setKey('showChat', !showChat);
+              }
+            }}
+          >
+            <div className="i-bolt:chat text-sm" />
+          </Button>
+        </Tooltip>
         <div className="w-[1px] bg-bolt-elements-borderColor" />
-        <Button
-          active={showWorkbench}
-          onClick={() => {
-            if (showWorkbench && !showChat) {
-              chatStore.setKey('showChat', true);
-            }
+        <Tooltip content={showWorkbench ? "Hide workbench" : "Show workbench"} side='bottom'>
+          <Button
+            active={showWorkbench}
+            onClick={() => {
+              if (showWorkbench && !showChat) {
+                chatStore.setKey('showChat', true);
+              }
 
-            workbenchStore.showWorkbench.set(!showWorkbench);
-          }}
-        >
-          <div className="i-ph:code-bold" />
-        </Button>
+              workbenchStore.showWorkbench.set(!showWorkbench);
+            }}
+          >
+            <div className="i-ph:code-bold" />
+          </Button>
+        </Tooltip>
       </div>
     </div>
   );
@@ -387,7 +392,7 @@ interface ButtonProps {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ active = false, disabled = false, children, onClick, className, onMouseEnter, onMouseLeave }, ref) => {
+  ({ active = false, disabled = false, children, onClick, className, onMouseEnter, onMouseLeave, ...props}, ref) => {
     return (
       <button
         ref={ref}
@@ -407,6 +412,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        {...props}
       >
         {children}
       </button>

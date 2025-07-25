@@ -4,6 +4,7 @@ import waterStyles from '../ui/WaterButton.module.scss';
 import { useEffect, useState, type FormEvent, type FormEventHandler } from "react";
 import { useRequestMessages } from "~/lib/hooks/tanstack/useMessages";
 import { toast } from "react-toastify";
+import { Tooltip } from "./Tooltip";
 
 interface VerifyButtonsProps {
   actionButtonText?: string;
@@ -39,7 +40,7 @@ export default function getMessagesButton() {
   const [twitterHandle, setTwitterHandle] = useState("");
   const { mutateAsync: requestMessages } = useRequestMessages();
 
-  const twitterHandleRegex = /^@[A-Za-z0-9_]{4,15}$/;
+  const twitterHandleRegex = /^@[A-Za-z0-9_]{3,16}$/;
 
   const handleTwitterHandleInput = (event: FormEvent<HTMLInputElement>) => {
     setTwitterHandle(event.currentTarget.value);
@@ -108,24 +109,26 @@ export default function getMessagesButton() {
 
   return (
     <>
-      <Button
-        className={classNames(
-          'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          'transition-all duration-300',
-          waterStyles.waterButton,
-          waterStyles.green,
-        )}
-        onClick={handleToggle}
-      >
-        <div className={waterStyles.effectLayer}>
-          <div className={waterStyles.waterDroplets}></div>
-          <div className={waterStyles.waterSurface}></div>
-        </div>
-        <div className={waterStyles.buttonContent}>
-          Get Free Messages!
-        </div>
-      </Button>
+      <Tooltip content="Complete quests and get free messages">
+        <Button
+          className={classNames(
+            'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            'transition-all duration-300',
+            waterStyles.waterButton,
+            waterStyles.green,
+          )}
+          onClick={handleToggle}
+        >
+          <div className={waterStyles.effectLayer}>
+            <div className={waterStyles.waterDroplets}></div>
+            <div className={waterStyles.waterSurface}></div>
+          </div>
+          <div className={waterStyles.buttonContent}>
+            Get Free Messages!
+          </div>
+        </Button>
+      </Tooltip>
 
       {isOpen && (
         <div className="fixed inset-0 z-10 overflow-auto">

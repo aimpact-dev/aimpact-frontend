@@ -26,6 +26,7 @@ import useViewport from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { usePreviewStore } from '~/lib/stores/previews';
+import { Tooltip } from '../chat/Tooltip';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -329,6 +330,7 @@ export const Workbench = memo(
         .saveCurrentDocument()
         .then(() => {
           // Explicitly refresh all previews after a file save
+          console.log("Before")
           const previewStore = usePreviewStore();
           previewStore.refreshAllPreviews();
         })
@@ -473,14 +475,16 @@ export const Workbench = memo(
                   {selectedView === 'diff' && (
                     <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
                   )}
-                  <IconButton
-                    icon="i-ph:x-circle"
-                    className="-mr-1"
-                    size="xl"
-                    onClick={() => {
-                      workbenchStore.showWorkbench.set(false);
-                    }}
-                  />
+                  <Tooltip content="Close" side='left'>
+                    <IconButton
+                      icon="i-ph:x-circle"
+                      className="-mr-1"
+                      size="xl"
+                      onClick={() => {
+                        workbenchStore.showWorkbench.set(false);
+                      }}
+                    />
+                  </Tooltip>
                 </div>
                 <div className="relative flex-1 overflow-hidden">
                   <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
