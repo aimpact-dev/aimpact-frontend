@@ -7,12 +7,28 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
 import { chatId, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { toast, type Id as ToastId } from 'react-toastify';
-import { useGetDeploy, usePostDeploy } from '~/lib/hooks/tanstack/useDeploy';
+import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, type IcpDeployResponse, type PostDeployResponse, type S3DeployResponse } from '~/lib/hooks/tanstack/useDeploy';
 import { DeployService } from '~/lib/services/deployService';
 import { webcontainer } from '~/lib/webcontainer';
+import type { UseMutateAsyncFunction } from '@tanstack/react-query';
 import { Tooltip } from '../chat/Tooltip';
 
 interface HeaderActionButtonsProps {}
+enum DeployProviders {
+  ICP = "ICP",
+  AWS = "AWS",
+  // AKASH = "Akash",
+}
+enum Methods {
+  GET = "GET",
+  DEPLOY = "DEPLOY",
+}
+
+const providerToIconSlug: Record<DeployProviders, string> = {
+  [DeployProviders.AWS]: 'i-ph:rocket',
+  [DeployProviders.ICP]: 'i-bolt:icp-solid',
+  // [DeployProviders.AKASH]: 'i-bolt:akash',
+}
 
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -29,9 +45,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   const publishButtonRef = useRef<HTMLButtonElement>(null);
 
-  const { mutateAsync: getDeployRequest } = useGetDeploy();
-  const { mutateAsync: createDeployRequest } = usePostDeploy();
+  const { mutateAsync: getIcpDeployRequest } = useGetIcpDeploy();
+  const { mutateAsync: createIcpDeployRequest } = usePostIcpDeploy();
+  const { mutateAsync: getS3DeployRequest } = useGetS3Deploy();
+  const { mutateAsync: createaS3DeployRequest } = usePostS3Deploy();
   const [finalDeployLink, setFinalDeployLink] = useState<string>('');
+  const deployStatusInterval = useRef<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const { takeSnapshot } = useChatHistory();
@@ -41,6 +60,14 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   // TODO: Add AbortController for canceling deploy
   const deployService = useRef<DeployService>();
   const toastIds = useRef<Set<ToastId>>(new Set());
+  const deployingToastId = useRef<ToastId | null>(null);
+
+  const clearDeployStatusInterval = () => {
+    deployStatusInterval.current ? clearTimeout(deployStatusInterval.current) : undefined;
+    deployStatusInterval.current = null;
+    console.log("Deploy status and interval", deployStatusInterval);
+  };
+
 
   useEffect(() => {
     if (!deployService.current) {
@@ -61,13 +88,14 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     };
   }, []);
 
-  const formattedLinkToast = (url: string) => {
+  const formattedLinkToast = (url: string, provider: DeployProviders) => {
     const toastId = toast.success(
       <div>
-        Project is published. You can click to the button in the "Publish" dropdown and go to app.
+        Project is published to <b>{provider}</b>. 
+        You can click to the button in the "Publish" dropdown and go to app by link or just click link here.
         <br /> <br />
         <a href={url} target="_blank" rel="noopener noreferrer" className='underline cursor-pointer'>
-          Link
+          <b>Link</b>
         </a>
       </div>,
       { autoClose: false },
@@ -93,27 +121,55 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     fetchDeployRequest({ 
       projectId: currentChatId,
       showError: false,
+      provider: DeployProviders.AWS,
     });
+    fetchDeployRequest({ 
+      projectId: currentChatId,
+      showError: false,
+      provider: DeployProviders.ICP,
+    });
+
+    return clearDeployStatusInterval;
   }, [chatId])
 
   const fetchDeployRequest = async ({
     projectId,
+    provider,
     enableMessages = true,
     showError = true,
   }: {
     projectId: string;
+    provider: DeployProviders;
     enableMessages?: boolean;
     showError?: boolean;
   }) => {
     try {
-      const data = await getDeployRequest(projectId);
-      setFinalDeployLink(data.url);
-
-      if (enableMessages && data.url) {
-        formattedLinkToast(data.url);
+      let url: string;
+      if (provider === DeployProviders.ICP) {
+        const data = await getIcpDeployRequest(projectId);
+        url = data.finalUrl;
+      } else if (provider === DeployProviders.AWS) {
+        const data = await getS3DeployRequest(projectId);
+        url = data.url;
+      } else {
+        throw new Error('Invalid provider');
+      }
+      setFinalDeployLink(url);
+      
+      if (url) {
+        if (deployingToastId.current) {
+          toast.dismiss(deployingToastId.current);
+        }
+        clearDeployStatusInterval();
+        setIsDeploying(false);
+      }
+      if (enableMessages && url) {
+        formattedLinkToast(url, provider);
       }
     } catch (error) {
       const failMessage = `Failed to publish app. Try again later.`;
+      clearDeployStatusInterval();
+      setIsDeploying(false);
       if (showError) {
         toast.error(failMessage);
         console.error(error);
@@ -121,7 +177,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     }
   };
 
-  const onDeploy = async () => {
+  const onDeploy = async (provider: DeployProviders) => {
     setIsDeploying(true);
 
     const toastId = toast.info('Publishing...', { autoClose: false });
@@ -152,22 +208,38 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           return key.startsWith("/home/project/dist/");
         }
       ));
+      
+      let data: IcpDeployResponse | S3DeployResponse;
+      let url: string;
+      if (provider === DeployProviders.AWS) {
+        data = await createaS3DeployRequest({
+          projectId: currentChatId,
+          snapshot: filteredFiles,
+        });
+        url = data.url;
+        formattedLinkToast(url, provider);
+        setIsDeploying(false);
+        toast.dismiss(toastId);
+      } else if (provider === DeployProviders.ICP) {
+        data = await createIcpDeployRequest({
+          projectId: currentChatId,
+          snapshot: filteredFiles,
+        });
+        clearDeployStatusInterval();
+        deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
+        url = data.url;
+        if (deployingToastId.current) {
+          toast.dismiss(deployingToastId.current);
+        }
+        deployingToastId.current = toastId;
+      } else {
+        throw new Error('Invalid provider');
+      }
 
-      const data = await createDeployRequest({
-        projectId: currentChatId,
-        snapshot: filteredFiles,
-      });
-
-      setFinalDeployLink(data.url);
-      formattedLinkToast(data.url);
+      setFinalDeployLink(url);
     } catch (error) {
       toast.error(`Failed to publish app. Maybe you have some errors in your app's code.`);
       console.error(error);
-    } finally {
-      setIsDeploying(false);
-      if (toastId) {
-        toast.dismiss(toastId);
-      }
     }
   }
 
@@ -223,7 +295,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         <div className="flex gap-2 mr-4 text-sm h-full">
             <Button
               active
-              disabled={isDeploying || !activePreview || isStreaming}
+              // disabled={isDeploying || !activePreview || isStreaming}
               ref={publishButtonRef}
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2
@@ -237,14 +309,31 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         </div>
 
         {isDropdownOpen && (
-          <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
+          <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[15rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
             <Button
               disabled={isDeploying || !activePreview || isStreaming}
-              onClick={onDeploy}
+              onClick={() => onDeploy(DeployProviders.AWS)}
               className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
             >
-              <div className="i-ph:rocket h-[28px] w-[28px]"></div>
-              <span className="mx-auto">Publish project</span>
+              <div className={`${providerToIconSlug[DeployProviders.AWS]} h-6 w-6`}></div>
+              <span className="mx-auto">Publish to AWS</span>
+            </Button>
+
+            <Button
+              disabled={isDeploying || !activePreview || isStreaming}
+              onClick={() => onDeploy(DeployProviders.ICP)}
+              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
+            >
+              <div className={`${providerToIconSlug[DeployProviders.ICP]} h-6 w-6`}></div>
+              <span className="mx-auto">Publish to ICP</span>
+            </Button>
+
+            <Button
+              disabled={true}
+              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
+            >
+              <div className="i-bolt:akash h-6 w-6"></div>
+              <span className="mx-auto max-w-[130px]">Publish to Akash (Coming soon)</span>
             </Button>
 
             <Button
@@ -298,10 +387,12 @@ interface ButtonProps {
   children?: any;
   onClick?: VoidFunction;
   className?: string;
+  onMouseEnter?: React.MouseEventHandler<HTMLButtonElement>;
+  onMouseLeave?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ active = false, disabled = false, children, onClick, className, ...props}, ref) => {
+  ({ active = false, disabled = false, children, onClick, className, onMouseEnter, onMouseLeave, ...props}, ref) => {
     return (
       <button
         ref={ref}
@@ -319,6 +410,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         disabled={disabled}
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
         {...props}
       >
         {children}
