@@ -12,7 +12,6 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
 
 import { logStore } from './lib/stores/logs';
-import type { SolanaProviderProps } from './components/providers/SolanaProvider';
 import { AuthProvider } from './lib/hooks/useAuth';
 import { RefCodeProvider } from './lib/hooks/useRefCode';
 
@@ -21,8 +20,15 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
+import { workbenchStore } from "./lib/stores/workbench";
+import LoadingScreen from "./components/common/LoadingScreen";
+import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
 
-const SolanaProvider = React.lazy(() => import('./components/providers/SolanaProvider'));
+const SolanaProvider = React.lazy(() => 
+  import('./components/providers/SolanaProvider').then(mod => ({
+    default: mod.default
+  }))
+);
 
 export const links: LinksFunction = () => [
   {
@@ -77,26 +83,16 @@ export const Head = createHead(() => (
 ));
 
 function Providers({ children }: { children: React.ReactNode }) {
-  type SolanaProviderType = FC<SolanaProviderProps>;
-
-  // const [SolanaProvider, setSolanaProvider] = useState<SolanaProviderType>(() => NoopProvider);
-
-  /*
-   * useEffect(() => {
-   * import("./components/providers/SolanaProvider").then(mod => {
-   * setSolanaProvider(() => mod.SolanaProvider);
-   * });
-   * }, [])
-   */
-
   return (
     <ClientOnly>
       {() => (
-        <Suspense fallback="">
+        <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
             <RefCodeProvider>
               <AuthProvider>
-                <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+                <DndProvider backend={HTML5Backend}>
+                  {children}
+                </DndProvider>
               </AuthProvider>
             </RefCodeProvider>
           </SolanaProvider>
@@ -130,6 +126,7 @@ export const ErrorBoundary = () => {
 
 export default function App() {
   const theme = useStore(themeStore);
+  useMemoryMonitor();
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {
@@ -138,6 +135,11 @@ export default function App() {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });
+
+    return () => {
+      // console.log('App unmounting, cleaning up...');
+      // workbenchStore.cleanup();
+    };
   }, []);
 
   return (

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from "react";
-import { Clipboard, Check } from "@phosphor-icons/react";
 import CustomWalletButton from '../common/CustomWalletButton';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { classNames } from '~/utils/classNames';
@@ -45,7 +44,7 @@ export default function ReferralsTab({ referralsCount, refCode }: ReferralsTabPr
                             className="p-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors"
                             title="Copy"
                         >
-                            {copied ? <Check size={20} className="text-green-400" /> : <Clipboard size={20} className="text-white" />}
+                            {copied ? <div className="i-ph:check w-5 h-5 text-green-400" /> : <div className="i-ph:clipboard w-5 h-5 text-white" />}
                         </button>
                     </div>
                 </div>

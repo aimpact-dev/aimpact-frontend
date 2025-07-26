@@ -1,12 +1,8 @@
-/*
- * @ts-nocheck
- * Preventing TS checks with files presented in the video for a better presentation.
- */
 import { useStore } from '@nanostores/react';
 import type { Message, UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
@@ -144,6 +140,20 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
    * console.log(`Prompt id: ${promptId}`)
    */
 
+  useEffect(() => {
+    return () => {
+      processSampledMessages.cancel?.();
+      
+      // Stop any ongoing chat requests
+      if (isLoading) {
+        stop();
+      }
+      
+      // Clear any pending toasts
+      toast.dismiss();
+    };
+  }, []); // Empty dependency array for cleanup on unmount
+
   const [model, setModel] = useState(() => {
     const savedModel = Cookies.get('selectedModel');
     return DEFAULT_MODEL || savedModel;
@@ -164,7 +174,12 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
-  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const chatBody = useMemo(() => ({
+    files,
+    promptId,
+    contextOptimization: contextOptimizationEnabled,
+    authToken: Cookies.get('authToken'),
+  }), [files, promptId, contextOptimizationEnabled]);
 
   const {
     messages,
@@ -181,12 +196,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     setData,
   } = useChat({
     api: '/api/chat',
-    body: {
-      files,
-      promptId,
-      contextOptimization: contextOptimizationEnabled,
-      authToken: Cookies.get('authToken'),
-    },
+    body: chatBody,
     sendExtraMessageFields: true,
     onError: (e) => {
       logger.error('Request failed\n\n', e, error);
@@ -222,7 +232,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
     initialMessages,
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
-    experimental_throttle: 50,
+    experimental_throttle: 75,
   });
   useEffect(() => {
     const prompt = searchParams.get('prompt');
@@ -247,6 +257,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const { parsedMessages, parseMessages } = useMessageParser();
 
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
+
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     chatStore.setKey('started', initialMessages.length > 0);
@@ -343,6 +361,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         console.log(`SELECTED TEMPLATE:`);
         console.log(template);
 
+        if (!isMounted.current) return;
+
         if (template !== 'blank') {
           const temResp = await getTemplates(template, title).catch((e) => {
             if (e.message.includes('rate limit')) {
@@ -353,6 +373,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
             return null;
           });
+          if (!isMounted.current) return;
 
           if (temResp) {
             const { assistantMessage, userMessage } = temResp;
@@ -505,12 +526,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   );
 
   useEffect(() => {
-    const storedApiKeys = Cookies.get('apiKeys');
-
-    if (storedApiKeys) {
-      setApiKeys(JSON.parse(storedApiKeys));
-    }
-  }, []);
+    return () => {
+      debouncedCachePrompt.cancel?.();
+    };
+  }, [debouncedCachePrompt]);
 
   const handleModelChange = (newModel: string) => {
     setModel(newModel);
@@ -522,20 +541,39 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
   };
 
+  const enhancePromptCallback = useCallback(() => {
+    enhancePrompt(
+      input,
+      (input) => {
+        setInput(input);
+        scrollTextArea();
+      },
+    );
+  }, [enhancePrompt, input, setInput]);
+
+  const handleInputChangeAndCache = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onTextareaChange(e);
+    debouncedCachePrompt(e);
+  }, [onTextareaChange, debouncedCachePrompt]);
+
+  const clearAlertCallback = useCallback(() => {
+    workbenchStore.clearAlert();
+  }, []);
+
+  const clearSupabaseAlertCallback = useCallback(() => {
+    workbenchStore.clearSupabaseAlert()
+  }, []);
+
+  const clearDeployAlertCallback = useCallback(() => {
+    workbenchStore.clearDeployAlert()
+  }, []);
+
+  const onStreamingChangeCallback = useCallback((streaming: boolean) => {
+    streamingState.set(streaming);
+  }, [streamingState]);
+
   return (
     <>
-      {/* <Popup isShow={showPopup} handleToggle={handleClosePopup}>
-        <h3 className='text-2xl font-bold mb-4'>You are using AImpact v0.01</h3>
-        <p className='text-left'>
-        <br />
-        You can use the service if you want to, but be ready, it's not in production at the moment.
-After launch, all users will have some free messages and also, there will be quests to get more free ones. 
-<br /> <br />
-At the moment, we removed free messages temporarily, so the service does not get abused while we are not launched, but feel free to buy some if you want to start early and support us.
-<br /> <br />
-Follow our <a href='https://x.com/ostolex' target='_blank' className='underline'>Twitter</a> to be updated on our launch and other news.
-        </p>
-      </Popup> */}
       <BaseChat
         ref={animationScope}
         textareaRef={textareaRef}
@@ -543,9 +581,7 @@ Follow our <a href='https://x.com/ostolex' target='_blank' className='underline'
         showChat={showChat}
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}
-        onStreamingChange={(streaming) => {
-          streamingState.set(streaming);
-        }}
+        onStreamingChange={onStreamingChangeCallback}
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}
         sendMessage={sendMessage}
@@ -554,10 +590,7 @@ Follow our <a href='https://x.com/ostolex' target='_blank' className='underline'
         provider={provider}
         setProvider={handleProviderChange}
         providerList={activeProviders}
-        handleInputChange={(e) => {
-          onTextareaChange(e);
-          debouncedCachePrompt(e);
-        }}
+        handleInputChange={handleInputChangeAndCache}
         handleStop={abort}
         /*
         * description={description}
@@ -574,25 +607,17 @@ Follow our <a href='https://x.com/ostolex' target='_blank' className='underline'
             content: parsedMessages[i] || '',
           };
         })}
-        enhancePrompt={() => {
-          enhancePrompt(
-            input,
-            (input) => {
-              setInput(input);
-              scrollTextArea();
-            },
-          );
-        }}
+        enhancePrompt={enhancePromptCallback}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}
         imageDataList={imageDataList}
         setImageDataList={setImageDataList}
         actionAlert={actionAlert}
-        clearAlert={() => workbenchStore.clearAlert()}
+        clearAlert={clearAlertCallback}
         supabaseAlert={supabaseAlert}
-        clearSupabaseAlert={() => workbenchStore.clearSupabaseAlert()}
+        clearSupabaseAlert={clearSupabaseAlertCallback}
         deployAlert={deployAlert}
-        clearDeployAlert={() => workbenchStore.clearDeployAlert()}
+        clearDeployAlert={clearDeployAlertCallback}
         data={chatData}
         showWorkbench={showWorkbench}
       />

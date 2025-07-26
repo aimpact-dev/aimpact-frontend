@@ -7,7 +7,7 @@ import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import DepositButton from '../chat/DepositButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
-import React, {
+import {
   type CSSProperties,
   type PropsWithChildren,
   type ReactElement,
@@ -19,6 +19,7 @@ import GetMessagesButton from '../chat/GetMessagesButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
+import { Tooltip } from '../chat/Tooltip';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;

@@ -1,6 +1,5 @@
 'use client';
 
-import { PencilIcon } from '@phosphor-icons/react';
 import { useParams } from '@remix-run/react';
 import { useProjectQuery, useS3DeployemntQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
@@ -81,7 +80,7 @@ export default function Project() {
                 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
                   href={`/chat/${project.id}`}
                 >
-                  <PencilIcon size={20} />
+                  <div className='i-ph:pencil w-5 h-5' />
                   Edit project
                 </a>
               )

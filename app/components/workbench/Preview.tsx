@@ -6,6 +6,7 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { Tooltip } from '../chat/Tooltip';
 
 type ResizeSide = 'left' | 'right' | null;
 
@@ -625,23 +626,29 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-2">
         <div className="flex items-center gap-2">
-          <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
-          <IconButton
-            icon="i-ph:selection"
-            onClick={() => setIsSelectionMode(!isSelectionMode)}
-            className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
-          />
+          <Tooltip content="Reload page" side='bottom'>
+            <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
+          </Tooltip>
+          <Tooltip content="Send screenshot to chat" side='bottom'>
+            <IconButton
+              icon="i-ph:selection"
+              onClick={() => setIsSelectionMode(!isSelectionMode)}
+              className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
+            />
+          </Tooltip>
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <PortDropdown
-            activePreviewIndex={activePreviewIndex}
-            setActivePreviewIndex={setActivePreviewIndex}
-            isDropdownOpen={isPortDropdownOpen}
-            setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
-            setIsDropdownOpen={setIsPortDropdownOpen}
-            previews={previews}
-          />
+          <Tooltip content="Ports" side='bottom'> 
+            <PortDropdown
+              activePreviewIndex={activePreviewIndex}
+              setActivePreviewIndex={setActivePreviewIndex}
+              isDropdownOpen={isPortDropdownOpen}
+              setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
+              setIsDropdownOpen={setIsPortDropdownOpen}
+              previews={previews}
+            />
+          </Tooltip>
           <input
             title="URL Path"
             ref={inputRef}
@@ -673,11 +680,12 @@ export const Preview = memo(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <IconButton
-            icon="i-ph:devices"
-            onClick={toggleDeviceMode}
-            title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
-          />
+          <Tooltip content="Change layout" side='bottom'>
+            <IconButton
+              icon="i-ph:devices"
+              onClick={toggleDeviceMode}
+            />
+          </Tooltip>
 
           {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
 
@@ -685,31 +693,35 @@ export const Preview = memo(() => {
 
           {isDeviceModeOn && (
             <>
-              <IconButton
-                icon="i-ph:device-rotate"
-                onClick={() => setIsLandscape(!isLandscape)}
-                title={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'}
-              />
-              <IconButton
-                icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
-                onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
-                title={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'}
-              />
+              <Tooltip content={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'} side='bottom'>
+                <IconButton
+                  icon="i-ph:device-rotate"
+                  onClick={() => setIsLandscape(!isLandscape)}
+                />
+              </Tooltip>
+              <Tooltip content={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'} side='bottom'>
+                <IconButton
+                  icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
+                  onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
+                />
+              </Tooltip>
             </>
           )}
 
-          <IconButton
-            icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-          />
+          <Tooltip content={isFullscreen ? 'Exit Full Screen' : 'Full Screen'} side='bottom'>
+            <IconButton
+              icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
+              onClick={toggleFullscreen}
+            />
+          </Tooltip>
 
           <div className="flex items-center relative">
-            <IconButton
-              icon="i-ph:list"
-              onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-              title="New Window Options"
-            />
+            <Tooltip content="Window options" side='bottom'>
+              <IconButton
+                icon="i-ph:list"
+                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
+              />
+            </Tooltip>
 
             {isWindowSizeDropdownOpen && (
               <>
