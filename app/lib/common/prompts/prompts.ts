@@ -16,6 +16,8 @@ It is already deployed on devnet:
 - Program ID: ${SOLANA_PROGRAM_ID}
 - RPC URL: ${SOLANA_DEVNET_RPC_URL}
 
+Use the \`solana\` and \`components\` directories (client.ts, idl.json, SolanaProvider.ts) as a skeleton to implement the solana part of the project.
+
 Created app should genereate an application ID that is used to store data in the program. 
 Use current timestamp as application ID.
 domain parameter is used to separate data for different applications. Use application ID as domain.
