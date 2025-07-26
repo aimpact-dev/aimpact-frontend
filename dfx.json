@@ -1,0 +1,19 @@
+{
+  "canisters": {
+    "aimpact_frontend": {
+      "source": [
+        "dist"
+      ],
+      "type": "assets",
+      "workspace": "aimpact_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
