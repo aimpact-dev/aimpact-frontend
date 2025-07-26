@@ -18,6 +18,7 @@ import { userInfo } from '~/lib/hooks/useAuth';
 import GetMessagesButton from '../chat/GetMessagesButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
+import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
 import { Tooltip } from '../chat/Tooltip';
 
 export type ButtonProps = PropsWithChildren<{
@@ -56,6 +57,7 @@ export function Header() {
           <>
             <HowItWorksButton />
             <RewardsNavButton />
+            <LeaderbaordNavButton />
           </>
         )}
       </div>
