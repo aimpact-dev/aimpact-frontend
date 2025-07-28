@@ -285,7 +285,7 @@ export const Workbench = memo(
     const [isSyncing, setIsSyncing] = useState(false);
     const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
-    const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
+    const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
@@ -362,15 +362,6 @@ export const Workbench = memo(
       workbenchStore.setSelectedFile(filePath);
       workbenchStore.currentView.set('diff');
     }, []);
-
-    // Reset autosave when streaming starts
-    useEffect(() => {
-      if (isStreaming) {
-        setIsAutoSaveEnabled(false);
-      }
-    }, [isStreaming]);
-
-    const autoSaveToggleId = useId();
 
     return (
       chatStarted && (
