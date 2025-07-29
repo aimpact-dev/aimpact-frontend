@@ -1,0 +1,251 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+}
+
+canvas {
+  display: block;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+/* FPS Counter */
+#fps-counter {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #00ff00;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1px solid #333;
+  z-index: 100;
+  backdrop-filter: blur(5px);
+}
+
+/* Settings Panel */
+#settings-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 250px;
+  max-height: 80vh;
+  overflow-y: auto;
+  backdrop-filter: blur(10px);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+#settings-panel h3 {
+  margin-bottom: 15px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+}
+
+.setting-item {
+  margin-bottom: 15px;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 5px;
+  color: #ccc;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Input styles */
+input[type="checkbox"] {
+  margin-right: 8px;
+  transform: scale(1.1);
+  accent-color: #00ff00;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 4px;
+  background: #333;
+  outline: none;
+  border-radius: 2px;
+  margin-top: 5px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #00ff00;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #00ff00;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+input[type="color"] {
+  width: 40px;
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid #555;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+/* Button styles */
+#reset-button {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(45deg, #333, #555);
+  color: #fff;
+  border: 1px solid #666;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+}
+
+#reset-button:hover {
+  background: linear-gradient(45deg, #444, #666);
+  border-color: #777;
+  transform: translateY(-1px);
+}
+
+#reset-button:active {
+  transform: translateY(0);
+  background: linear-gradient(45deg, #222, #444);
+}
+
+/* Speed value display */
+#speed-value {
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+/* Scrollbar styling */
+#settings-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#settings-panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+#settings-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+#settings-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  #settings-panel {
+    right: 10px;
+    left: 10px;
+    top: 10px;
+    min-width: auto;
+    max-height: 60vh;
+  }
+
+  #fps-counter {
+    top: 10px;
+    left: 10px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  #settings-panel {
+    padding: 15px;
+  }
+
+  #settings-panel h3 {
+    font-size: 14px;
+  }
+
+  .setting-item label {
+    font-size: 12px;
+  }
+
+  #reset-button {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Smooth transitions */
+/* Removed redundant universal selector rule */
+
+/* Focus states for accessibility */
+input:focus,
+button:focus {
+  outline: 2px solid #00ff00;
+  outline-offset: 2px;
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(0, 255, 0, 0.3);
+  color: #fff;
+}
