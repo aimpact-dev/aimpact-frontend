@@ -1,291 +1,219 @@
-import GUI from 'lil-gui'
-import {
-  AmbientLight,
-  AxesHelper,
-  BoxGeometry,
-  Clock,
-  GridHelper,
-  LoadingManager,
-  Mesh,
-  MeshLambertMaterial,
-  MeshStandardMaterial,
-  PCFSoftShadowMap,
-  PerspectiveCamera,
-  PlaneGeometry,
-  PointLight,
-  PointLightHelper,
-  Scene,
-  WebGLRenderer,
-} from 'three'
-import { DragControls } from 'three/addons/controls/DragControls.js'
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import Stats from 'stats.js'
-import * as animations from './helpers/animations'
-import { toggleFullScreen } from './helpers/fullscreen'
-import { resizeRendererToDisplaySize } from './helpers/responsiveness'
-import './style.css'
+import * as THREE from 'three';
 
-const CANVAS_ID = 'scene'
+interface SceneSettings {
+  wireframe: boolean;
+  rotationSpeed: number;
+  backgroundColor: string;
+  enableAnimation: boolean;
+}
 
-let canvas: HTMLElement
-let renderer: WebGLRenderer
-let scene: Scene
-let loadingManager: LoadingManager
-let ambientLight: AmbientLight
-let pointLight: PointLight
-let cube: Mesh
-let camera: PerspectiveCamera
-let cameraControls: OrbitControls
-let dragControls: DragControls
-let axesHelper: AxesHelper
-let pointLightHelper: PointLightHelper
-let clock: Clock
-let stats: Stats
-let gui: GUI
+export class SceneManager {
+  private scene: THREE.Scene;
+  private camera: THREE.PerspectiveCamera;
+  private renderer: THREE.WebGLRenderer;
+  private cube: THREE.Mesh;
+  private animationId: number = 0;
 
-const animation = { enabled: true, play: true }
+  // FPS tracking
+  private frameCount: number = 0;
+  private lastTime: number = 0;
+  private fps: number = 0;
+  private fpsElement: HTMLElement;
 
-init()
-animate()
+  // Settings
+  private settings: SceneSettings = {
+    wireframe: false,
+    rotationSpeed: 0.01,
+    backgroundColor: '#1a1a1a',
+    enableAnimation: true
+  };
 
-function init() {
-  // ===== 🖼️ CANVAS, RENDERER, & SCENE =====
-  {
-    canvas = document.querySelector(`canvas#${CANVAS_ID}`)!
-    renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = PCFSoftShadowMap
-    scene = new Scene()
+  constructor() {
+    this.initScene();
+    this.initUI();
+    this.setupEventListeners();
+    this.animate();
   }
 
-  // ===== 👨🏻‍💼 LOADING MANAGER =====
-  {
-    loadingManager = new LoadingManager()
+  private initScene(): void {
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(this.settings.backgroundColor);
 
-    loadingManager.onStart = () => {
-      console.log('loading started')
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    this.camera.position.z = 5;
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    document.body.appendChild(this.renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    directionalLight.castShadow = true;
+    this.scene.add(directionalLight);
+
+    // Create a cube
+    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const material = new THREE.MeshLambertMaterial({
+      color: 0x00ff00,
+      wireframe: this.settings.wireframe
+    });
+    this.cube = new THREE.Mesh(geometry, material);
+    this.cube.castShadow = true;
+    this.scene.add(this.cube);
+
+    // Ground plane
+    const groundGeometry = new THREE.PlaneGeometry(10, 10);
+    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -2;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+  }
+
+  private initUI(): void {
+    // FPS Counter
+    this.fpsElement = document.createElement('div');
+    this.fpsElement.id = 'fps-counter';
+    this.fpsElement.textContent = 'FPS: 0';
+    document.body.appendChild(this.fpsElement);
+
+    // Settings Panel
+    const settingsPanel = document.createElement('div');
+    settingsPanel.id = 'settings-panel';
+    settingsPanel.innerHTML = `
+      <h3>Settings</h3>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="wireframe" ${this.settings.wireframe ? 'checked' : ''}>
+          Wireframe Mode
+        </label>
+      </div>
+      <div class="setting-item">
+        <label>
+          Animation Speed: <span id="speed-value">${this.settings.rotationSpeed.toFixed(3)}</span>
+        </label>
+        <input type="range" id="rotation-speed" min="0" max="0.05" step="0.001" value="${this.settings.rotationSpeed}">
+      </div>
+      <div class="setting-item">
+        <label>
+          Background Color:
+        </label>
+        <input type="color" id="bg-color" value="${this.settings.backgroundColor}">
+      </div>
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="enable-animation" ${this.settings.enableAnimation ? 'checked' : ''}>
+          Enable Animation
+        </label>
+      </div>
+      <button id="reset-button">Reset Scene</button>
+    `;
+    document.body.appendChild(settingsPanel);
+  }
+
+  private setupEventListeners(): void {
+    // Window resize
+    window.addEventListener('resize', () => this.onWindowResize());
+
+    // Settings controls
+    const wireframeToggle = document.getElementById('wireframe') as HTMLInputElement;
+    wireframeToggle?.addEventListener('change', (e) => {
+      this.settings.wireframe = (e.target as HTMLInputElement).checked;
+      (this.cube.material as THREE.MeshLambertMaterial).wireframe = this.settings.wireframe;
+    });
+
+    const speedSlider = document.getElementById('rotation-speed') as HTMLInputElement;
+    const speedValue = document.getElementById('speed-value');
+    speedSlider?.addEventListener('input', (e) => {
+      this.settings.rotationSpeed = parseFloat((e.target as HTMLInputElement).value);
+      if (speedValue) speedValue.textContent = this.settings.rotationSpeed.toFixed(3);
+    });
+
+    const bgColorPicker = document.getElementById('bg-color') as HTMLInputElement;
+    bgColorPicker?.addEventListener('change', (e) => {
+      this.settings.backgroundColor = (e.target as HTMLInputElement).value;
+      this.scene.background = new THREE.Color(this.settings.backgroundColor);
+    });
+
+    const animationToggle = document.getElementById('enable-animation') as HTMLInputElement;
+    animationToggle?.addEventListener('change', (e) => {
+      this.settings.enableAnimation = (e.target as HTMLInputElement).checked;
+    });
+
+    const resetButton = document.getElementById('reset-button');
+    resetButton?.addEventListener('click', () => this.resetScene());
+  }
+
+  private onWindowResize(): void {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  private updateFPS(): void {
+    this.frameCount++;
+    const currentTime = performance.now();
+
+    if (currentTime - this.lastTime >= 1000) {
+      this.fps = Math.round((this.frameCount * 1000) / (currentTime - this.lastTime));
+      this.fpsElement.textContent = `FPS: ${this.fps}`;
+      this.frameCount = 0;
+      this.lastTime = currentTime;
     }
-    loadingManager.onProgress = (url, loaded, total) => {
-      console.log('loading in progress:')
-      console.log(`${url} -> ${loaded} / ${total}`)
+  }
+
+  private resetScene(): void {
+    this.cube.rotation.set(0, 0, 0);
+    this.cube.position.set(0, 0, 0);
+    this.camera.position.set(0, 0, 5);
+    this.camera.lookAt(0, 0, 0);
+  }
+
+  private animate(): void {
+    this.animationId = requestAnimationFrame(() => this.animate());
+
+    if (this.settings.enableAnimation) {
+      this.cube.rotation.x += this.settings.rotationSpeed;
+      this.cube.rotation.y += this.settings.rotationSpeed;
     }
-    loadingManager.onLoad = () => {
-      console.log('loaded!')
-    }
-    loadingManager.onError = () => {
-      console.log('❌ error while loading')
-    }
+
+    this.updateFPS();
+    this.renderer.render(this.scene, this.camera);
   }
 
-  // ===== 💡 LIGHTS =====
-  {
-    ambientLight = new AmbientLight('white', 0.4)
-    pointLight = new PointLight('white', 20, 100)
-    pointLight.position.set(-2, 2, 2)
-    pointLight.castShadow = true
-    pointLight.shadow.radius = 4
-    pointLight.shadow.camera.near = 0.1
-    pointLight.shadow.camera.far = 1000
-    pointLight.shadow.mapSize.width = 2048
-    pointLight.shadow.mapSize.height = 2048
-    scene.add(ambientLight)
-    scene.add(pointLight)
-  }
+  public dispose(): void {
+    cancelAnimationFrame(this.animationId);
+    this.renderer.dispose();
 
-  // ===== 📦 OBJECTS =====
-  {
-    const sideLength = 1
-    const cubeGeometry = new BoxGeometry(sideLength, sideLength, sideLength)
-    const cubeMaterial = new MeshStandardMaterial({
-      color: '#f69f1f',
-      metalness: 0.5,
-      roughness: 0.7,
-    })
-    cube = new Mesh(cubeGeometry, cubeMaterial)
-    cube.castShadow = true
-    cube.position.y = 0.5
-
-    const planeGeometry = new PlaneGeometry(3, 3)
-    const planeMaterial = new MeshLambertMaterial({
-      color: 'gray',
-      emissive: 'teal',
-      emissiveIntensity: 0.2,
-      side: 2,
-      transparent: true,
-      opacity: 0.4,
-    })
-    const plane = new Mesh(planeGeometry, planeMaterial)
-    plane.rotateX(Math.PI / 2)
-    plane.receiveShadow = true
-
-    scene.add(cube)
-    scene.add(plane)
-  }
-
-  // ===== 🎥 CAMERA =====
-  {
-    camera = new PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000)
-    camera.position.set(2, 2, 5)
-  }
-
-  // ===== 🕹️ CONTROLS =====
-  {
-    cameraControls = new OrbitControls(camera, canvas)
-    cameraControls.target = cube.position.clone()
-    cameraControls.enableDamping = true
-    cameraControls.autoRotate = false
-    cameraControls.update()
-
-    dragControls = new DragControls([cube], camera, renderer.domElement)
-    dragControls.addEventListener('hoveron', (event) => {
-      const mesh = event.object as Mesh
-      const material = mesh.material as MeshStandardMaterial
-      material.emissive.set('green')
-    })
-    dragControls.addEventListener('hoveroff', (event) => {
-      const mesh = event.object as Mesh
-      const material = mesh.material as MeshStandardMaterial
-      material.emissive.set('black')
-    })
-    dragControls.addEventListener('dragstart', (event) => {
-      const mesh = event.object as Mesh
-      const material = mesh.material as MeshStandardMaterial
-      cameraControls.enabled = false
-      animation.play = false
-      material.emissive.set('orange')
-      material.opacity = 0.7
-      material.needsUpdate = true
-    })
-    dragControls.addEventListener('dragend', (event) => {
-      cameraControls.enabled = true
-      animation.play = true
-      const mesh = event.object as Mesh
-      const material = mesh.material as MeshStandardMaterial
-      material.emissive.set('black')
-      material.opacity = 1
-      material.needsUpdate = true
-    })
-    dragControls.enabled = false
-
-    // Full screen
-    window.addEventListener('dblclick', (event) => {
-      if (event.target === canvas) {
-        toggleFullScreen(canvas)
+    // Clean up geometries and materials
+    this.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        object.geometry.dispose();
+        if (object.material instanceof THREE.Material) {
+          object.material.dispose();
+        }
       }
-    })
-  }
-
-  // ===== 🪄 HELPERS =====
-  {
-    axesHelper = new AxesHelper(4)
-    axesHelper.visible = false
-    scene.add(axesHelper)
-
-    pointLightHelper = new PointLightHelper(pointLight, undefined, 'orange')
-    pointLightHelper.visible = false
-    scene.add(pointLightHelper)
-
-    const gridHelper = new GridHelper(20, 20, 'teal', 'darkgray')
-    gridHelper.position.y = -0.01
-    scene.add(gridHelper)
-  }
-
-  // ===== 📈 STATS & CLOCK =====
-  {
-    clock = new Clock()
-    stats = new Stats()
-    document.body.appendChild(stats.dom)
-  }
-
-  // ==== 🐞 DEBUG GUI ====
-  {
-    gui = new GUI({ title: '🐞 Debug GUI', width: 300 })
-
-    const cubeOneFolder = gui.addFolder('Cube one')
-
-    cubeOneFolder.add(cube.position, 'x').min(-5).max(5).step(0.5).name('pos x')
-    cubeOneFolder
-      .add(cube.position, 'y')
-      .min(-5)
-      .max(5)
-      .step(1)
-      .name('pos y')
-      .onChange(() => (animation.play = false))
-      .onFinishChange(() => (animation.play = true))
-    cubeOneFolder.add(cube.position, 'z').min(-5).max(5).step(0.5).name('pos z')
-
-    cubeOneFolder.add(cube.material as MeshStandardMaterial, 'wireframe')
-    cubeOneFolder.addColor(cube.material as MeshStandardMaterial, 'color')
-    cubeOneFolder.add(cube.material as MeshStandardMaterial, 'metalness', 0, 1, 0.1)
-    cubeOneFolder.add(cube.material as MeshStandardMaterial, 'roughness', 0, 1, 0.1)
-
-    cubeOneFolder
-      .add(cube.rotation, 'x', -Math.PI * 2, Math.PI * 2, Math.PI / 4)
-      .name('rotate x')
-    cubeOneFolder
-      .add(cube.rotation, 'y', -Math.PI * 2, Math.PI * 2, Math.PI / 4)
-      .name('rotate y')
-      .onChange(() => (animation.play = false))
-      .onFinishChange(() => (animation.play = true))
-    cubeOneFolder
-      .add(cube.rotation, 'z', -Math.PI * 2, Math.PI * 2, Math.PI / 4)
-      .name('rotate z')
-
-    cubeOneFolder.add(animation, 'enabled').name('animated')
-
-    const controlsFolder = gui.addFolder('Controls')
-    controlsFolder.add(dragControls, 'enabled').name('drag controls')
-
-    const lightsFolder = gui.addFolder('Lights')
-    lightsFolder.add(pointLight, 'visible').name('point light')
-    lightsFolder.add(ambientLight, 'visible').name('ambient light')
-
-    const helpersFolder = gui.addFolder('Helpers')
-    helpersFolder.add(axesHelper, 'visible').name('axes')
-    helpersFolder.add(pointLightHelper, 'visible').name('pointLight')
-
-    const cameraFolder = gui.addFolder('Camera')
-    cameraFolder.add(cameraControls, 'autoRotate')
-
-    // persist GUI state in local storage on changes
-    gui.onFinishChange(() => {
-      const guiState = gui.save()
-      localStorage.setItem('guiState', JSON.stringify(guiState))
-    })
-
-    // load GUI state if available in local storage
-    const guiState = localStorage.getItem('guiState')
-    if (guiState) gui.load(JSON.parse(guiState))
-
-    // reset GUI state button
-    const resetGui = () => {
-      localStorage.removeItem('guiState')
-      gui.reset()
-    }
-    gui.add({ resetGui }, 'resetGui').name('RESET')
-
-    gui.close()
+    });
   }
 }
 
-function animate() {
-  requestAnimationFrame(animate)
-
-  stats.begin()
-  if (animation.enabled && animation.play) {
-    animations.rotate(cube, clock, Math.PI / 3)
-    animations.bounce(cube, clock, 1, 0.5, 0.5)
-  }
-
-  if (resizeRendererToDisplaySize(renderer)) {
-    const canvas = renderer.domElement
-    camera.aspect = canvas.clientWidth / canvas.clientHeight
-    camera.updateProjectionMatrix()
-  }
-
-  cameraControls.update()
-
-  renderer.render(scene, camera)
-  stats.end()
-}
+// Initialize the scene when the DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  new SceneManager();
+});
