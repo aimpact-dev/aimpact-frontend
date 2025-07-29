@@ -28,7 +28,7 @@ $ pnpm install
 ## How to run locally
 
 1) In .env.local set PUBLIC_BACKEND_URL to `http://localhost:8000`.
-2) Run the frontend with the command below. Make sure that the backend is running as well.:
+2) Run the frontend with the command below. Make sure that the backend is running as well.
 ```bash
 $ npm run dev
 ```
