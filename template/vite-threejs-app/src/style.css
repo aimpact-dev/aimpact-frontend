@@ -235,9 +235,7 @@ input[type="color"]::-webkit-color-swatch {
 }
 
 /* Smooth transitions */
-* {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
+/* Removed redundant universal selector rule */
 
 /* Focus states for accessibility */
 input:focus,
