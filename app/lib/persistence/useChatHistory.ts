@@ -48,6 +48,7 @@ export function useChatHistory() {
   const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const creatingProjectRef = useRef<boolean>(false);
   const settingProjectWorkaroundRef = useRef<boolean>(false);
@@ -189,6 +190,7 @@ export function useChatHistory() {
 
             logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
             toast.error('Failed to load chat: ' + error.message); // More specific error
+            setError(error);
           });
       } else {
         // Handle case where there is no mixedId (e.g., new chat)
@@ -258,6 +260,7 @@ export function useChatHistory() {
   return {
     ready: !mixedId || ready,
     initialMessages,
+    error,
     takeSnapshot,
     updateChatMestaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();
