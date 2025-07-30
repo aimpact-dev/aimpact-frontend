@@ -424,6 +424,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       });
     }
 
+    //If we encountered an error during AI response we should decrement pending messages
+    try {
+      await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+      });
+    } catch (err) {
+      logger.error('Failed to decrement pending messages:', err);
+    }
+
     throw new Response(null, {
       status: 500,
       statusText: 'Internal Server Error',
