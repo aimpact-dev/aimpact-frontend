@@ -351,10 +351,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         })();
         result.mergeIntoDataStream(dataStream);
       },
-      onError: (error: any) => {
-        //If we encountered an error during AI response we should decrement pending messages
+      onError: async (error: any) => {
+        // If we encountered an error during AI response we should decrement pending messages
         try {
-          fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
+          await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
