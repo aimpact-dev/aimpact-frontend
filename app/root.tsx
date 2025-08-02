@@ -6,7 +6,7 @@ import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import React, { Suspense, useEffect, useState, type FC, type PropsWithChildren } from 'react';
+import React, { Suspense, useEffect, useState, type FC, type PropsWithChildren, Profiler } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -24,7 +24,7 @@ import { workbenchStore } from "./lib/stores/workbench";
 import LoadingScreen from "./components/common/LoadingScreen";
 import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
 
-const SolanaProvider = React.lazy(() => 
+const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then(mod => ({
     default: mod.default
   }))
@@ -124,6 +124,14 @@ export const ErrorBoundary = () => {
   return <div>Something went wrong</div>;
 };
 
+function onRender(id, phase, actualDuration, baseDuration, startTime, commitTime) {
+  console.log("Profiler ID:", id);
+  console.log("Phase:", phase);
+  console.log("Actual Duration:", actualDuration);
+  console.log("Base Duration:", baseDuration);
+  console.log("Start Time:", startTime);
+  console.log("Commit Time:", commitTime);
+}
 export default function App() {
   const theme = useStore(themeStore);
   useMemoryMonitor();
