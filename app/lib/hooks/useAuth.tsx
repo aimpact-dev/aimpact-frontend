@@ -10,6 +10,7 @@ interface UserInfo {
   id: string;
   wallet: string;
   messagesLeft: number;
+  pendingMessages: number;
   inviteCode: string;
   discountPercent: number;
   referralsRewards: number;

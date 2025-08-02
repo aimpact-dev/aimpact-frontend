@@ -83,7 +83,7 @@ export function Header() {
         {connected && user && (
           <>
             <div className="whitespace-nowrap text-base font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
-              {user.messagesLeft} message{user.messagesLeft === 1 ? '' : 's'} left
+              {user.messagesLeft - user.pendingMessages} message{(user.messagesLeft - user.pendingMessages) === 1 ? '' : 's'} left
             </div>
 
             <ClientOnly>
