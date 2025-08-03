@@ -21,8 +21,6 @@ export default function UserPooling() {
   const { connected } = useWallet();
   const { isAuthorized } = useAuth();
   
-  // const npsColors: string[] = (range(1, 9).map(i => `bg-green-${i * 100}`));
-  // npsColors.push("bg-green-950");
   const npsColors = [
     'bg-red-600',
     'bg-red-500',
@@ -35,9 +33,6 @@ export default function UserPooling() {
     'bg-green-700',
     'bg-green-800',
   ];
-
-  useEffect(() => {
-  }, [showNPS, connected, isAuthorized])
 
   const handleGradeClick = async (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     const grade = parseInt(event.currentTarget.id);
@@ -62,18 +57,21 @@ export default function UserPooling() {
   }
 
   useEffect(() => {
-    const userVisits = parseInt(localStorage.getItem("userVisits") || "1");
+    const userVisitCooldown = 3 * 60 * 60 * 1000;
+    let userVisits = parseInt(localStorage.getItem("userVisits") || "0");
     const lastUserVisit = parseInt(localStorage.getItem("lastUserVisit") || "0");
-    if (userVisits % 10 === 0) {
+    const isNewVisit = lastUserVisit + userVisitCooldown < Date.now();
+
+    if (isNewVisit) {
+      localStorage.setItem("userVisits", (userVisits + 1).toString());
+      localStorage.setItem("lastUserVisit", Date.now().toString())
+      userVisits++;
+    }
+
+    if (userVisits % 5 === 0 && isNewVisit) {
       setShowNPS(true);
     } else if (userVisits === 3 || userVisits % 18 === 0) {
       setShowPMF(true);
-    }
-
-    const userVisitCooldown = 3 * 60 * 60 * 1000;
-    if (lastUserVisit + userVisitCooldown < Date.now()) {
-      localStorage.setItem("userVisits", (userVisits + 1).toString());
-      localStorage.setItem("lastUserVisit", Date.now().toString())
     }
   }, [])
 
