@@ -171,21 +171,6 @@ export class PreviewsStore {
           }
         },
       );
-
-      // Watch for DOM changes that might affect storage
-      if (typeof window !== 'undefined') {
-        const observer = new MutationObserver((_mutations) => {
-          // Broadcast storage changes when DOM changes
-          this._broadcastStorageSync();
-        });
-
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true,
-          characterData: true,
-          attributes: true,
-        });
-      }
     } catch (error) {
       console.error('[Preview] Error setting up watchers:', error);
     }
