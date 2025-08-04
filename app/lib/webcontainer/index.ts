@@ -54,7 +54,6 @@ if (!import.meta.env.SSR) {
               : 'args' in message && Array.isArray(message.args) && message.args.length > 0
                 ? message.args[0]
                 : 'Unknown error';
-            console.log("Message text: " + messageDescription);
             if (isServerStopError(messageDescription)){
               return;
             }
