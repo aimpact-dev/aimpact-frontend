@@ -20,11 +20,10 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
-import { workbenchStore } from "./lib/stores/workbench";
 import LoadingScreen from "./components/common/LoadingScreen";
 import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
 
-const SolanaProvider = React.lazy(() => 
+const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then(mod => ({
     default: mod.default
   }))

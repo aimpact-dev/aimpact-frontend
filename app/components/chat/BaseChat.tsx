@@ -27,7 +27,6 @@ import ChatAlert from './ChatAlert';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
 import type { ProgressAnnotation } from '~/types/context';
-import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
@@ -74,7 +73,6 @@ interface BaseChatProps {
   deployAlert?: DeployAlert;
   clearDeployAlert?: () => void;
   data?: JSONValue[] | undefined;
-  actionRunner?: ActionRunner;
   showWorkbench?: boolean;
 }
 
@@ -110,7 +108,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       supabaseAlert,
       clearSupabaseAlert,
       data,
-      actionRunner,
       showWorkbench,
     },
     ref,
@@ -620,7 +617,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <ClientOnly>
             {() => (
               <Workbench
-                actionRunner={actionRunner ?? ({} as ActionRunner)}
                 chatStarted={chatStarted}
                 isStreaming={isStreaming}
               />
