@@ -1,18 +1,7 @@
 import { WebContainer } from '@webcontainer/api';
 import { WORK_DIR_NAME } from '~/utils/constants';
 import { cleanStackTrace } from '~/utils/stacktrace';
-
-interface WebContainerContext {
-  loaded: boolean;
-}
-
-export const webcontainerContext: WebContainerContext = import.meta.hot?.data.webcontainerContext ?? {
-  loaded: false,
-};
-
-if (import.meta.hot) {
-  import.meta.hot.data.webcontainerContext = webcontainerContext;
-}
+import type { ActionAlert } from '~/types/actions';
 
 export let webcontainer: Promise<WebContainer> = new Promise(() => {
   // noop for ssr
@@ -30,7 +19,6 @@ if (!import.meta.env.SSR) {
         });
       })
       .then(async (webcontainer) => {
-        webcontainerContext.loaded = true;
 
         const { workbenchStore } = await import('~/lib/stores/workbench');
 
@@ -51,7 +39,7 @@ if (!import.meta.env.SSR) {
               : isConsoleError
                 ? 'Console Error'
                 : 'Uncaught Exception';
-            workbenchStore.actionAlert.set({
+            const alert : ActionAlert = {
               type: 'preview',
               title,
               description:
@@ -62,7 +50,8 @@ if (!import.meta.env.SSR) {
                     : 'Unknown error',
               content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
               source: 'preview',
-            });
+            };
+            workbenchStore.actionAlert.set(alert);
           }
         });
 
