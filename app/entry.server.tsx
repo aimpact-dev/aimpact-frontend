@@ -41,7 +41,7 @@ export default async function handleRequest(
         try {
           while (true) {
             const { done, value } = await reader.read();
-            
+
             if (done) {
               controller.enqueue(
                 new Uint8Array(new TextEncoder().encode('</div></body></html>'))
@@ -49,7 +49,7 @@ export default async function handleRequest(
               controller.close();
               break;
             }
-            
+
             controller.enqueue(value);
           }
         } catch (error) {
@@ -71,8 +71,11 @@ export default async function handleRequest(
 
   responseHeaders.set('Content-Type', 'text/html');
 
-  responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-  responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  const url = new URL(request.url);
+  if (!url.pathname.startsWith('/auth')){
+    responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+    responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  }
   responseHeaders.set("Document-Policy", "js-profiling");
 
   return new Response(body, {

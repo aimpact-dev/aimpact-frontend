@@ -253,8 +253,6 @@ export function useChatHistory() {
       } else {
       }
     });
-
-    // workbenchStore.files.setKey(snapshot?.files)
   }, []);
 
   return {

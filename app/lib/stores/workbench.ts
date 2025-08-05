@@ -87,6 +87,7 @@ export class WorkbenchStore {
     return this.#previewsStore.previews;
   }
 
+  //Returns a map store with FileMap that reflects all project files in the container.
   get files() {
     return this.#filesStore.files;
   }
