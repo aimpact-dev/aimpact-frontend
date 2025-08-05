@@ -22,6 +22,11 @@ if (!import.meta.env.SSR) {
 
         const { workbenchStore } = await import('~/lib/stores/workbench');
 
+        const isServerStopError = (errorMessage: string): boolean => {
+          const pattern = /^WebSocket connection to '([^']+)' failed: Error during WebSocket handshake: Empty response$/;
+          return pattern.test(errorMessage);
+        }
+
         // Listen for preview errors
         webcontainer.on('preview-message', (message) => {
           console.log('WebContainer preview message:', message);
@@ -32,6 +37,14 @@ if (!import.meta.env.SSR) {
             message.type === 'PREVIEW_UNHANDLED_REJECTION' ||
             message.type === 'PREVIEW_CONSOLE_ERROR'
           ) {
+            const messageDescription = 'message' in message
+              ? message.message
+              : 'args' in message && Array.isArray(message.args) && message.args.length > 0
+                ? message.args[0]
+                : 'Unknown error';
+            if (isServerStopError(messageDescription)){
+              return;
+            }
             const isPromise = message.type === 'PREVIEW_UNHANDLED_REJECTION';
             const isConsoleError = message.type === 'PREVIEW_CONSOLE_ERROR';
             const title = isPromise
@@ -42,12 +55,7 @@ if (!import.meta.env.SSR) {
             const alert : ActionAlert = {
               type: 'preview',
               title,
-              description:
-                'message' in message
-                  ? message.message
-                  : 'args' in message && Array.isArray(message.args) && message.args.length > 0
-                    ? message.args[0]
-                    : 'Unknown error',
+              description: messageDescription,
               content: `Error occurred at ${message.pathname}${message.search}${message.hash}\nPort: ${message.port}\n\nStack trace:\n${cleanStackTrace(message.stack || '')}`,
               source: 'preview',
             };
