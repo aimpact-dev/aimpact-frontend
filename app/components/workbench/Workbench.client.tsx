@@ -310,6 +310,25 @@ export const Workbench = memo(
     }, [hasPreview]);
 
     useEffect(() => {
+      if (!hasPreview) {
+        const artifact = workbenchStore.firstArtifact;
+        const actionCommand = 'pnpm run dev';  // for now it's constant. need to change it, but it's complex
+        const abortController = new AbortController();
+        console.log(artifact?.runner)
+        artifact?.runner.runShellAction({
+          status: 'pending',
+          executed: false,
+          abort: () => {
+            abortController.abort();
+          },
+          abortSignal: abortController.signal,
+          content: actionCommand,
+          type: "shell",
+        });
+      }
+    }, [selectedView])
+
+    useEffect(() => {
       workbenchStore.setDocuments(files);
     }, [files]);
 
