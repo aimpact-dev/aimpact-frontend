@@ -442,15 +442,6 @@ export const Workbench = memo(
       workbenchStore.currentView.set('diff');
     }, []);
 
-    // Reset autosave when streaming starts
-    useEffect(() => {
-      if (isStreaming) {
-        setIsAutoSaveEnabled(false);
-      }
-    }, [isStreaming]);
-
-    const autoSaveToggleId = useId();
-
     return (
       chatStarted && (
         <motion.div

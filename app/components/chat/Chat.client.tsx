@@ -29,7 +29,8 @@ import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
-import Popup from '../common/Popup';
+import Page404 from '~/routes/$';
+import ErrorPage from '../common/ErrorPage';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -41,11 +42,18 @@ const logger = createScopedLogger('Chat');
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, storeMessageHistory, importChat, exportChat } = useChatHistory();
+  const { ready, initialMessages, storeMessageHistory, importChat, exportChat, error } = useChatHistory();
+
   const title = useStore(description);
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
+
+  if ((error as any)?.status === 404) {
+    return <Page404 />;
+  } else if ((error as any)?.status === 401) {
+    return <ErrorPage errorCode='401' errorText='Unauthorized' details='Connect wallet, sign in and reload page' />
+  }
 
   return (
     <>

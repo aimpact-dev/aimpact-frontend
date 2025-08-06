@@ -73,10 +73,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
-  const user = (await userResponse.json()) as { id: string; messagesLeft: number };
-  if (user.messagesLeft <= 0) {
+  const user = (await userResponse.json()) as { id: string; messagesLeft: number, pendingMessages: number };
+  const usableMessages = user.messagesLeft - user.pendingMessages;
+  if (usableMessages <= 0) {
     throw new Response('No messages left', { status: 402 });
   }
+
+  try {
+    await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/increment-pending-messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+    });
+  }
+  catch (err) {
+    logger.error('Failed to increment pending messages:', err);
+    throw new Response('Could not increment pending messages.', { status: 500 });
+  }
+
 
   try {
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
@@ -210,7 +226,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               cumulativeUsage.totalTokens += usage.totalTokens || 0;
             }
 
-            // Decrement messages left
+            //Decrementing both messagesLeft and pendingMessages
             try {
               await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-messages-left`, {
                 method: 'POST',
@@ -219,8 +235,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
                 },
               });
+              await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+                },
+              });
             } catch (err) {
-              logger.error('Failed to decrement messages left:', err);
+              logger.error('Failed to decrement messages:', err);
             }
 
 
@@ -328,7 +351,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         })();
         result.mergeIntoDataStream(dataStream);
       },
-      onError: (error: any) => {
+      onError: async (error: any) => {
+        // If we encountered an error during AI response we should decrement pending messages
+        try {
+          await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+          });
+        } catch (err) {
+          logger.error('Failed to decrement pending messages:', err);
+        }
         logger.error('Before error (onError)');
         return `Custom error: ${error.message}`;
       },
@@ -387,6 +422,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         status: 401,
         statusText: 'Unauthorized',
       });
+    }
+
+    //If we encountered an error during AI response we should decrement pending messages
+    try {
+      await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+      });
+    } catch (err) {
+      logger.error('Failed to decrement pending messages:', err);
     }
 
     throw new Response(null, {

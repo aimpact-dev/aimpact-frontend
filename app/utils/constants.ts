@@ -49,4 +49,12 @@ export const STARTER_TEMPLATES: Template[] = [
     icon: 'i-bolt:react',
     files: snapshotsData['vite-react-app'].files,
   },
+  {
+    name: 'vite-threejs-app',
+    label: 'Vite + Threejs + Typescript',
+    description: 'Threejs + Tailwind starter template powered by Vite for fast development experience',
+    tags: ['typescript', 'vite', 'vitejs', 'threejs', 'website', 'app', '3d'],
+    icon: 'i-bolt:react',
+    files: snapshotsData['vite-threejs-app'].files,
+  },
 ];

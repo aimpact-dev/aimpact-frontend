@@ -1,4 +1,4 @@
-  interface HttpErrorOptions extends ErrorOptions {
+interface HttpErrorOptions extends ErrorOptions {
   status?: number;
 }
 
