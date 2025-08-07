@@ -9,6 +9,8 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  s3Deployment: string | null,
+  icpDeployment: string | null,
 };
 
 export type ProjectWithOwner = Project & {
