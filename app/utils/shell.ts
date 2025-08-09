@@ -89,6 +89,7 @@ export class BoltShell {
     // Start background Expo URL watcher immediately
     this._watchExpoUrlInBackground(expoUrlStream);
 
+    //newBoltShellProcess already waits for the interactive OSC code, so this line seems useless
     await this.waitTillOscCode('interactive');
     this.#initialized?.();
   }
@@ -111,6 +112,10 @@ export class BoltShell {
 
     const jshReady = withResolvers<void>();
     let isInteractive = false;
+    //Ensuring that the terminal process from webcontainer is in needed state.
+    //I don't quite understand what this "needed state" is yet, but its likely
+    //that we can't be sure that BoltShell will work properly until we capture a certain
+    //pattern in the process output.
     streamA.pipeTo(
       new WritableStream({
         write(data) {
@@ -205,7 +210,7 @@ export class BoltShell {
     this.terminal.input(command.trim() + '\n');
 
     //wait for the execution to finish
-    const executionPromise = this.getCurrentExecutionResult();
+    const executionPromise = this.waitTillOscCode('exit');
     this.executionState.set({ sessionId, active: true, executionPrms: executionPromise, abort });
 
     const resp = await executionPromise;
@@ -221,13 +226,6 @@ export class BoltShell {
 
     return resp;
   }
-
-  async getCurrentExecutionResult(): Promise<ExecutionResult> {
-    const { output, exitCode } = await this.waitTillOscCode('exit');
-    return { output, exitCode };
-  }
-
-  onQRCodeDetected?: (qrCode: string) => void;
 
   async waitTillOscCode(waitCode: string) {
     let fullOutput = '';
@@ -254,6 +252,8 @@ export class BoltShell {
       fullOutput += text;
       buffer += text; // <-- Accumulate in buffer
 
+      // Let's wait for expo url here as well, because why not I guess?
+      // It totally won't make the purpose of the function less clear, right?
       // Extract Expo URL from buffer and set store
       const expoUrlMatch = buffer.match(expoUrlRegex);
 
