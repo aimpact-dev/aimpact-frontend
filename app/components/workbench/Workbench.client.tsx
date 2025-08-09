@@ -1,11 +1,11 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo, useId } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, useId, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
-import { ActionRunner } from '~/lib/runtime/action-runner';
+import { ActionRunner, type ActionState } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
@@ -16,7 +16,7 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
-import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { workbenchStore, type ArtifactState, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
@@ -286,6 +286,8 @@ export const Workbench = memo(
     const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
+    const customPreviewState = useRef('');
+    const [waitForInstall, setWaitForInstall] = useState(false);
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
@@ -309,6 +311,84 @@ export const Workbench = memo(
       }
     }, [hasPreview]);
 
+    function sleep(ms: number) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function getRunCommand(artifact: ArtifactState) {
+      const actions = artifact.runner.actions.get();
+      const runCommand = Object.values(actions).findLast(a => a.content === 'pnpm run dev');
+
+      return runCommand;
+    }
+
+    async function waitForInstallCmd(artifact: ArtifactState) {
+      setWaitForInstall(true);
+      let tries = 0;
+      let isCompleted: boolean;
+      let runCommand: ActionState | undefined;
+      const cooldown = 1 * 1000;
+      const unsubscribe = artifact.runner.actions.subscribe((state, prevState, key) => {
+        const commands = Object.values(state)
+        const installCmd = commands.find(a => a.content === 'pnpm install');
+        runCommand = commands.find(a => a.content === 'pnpm run dev');
+        // console.log(installCmd, installCmd?.status, installCmd?.status === 'complete');
+        if (installCmd?.status === 'complete') {
+          // console.log('command executed');
+          isCompleted = true;
+        }
+      });
+
+      isCompleted = false;
+      while (tries <= 20) {
+        if (isCompleted) {
+          unsubscribe();
+          return { status: true, runCommand };
+        }
+        await sleep(cooldown);
+      }
+
+      customPreviewState.current = 'Failed to run project';
+      return { status: false, runCommand };
+    }
+
+    useEffect(() => {
+      const func = async () => {
+        customPreviewState.current = 'Running...';
+        const artifact = workbenchStore.firstArtifact;
+        if (!artifact) return;
+        const actionCommand = 'pnpm run dev';  // for now it's constant. need to change it, but it's complex
+        const abortController = new AbortController();
+        let runCommand: ActionState | undefined;
+        
+        if (!waitForInstall) {
+          customPreviewState.current = 'Wait for install...';
+          const installResult = await waitForInstallCmd(artifact);
+          runCommand = installResult.runCommand;
+        } else {
+          runCommand = await getRunCommand(artifact);
+        }
+
+        if (!hasPreview && (!runCommand || (runCommand.status === 'complete' && runCommand.executed === true))) {
+          artifact?.runner.runShellAction({
+            status: 'pending',
+            executed: false,
+            abort: () => {
+              abortController.abort();
+            },
+            abortSignal: abortController.signal,
+            content: actionCommand,
+            type: "shell",
+          });
+          customPreviewState.current = '';
+        }
+      };
+
+      if (!hasPreview && selectedView === 'preview') {
+        func();
+      }
+    }, [selectedView])
+
     useEffect(() => {
       workbenchStore.setDocuments(files);
     }, [files]);
@@ -330,7 +410,6 @@ export const Workbench = memo(
         .saveCurrentDocument()
         .then(() => {
           // Explicitly refresh all previews after a file save
-          console.log("Before")
           const previewStore = usePreviewStore();
           previewStore.refreshAllPreviews();
         })
@@ -501,7 +580,7 @@ export const Workbench = memo(
                     <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} actionRunner={actionRunner} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                    <Preview />
+                    <Preview customText={customPreviewState.current} />
                   </View>
                 </div>
               </div>
@@ -513,7 +592,6 @@ export const Workbench = memo(
             onPush={async (repoName, username, token, isPrivate) => {
               try {
                 console.log('Dialog onPush called with isPrivate =', isPrivate);
-
                 const commitMessage = prompt('Please enter a commit message:', 'Initial commit') || 'Initial commit';
                 const repoUrl = await workbenchStore.pushToGitHub(repoName, commitMessage, username, token, isPrivate);
 

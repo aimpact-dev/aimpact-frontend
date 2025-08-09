@@ -247,6 +247,9 @@ export class ActionRunner {
     }
   }
 
+  async runShellAction(action: ActionState) {
+    return this.#runShellAction(action);
+  }
   async #runShellAction(action: ActionState) {
     if (action.type !== 'shell') {
       unreachable('Expected shell action');
