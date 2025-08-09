@@ -335,35 +335,6 @@ export class ActionRunner {
     this.actions.setKey(id, { ...actions[id], ...newState });
   }
 
-  async getFileHistory(filePath: string): Promise<FileHistory | null> {
-    try {
-      const webcontainer = await this.#webcontainer;
-      const historyPath = this.#getHistoryPath(filePath);
-      const content = await webcontainer.fs.readFile(historyPath, 'utf-8');
-
-      return JSON.parse(content);
-    } catch (error) {
-      logger.error('Failed to get file history:', error);
-      return null;
-    }
-  }
-
-  async saveFileHistory(filePath: string, history: FileHistory) {
-    // const webcontainer = await this.#webcontainer;
-    const historyPath = this.#getHistoryPath(filePath);
-
-    await this.#runFileAction({
-      type: 'file',
-      filePath: historyPath,
-      content: JSON.stringify(history),
-      changeSource: 'auto-save',
-    } as any);
-  }
-
-  #getHistoryPath(filePath: string) {
-    return nodePath.join('.history', filePath);
-  }
-
   async #runBuildAction(action: ActionState) {
     if (action.type !== 'build') {
       unreachable('Expected build action');

@@ -1,3 +1,4 @@
+
 /*
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.

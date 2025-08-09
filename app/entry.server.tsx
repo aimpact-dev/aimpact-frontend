@@ -72,10 +72,8 @@ export default async function handleRequest(
   responseHeaders.set('Content-Type', 'text/html');
 
   const url = new URL(request.url);
-  if (!url.pathname.startsWith('/auth')){
-    responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-    responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
-  }
+  responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
   responseHeaders.set("Document-Policy", "js-profiling");
 
   return new Response(body, {
