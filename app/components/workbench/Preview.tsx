@@ -48,7 +48,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(() => {
+export const Preview = memo(({ customText }: { customText?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -975,7 +975,7 @@ export const Preview = memo(() => {
             </>
           ) : (
             <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-              No preview available
+              {customText || 'No preview available'}
             </div>
           )}
 
