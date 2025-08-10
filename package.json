@@ -54,6 +54,7 @@
     "@codemirror/search": "^6.5.11",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.36.8",
+    "@daytonaio/sdk": "^0.25.5",
     "@headlessui/react": "^2.2.3",
     "@heroicons/react": "^2.2.0",
     "@nanostores/react": "^0.7.3",
