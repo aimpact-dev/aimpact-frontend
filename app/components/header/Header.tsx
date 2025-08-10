@@ -36,10 +36,6 @@ export function Header() {
   const { connected } = useWallet();
   const user = useStore(userInfo);
 
-  useEffect(() => {
-    console.log(user)
-  }, [user]);
-
   return (
     <header
       className={classNames('flex items-center px-2 py-2 border-b h-[var(--header-height)] justify-between', {

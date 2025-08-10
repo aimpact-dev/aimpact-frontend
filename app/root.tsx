@@ -135,11 +135,6 @@ export default function App() {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });
-
-    return () => {
-      // console.log('App unmounting, cleaning up...');
-      // workbenchStore.cleanup();
-    };
   }, []);
 
   return (
