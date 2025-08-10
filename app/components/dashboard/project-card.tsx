@@ -70,7 +70,9 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
               <BadgeCustom variant="secondary" onClick={(e) => handleDeployLabelClick(e, icpDeployment.url!)} className='hover:bg-gray-600 bg-gray-700'>
                 ICP
               </BadgeCustom>
-              {/* </a> */}
+              <BadgeCustom variant="secondary" onClick={(e) => handleDeployLabelClick(e, icpDeployment.url!)} className='hover:bg-gray-600 bg-gray-700'>
+                ICP
+              </BadgeCustom>
               </Tooltip>
             }
           </div>
