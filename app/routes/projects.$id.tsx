@@ -6,6 +6,7 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useGetIcpDeploy } from '~/lib/hooks/tanstack/useDeploy';
 import { useEffect } from 'react';
+import { formatUrl } from '~/utils/urlUtils';
 
 export default function Project() {
   const params = useParams();
@@ -119,7 +120,7 @@ export default function Project() {
                 <span className="text-gray-400">AWS (Default):</span>
                 <span className="text-xl font-bold text-white">
                   {deploymentUrlQuery.data ? <a href={deploymentUrlQuery.data} className='hover:underline' target={'_blank'}>
-                    {deploymentUrlQuery.data}
+                    {formatUrl(deploymentUrlQuery.data)}
                   </a> : 'Not deployed yet'}
                 </span>
               </div>
@@ -127,7 +128,7 @@ export default function Project() {
                 <span className="text-gray-400">Internet Computer:</span>
                 <span className="text-xl font-bold text-white">
                   {icpDeploymentData ? <a href={icpDeploymentData.finalUrl} className='hover:underline' target={'_blank'}>
-                    {icpDeploymentData.finalUrl}
+                    {formatUrl(icpDeploymentData.finalUrl)}
                   </a> : 'Not deployed yet'}
                 </span>
               </div>

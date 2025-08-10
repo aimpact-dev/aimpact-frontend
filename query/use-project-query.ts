@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { ky } from 'query';
 
+interface AppDeployments {
+  provider: string;
+  url: string | null;
+}
+
 export type Project = {
   id: string;
   name: string;
@@ -9,6 +14,7 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  appDeployments: AppDeployments[],
 };
 
 export type ProjectWithOwner = Project & {
