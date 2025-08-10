@@ -12,7 +12,6 @@ import {
   type PropsWithChildren,
   type ReactElement,
   type MouseEvent,
-  useEffect,
 } from 'react';
 import { Button } from '~/components/ui/Button';
 import { userInfo } from '~/lib/hooks/useAuth';
