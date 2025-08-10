@@ -128,12 +128,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const userInfoData = useStore(userInfo);
 
     const isDisabled = !isAuthorized || !userInfoData?.messagesLeft;
+    const formatModel = (model: string) => {
+      const fullModel = modelList.find((val) => val.name === model);
+      return fullModel ? fullModel.label.split('- in:')[0].replace(':', '') : model;
+    }
 
     useEffect(() => {
       if (expoUrl) {
         setQrModalOpen(true);
       }
     }, [expoUrl]);
+
+    useEffect(() => {
+      console.log(modelList.find(val => val.name === model));
+      console.log(model);
+    }, [modelList])
 
     useEffect(() => {
       if (promptEnhanced) {
@@ -560,7 +569,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
                           {isModelSettingsCollapsed ? (
                             <span className="text-xs">
-                              {modelList.find((val) => val.name === model)?.label || model}
+                              <b>Model:</b> {formatModel(model)}
                             </span>
                           ) : (
                             <span />
