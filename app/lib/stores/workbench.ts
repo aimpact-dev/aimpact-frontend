@@ -3,6 +3,7 @@ import type { EditorDocument, ScrollPosition } from '~/components/editor/codemir
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { webcontainer } from '~/lib/webcontainer';
+import {getSandbox} from '~/lib/daytona';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
@@ -39,7 +40,7 @@ export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(webcontainer);
+  #terminalStore = new TerminalStore(webcontainer, getSandbox());
 
   #reloadedMessages = new Set<string>();
 
@@ -144,6 +145,11 @@ export class WorkbenchStore {
   attachTerminal(terminal: ITerminal) {
     this.#terminalStore.attachTerminal(terminal);
   }
+
+  attachAimpactTerminal(terminal: ITerminal) {
+    this.#terminalStore.attachAimpactTerminal(terminal);
+  }
+
   attachBoltTerminal(terminal: ITerminal) {
     this.#terminalStore.attachBoltTerminal(terminal);
   }
