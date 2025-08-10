@@ -22,7 +22,6 @@ export class PreviewsStore {
   #webcontainer: Promise<WebContainer>;
   #broadcastChannel: BroadcastChannel;
   #lastUpdate = new Map<string, number>();
-  #watchedFiles = new Set<string>();
   #refreshTimeouts = new Map<string, NodeJS.Timeout>();
   #REFRESH_DELAY = 300;
   #storageChannel: BroadcastChannel;

@@ -91,7 +91,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const formattedLinkToast = (url: string, provider: DeployProviders) => {
     const toastId = toast.success(
       <div>
-        Project is published to <b>{provider}</b>. 
+        Project is published to <b>{provider}</b>.
         You can click to the button in the "Publish" dropdown and go to app by link or just click link here.
         <br /> <br />
         <a href={url} target="_blank" rel="noopener noreferrer" className='underline cursor-pointer'>
@@ -118,12 +118,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     const currentChatId = chatId.get();
     if (!currentChatId) return;
 
-    fetchDeployRequest({ 
+    fetchDeployRequest({
       projectId: currentChatId,
       showError: false,
       provider: DeployProviders.AWS,
     });
-    fetchDeployRequest({ 
+    fetchDeployRequest({
       projectId: currentChatId,
       showError: false,
       provider: DeployProviders.ICP,
@@ -155,7 +155,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         throw new Error('Invalid provider');
       }
       setFinalDeployLink(url);
-      
+
       if (url) {
         if (deployingToastId.current) {
           toast.dismiss(deployingToastId.current);
@@ -196,7 +196,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       }
 
       const deployResult = await deployService.current.runDeployScript();
-      
+
       console.log(deployResult);
       if (deployResult.exitCode !== 0 && deployResult.exitCode !== 143) {
         toast.error(`Failed to build. Status code: ${deployResult.exitCode}.`, { autoClose: false })
@@ -208,7 +208,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           return key.startsWith("/home/project/dist/");
         }
       ));
-      
+
       let data: IcpDeployResponse | S3DeployResponse;
       let url: string;
       if (provider === DeployProviders.AWS) {
@@ -295,7 +295,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         <div className="flex gap-2 mr-4 text-sm h-full">
             <Button
               active
-              // disabled={isDeploying || !activePreview || isStreaming}
               ref={publishButtonRef}
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2

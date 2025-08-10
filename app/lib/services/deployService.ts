@@ -1,5 +1,4 @@
 import { logger } from "~/utils/logger";
-import { TerminalStore } from "../stores/terminal";
 import { path as nodePath } from '~/utils/path';;
 import type { WebContainer, WebContainerProcess } from "@webcontainer/api";
 

@@ -248,35 +248,16 @@ export class ActionRunner {
   }
 
   async #runShellAction(action: ActionState) {
-    if (action.type !== 'shell') {
-      unreachable('Expected shell action');
-    }
-
-    const shell = this.#shellTerminal();
-    await shell.ready();
-
-    if (!shell || !shell.terminal || !shell.process) {
-      unreachable('Shell terminal not found');
-    }
-
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
-    logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
-
-    if (resp?.exitCode != 0) {
-      throw new ActionCommandError(`Failed To Execute Shell Command`, resp?.output || 'No Output Available');
-    }
+    return await this.#runStartOrShell(action);
   }
 
   async #runStartAction(action: ActionState) {
-    if (action.type !== 'start') {
-      unreachable('Expected shell action');
-    }
+    return await this.#runStartOrShell(action);
+  }
 
-    if (!this.#shellTerminal) {
-      unreachable('Shell terminal not found');
+  async #runStartOrShell(action: ActionState){
+    if (action.type !== 'start' || action.type !== 'shell') {
+      unreachable('Expected shell action');
     }
 
     const shell = this.#shellTerminal();
@@ -471,56 +452,5 @@ export class ActionRunner {
       default:
         throw new Error(`Unknown operation: ${operation}`);
     }
-  }
-
-  // Add this method declaration to the class
-  handleDeployAction(
-    stage: 'building' | 'deploying' | 'complete',
-    status: ActionStatus,
-    details?: {
-      url?: string;
-      error?: string;
-      source?: 'netlify' | 'vercel' | 'github';
-    },
-  ): void {
-    if (!this.onDeployAlert) {
-      logger.debug('No deploy alert handler registered');
-      return;
-    }
-
-    const alertType = status === 'failed' ? 'error' : status === 'complete' ? 'success' : 'info';
-
-    const title =
-      stage === 'building'
-        ? 'Building Application'
-        : stage === 'deploying'
-          ? 'Deploying Application'
-          : 'Deployment Complete';
-
-    const description =
-      status === 'failed'
-        ? `${stage === 'building' ? 'Build' : 'Deployment'} failed`
-        : status === 'running'
-          ? `${stage === 'building' ? 'Building' : 'Deploying'} your application...`
-          : status === 'complete'
-            ? `${stage === 'building' ? 'Build' : 'Deployment'} completed successfully`
-            : `Preparing to ${stage === 'building' ? 'build' : 'deploy'} your application`;
-
-    const buildStatus =
-      stage === 'building' ? status : stage === 'deploying' || stage === 'complete' ? 'complete' : 'pending';
-
-    const deployStatus = stage === 'building' ? 'pending' : status;
-
-    this.onDeployAlert({
-      type: alertType,
-      title,
-      description,
-      content: details?.error || '',
-      url: details?.url,
-      stage,
-      buildStatus: buildStatus as any,
-      deployStatus: deployStatus as any,
-      source: details?.source || 'netlify',
-    });
   }
 }
