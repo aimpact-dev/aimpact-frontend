@@ -1,5 +1,5 @@
 ﻿import type {
-  BufferEncoding,
+  BufferEncoding, DirEnt,
   PathWatcherEvent, TextSearchMatch,
   TextSearchOnProgressCallback,
   TextSearchOptions,
@@ -28,9 +28,14 @@ export abstract class AimpactFs {
   abstract rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
 
   abstract readdir(
-    dirPath: string,
-    options?: { encoding?: BufferEncoding | null; withFileTypes?: false } | BufferEncoding | null
-  ): Promise<string[]>;
+    path: string,
+    options: {encoding?: BufferEncoding | null, withFileTypes: true},
+  ): Promise<DirEnt<string>[]>;
+
+  abstract readdir(
+    path: string,
+    options: {encoding?: BufferEncoding | null, withFileTypes: true},
+  ): Promise<DirEnt<string>[]>;
 
   abstract textSearch(
     pattern: string,
