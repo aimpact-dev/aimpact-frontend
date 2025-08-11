@@ -6,6 +6,7 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltShell } from '~/utils/shell';
+import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -65,6 +66,7 @@ class ActionCommandError extends Error {
 
 export class ActionRunner {
   #webcontainer: Promise<WebContainer>;
+  #aimpactFs: Promise<AimpactFs>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
   #shellTerminal: () => BoltShell;
   runnerId = atom<string>(`${Date.now()}`);
@@ -76,12 +78,14 @@ export class ActionRunner {
 
   constructor(
     webcontainerPromise: Promise<WebContainer>,
+    aimpactFsPromise: Promise<AimpactFs>,
     getShellTerminal: () => BoltShell,
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
   ) {
     this.#webcontainer = webcontainerPromise;
+    this.#aimpactFs = aimpactFsPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
@@ -307,8 +311,8 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
-    const webcontainer = await this.#webcontainer;
-    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+    const fs = await this.#aimpactFs;
+    const relativePath = nodePath.relative(await fs.workdir(), action.filePath);
 
     let folder = nodePath.dirname(relativePath);
 
@@ -317,7 +321,7 @@ export class ActionRunner {
 
     if (folder !== '.') {
       try {
-        await webcontainer.fs.mkdir(folder, { recursive: true });
+        await fs.mkdir(folder, { recursive: true });
         logger.debug('Created folder', folder);
       } catch (error) {
         logger.error('Failed to create folder\n\n', error);
@@ -325,7 +329,7 @@ export class ActionRunner {
     }
 
     try {
-      await webcontainer.fs.writeFile(relativePath, action.content);
+      await fs.writeFile(relativePath, action.content);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
@@ -340,9 +344,9 @@ export class ActionRunner {
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {
     try {
-      const webcontainer = await this.#webcontainer;
+      const fs = await this.#aimpactFs;
       const historyPath = this.#getHistoryPath(filePath);
-      const content = await webcontainer.fs.readFile(historyPath, 'utf-8');
+      const content = await fs.readFile(historyPath, 'utf-8');
 
       return JSON.parse(content);
     } catch (error) {
@@ -352,7 +356,6 @@ export class ActionRunner {
   }
 
   async saveFileHistory(filePath: string, history: FileHistory) {
-    // const webcontainer = await this.#webcontainer;
     const historyPath = this.#getHistoryPath(filePath);
 
     await this.#runFileAction({
@@ -384,7 +387,7 @@ export class ActionRunner {
     });
 
     const webcontainer = await this.#webcontainer;
-
+    const fs = await this.#aimpactFs;
     // Create a new terminal specifically for the build
     const buildProcess = await webcontainer.spawn('npm', ['run', 'build']);
 
@@ -433,10 +436,10 @@ export class ActionRunner {
 
     // Try to find the first existing build directory
     for (const dir of commonBuildDirs) {
-      const dirPath = nodePath.join(webcontainer.workdir, dir);
+      const dirPath = nodePath.join(await fs.workdir(), dir);
 
       try {
-        await webcontainer.fs.readdir(dirPath);
+        await fs.readdir(dirPath);
         buildDir = dirPath;
         logger.debug(`Found build directory: ${buildDir}`);
         break;
@@ -448,7 +451,7 @@ export class ActionRunner {
 
     // If no build directory was found, use the default (dist)
     if (!buildDir) {
-      buildDir = nodePath.join(webcontainer.workdir, 'dist');
+      buildDir = nodePath.join(await fs.workdir(), 'dist');
       logger.debug(`No build directory found, defaulting to: ${buildDir}`);
     }
 

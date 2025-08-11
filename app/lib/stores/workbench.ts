@@ -484,6 +484,7 @@ export class WorkbenchStore {
       type,
       runner: new ActionRunner(
         webcontainer,
+        getAimpactFs(),
         () => this.boltTerminal,
         (alert) => {
           if (this.#reloadedMessages.has(messageId)) {
@@ -559,8 +560,8 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
-      const wc = await webcontainer;
-      const fullPath = path.join(wc.workdir, data.action.filePath);
+      const aimpactFs = await getAimpactFs();
+      const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
 
       /*
        * For scoped locks, we would need to implement diff checking here

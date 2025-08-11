@@ -1,5 +1,5 @@
 ﻿import  { type AimpactFs } from '~/lib/aimpactfs/filesystem';
-import { type TextSearchMatch, WebContainer } from '@webcontainer/api';
+import { type BufferEncoding, type TextSearchMatch, WebContainer } from '@webcontainer/api';
 import type {
   PathWatcherEvent,
   TextSearchOnProgressCallback,
@@ -19,7 +19,7 @@ export class WebcontainerFs implements AimpactFs {
     return container.fs.mkdir(dirPath, options);
   }
 
-  async readFile(filePath: string, encoding: null): Promise<Uint8Array> {
+  async readFile(filePath: string, encoding: BufferEncoding): Promise<string> {
     const container = await this.containerPromise;
     return container.fs.readFile(filePath, encoding);
   }

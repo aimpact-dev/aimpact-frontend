@@ -1,4 +1,5 @@
 ﻿import type {
+  BufferEncoding,
   PathWatcherEvent, TextSearchMatch,
   TextSearchOnProgressCallback,
   TextSearchOptions,
@@ -15,7 +16,7 @@ export abstract class AimpactFs {
     options?: string | { encoding?: string | null } | null
   ): Promise<void>;
 
-  abstract readFile(filePath: string, encoding: null): Promise<Uint8Array>;
+  abstract readFile(filePath: string, encoding: BufferEncoding): Promise<string>;
 
   abstract watchPaths(
     options: WatchPathsOptions,
