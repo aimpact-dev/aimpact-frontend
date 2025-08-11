@@ -19,6 +19,7 @@ import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 import { getSandbox } from '~/lib/daytona';
+import { getAimpactFs } from '~/lib/aimpactfs';
 
 const { saveAs } = fileSaver;
 
@@ -38,7 +39,7 @@ export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
 export class WorkbenchStore {
   #previewsStore = new PreviewsStore(webcontainer);
-  #filesStore = new FilesStore(webcontainer);
+  #filesStore = new FilesStore(getAimpactFs());
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer, getSandbox());
 

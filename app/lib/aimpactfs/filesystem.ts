@@ -12,7 +12,7 @@ export abstract class AimpactFs {
   abstract writeFile(
     filePath: string,
     content: string | Uint8Array,
-    options: string | { encoding?: string | null } | null
+    options?: string | { encoding?: string | null } | null
   ): Promise<void>;
 
   abstract readFile(filePath: string, encoding: null): Promise<Uint8Array>;
