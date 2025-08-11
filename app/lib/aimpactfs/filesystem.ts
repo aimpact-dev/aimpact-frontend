@@ -1,5 +1,5 @@
 ﻿import type {
-  PathWatcherEvent,
+  PathWatcherEvent, TextSearchMatch,
   TextSearchOnProgressCallback,
   TextSearchOptions,
   WatchPathsOptions
@@ -7,7 +7,7 @@
 
 export abstract class AimpactFs {
 
-  abstract get workdir(): string;
+  abstract workdir(): Promise<string>;
 
   abstract writeFile(
     filePath: string,
@@ -20,7 +20,7 @@ export abstract class AimpactFs {
   abstract watchPaths(
     options: WatchPathsOptions,
     cb: (events: PathWatcherEvent[]) => void
-  ): void;
+  ): Promise<void>;
 
   abstract mkdir(dirPath: string, options: { recursive: true }): Promise<string>;
 
@@ -35,6 +35,6 @@ export abstract class AimpactFs {
     pattern: string,
     options?: Partial<TextSearchOptions>,
     onProgress?: TextSearchOnProgressCallback
-  ): Promise<Map<string, { line: number; match: string }[]>>;
+  ): Promise<Map<string, TextSearchMatch[]>>
 }
 
