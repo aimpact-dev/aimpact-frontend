@@ -1,42 +1,37 @@
-﻿import type { Sandbox } from '@daytonaio/sdk';
-import type {
+﻿import type {
   PathWatcherEvent,
   TextSearchOnProgressCallback,
   TextSearchOptions,
   WatchPathsOptions
 } from '@webcontainer/api';
 
-export class AimpactFs {
-  private readonly sandbox: Sandbox;
-  private readonly rootDir: string;
+export abstract class AimpactFs {
 
-  constructor(rootDir: string, sandbox: Sandbox);
+  abstract get workdir(): string;
 
-  get workdir(): string;
-
-  writeFile(
+  abstract writeFile(
     filePath: string,
     content: string | Uint8Array,
     options: string | { encoding?: string | null } | null
   ): Promise<void>;
 
-  readFile(filePath: string, encoding: null): Promise<Uint8Array>;
+  abstract readFile(filePath: string, encoding: null): Promise<Uint8Array>;
 
-  watchPaths(
+  abstract watchPaths(
     options: WatchPathsOptions,
     cb: (events: PathWatcherEvent[]) => void
   ): void;
 
-  mkdir(dirPath: string, options: { recursive: true }): Promise<string>;
+  abstract mkdir(dirPath: string, options: { recursive: true }): Promise<string>;
 
-  rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
+  abstract rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
 
-  readdir(
+  abstract readdir(
     dirPath: string,
     options?: { encoding?: BufferEncoding | null; withFileTypes?: false } | BufferEncoding | null
   ): Promise<string[]>;
 
-  textSearch(
+  abstract textSearch(
     pattern: string,
     options?: Partial<TextSearchOptions>,
     onProgress?: TextSearchOnProgressCallback
