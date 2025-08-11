@@ -33,6 +33,7 @@ export class WebcontainerFs implements AimpactFs {
   }
 
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
+    console.log("Removing file:", filePath, "with options:", options);
     const container = await this.containerPromise;
     return container.fs.rm(filePath, options);
   }

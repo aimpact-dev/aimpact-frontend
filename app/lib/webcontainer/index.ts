@@ -23,6 +23,7 @@ if (!import.meta.env.SSR) {
     import.meta.hot?.data.webcontainer ??
     Promise.resolve()
       .then(() => {
+        console.log("Booting WebContainer...");
         return WebContainer.boot({
           coep: 'credentialless',
           workdirName: WORK_DIR_NAME,
