@@ -23,7 +23,13 @@ export abstract class AimpactFs {
     cb: (events: PathWatcherEvent[]) => void
   ): Promise<void>;
 
-  abstract mkdir(dirPath: string, options: { recursive: true }): Promise<string>;
+  /*
+  * Creates a directory at the specified path.
+  * Always creates the directory recursively.
+  * Returns the root of the created path, e.g. if you create 'a/b/c', it returns 'a'.
+  * It is done to imitate webcontainer behavior.
+  */
+  abstract mkdir(dirPath: string): Promise<string>;
 
   abstract rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
 

@@ -218,7 +218,7 @@ const getFs = (
       const relativePath = pathUtils.relative(await aimpactFs.workdir(), path);
 
       try {
-        const result = await aimpactFs.mkdir(relativePath, { ...options, recursive: true });
+        const result = await aimpactFs.mkdir(relativePath);
 
         return result;
       } catch (error) {

@@ -1,6 +1,4 @@
 import { AimpactFs } from '~/lib/aimpactfs/filesystem';
-import { getSandbox } from '~/lib/daytona';
-import { Sandbox } from '@daytonaio/sdk';
 import type {
   BufferEncoding, DirEnt,
   PathWatcherEvent, TextSearchMatch,
@@ -9,8 +7,9 @@ import type {
   WatchPathsOptions
 } from '@webcontainer/api';
 import {
-  configureSingle, fs, InMemory, Backend
+  configureSingle, fs, InMemory
 } from '@zenfs/core';
+import type { Backend } from '@zenfs/core';
 
 /**
  * ZenFS implementation of AimpactFs that uses both ZenFS local filesystem
@@ -20,9 +19,9 @@ import {
  * enabling remote code execution in Daytona.
  */
 export class ZenfsImpl extends AimpactFs {
-  private sandboxPromise: Promise<Sandbox>;
   private zenFsInitialized: boolean;
   private zenFsBackend: Backend<any, any>;
+  private initializationPromise?: Promise<void>;
 
   /**
    * Creates a new ZenfsImpl instance with the specified backend
@@ -32,32 +31,27 @@ export class ZenfsImpl extends AimpactFs {
     super();
     this.zenFsBackend = backend;
     this.zenFsInitialized = false;
-    this.sandboxPromise = getSandbox();
 
     // Initialize ZenFS and Daytona
-    this.initialize().catch(err => {
+    this.initializationPromise = this.initialize().catch(err => {
       console.error('Failed to initialize ZenfsImpl:', err);
     });
   }
 
   /**
-   * Initialize ZenFS and Daytona connections
+   * Initialize ZenFS
    */
   private async initialize(): Promise<void> {
     try {
-      // Initialize ZenFS with the specified backend
       await configureSingle({
         backend: this.zenFsBackend,
         options: { name: 'aimpact-zenfs' }
       });
       this.zenFsInitialized = true;
       console.log('ZenFS initialized with backend:', this.zenFsBackend.name);
-
-      // Initialize Daytona
-      const sandbox = await this.sandboxPromise;
-      await sandbox.start();
-      console.log('Daytona sandbox started');
     } catch (error) {
+      this.zenFsInitialized = false;
+      this.initializationPromise = undefined;
       console.error('Error during initialization:', error);
       throw error;
     }
@@ -67,69 +61,65 @@ export class ZenfsImpl extends AimpactFs {
    * Ensures that ZenFS is initialized before proceeding
    */
   private async ensureInitialized(): Promise<void> {
-    if (!this.zenFsInitialized) {
-      await this.initialize();
+    if (this.zenFsInitialized) return;
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initialize();
     }
+    await this.initializationPromise;
   }
 
-  /**
-   * Creates a directory at the specified path
-   */
-  async mkdir(dirPath: string, options: { recursive: true }): Promise<string> {
+  async mkdir(dirPath: string): Promise<string> {
     await this.ensureInitialized();
 
-    // Create directory in ZenFS
     try {
-      fs.mkdirSync(dirPath, options);
-    } catch (error) {
-      console.warn(`ZenFS mkdir error for ${dirPath}:`, error);
-      // Ignore if directory already exists
-    }
-
-    // Create directory in Daytona
-    try {
-      const sandbox = await this.sandboxPromise;
-
-      // Daytona uses createFolder with mode parameter
-      const mode = "755"; // Default directory permissions
-
-      if (options?.recursive) {
-        // Create all parent directories if they don't exist
-        const parts = dirPath.split('/').filter(Boolean);
-        let currentPath = '/';
-
-        for (const part of parts) {
-          currentPath = `${currentPath}${part}/`;
-          const pathToCreate = currentPath.slice(0, -1); // Remove trailing slash
-          try {
-            await sandbox.fs.createFolder(pathToCreate, mode);
-          } catch (err) {
-            // Ignore if directory already exists
-            if (!String(err).includes('already exists')) {
-              console.warn(`Daytona mkdir error for ${pathToCreate}:`, err);
-            }
+      await new Promise<void>((resolve, reject) => {
+        fs.mkdir(dirPath, { recursive: true }, (err: any) => {
+          if (err) {
+            console.warn(`ZenFS mkdir error for ${dirPath}:`, err);
+            reject(err);
+          } else {
+            resolve();
           }
-        }
-      } else {
-        await sandbox.fs.createFolder(dirPath, mode);
-      }
+        });
+      });
     } catch (error) {
-      console.warn(`Failed to create directory ${dirPath} in Daytona:`, error);
+      console.error(`Failed to create directory ${dirPath} in ZenFS:`, error);
+      throw error;
     }
 
-    return dirPath;
+    if(dirPath === '/') {
+      return undefined; //Matching the webcontainer behavior
+    }
+    if (dirPath.startsWith('/')) {
+      dirPath = dirPath.substring(1); // Remove leading slash for consistency
+    }
+    return dirPath.split('/')[0]; // Return the root of the created path
   }
 
   /**
    * Reads a file from the specified path
+   *
    */
   async readFile(filePath: string, encoding: BufferEncoding): Promise<string> {
     await this.ensureInitialized();
 
+    // Promisify fs.exists
+    const exists = (path: string) =>
+      new Promise<boolean>((resolve) => fs.exists(path, resolve));
+
+    // Promisify fs.readFile
+    const readFile = (path: string, enc: BufferEncoding) =>
+      new Promise<string>((resolve, reject) => {
+        fs.readFile(path, { encoding: enc }, (err: any, data: string) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      });
+
     // Try to read from ZenFS first (for speed)
     try {
-      if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath, encoding);
+      if (await exists(filePath)) {
+        return await readFile(filePath, encoding);
       }
     } catch (error) {
       console.warn(`ZenFS readFile error for ${filePath}:`, error);

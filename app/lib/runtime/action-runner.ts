@@ -321,7 +321,7 @@ export class ActionRunner {
 
     if (folder !== '.') {
       try {
-        await fs.mkdir(folder, { recursive: true });
+        await fs.mkdir(folder);
         logger.debug('Created folder', folder);
       } catch (error) {
         logger.error('Failed to create folder\n\n', error);

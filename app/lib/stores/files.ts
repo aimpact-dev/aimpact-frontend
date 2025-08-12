@@ -812,7 +812,7 @@ export class FilesStore {
       const dirPath = path.dirname(relativePath);
 
       if (dirPath !== '.') {
-        await fs.mkdir(dirPath, { recursive: true });
+        await fs.mkdir(dirPath);
       }
 
       const isBinary = content instanceof Uint8Array;
@@ -863,7 +863,7 @@ export class FilesStore {
         throw new Error(`EINVAL: invalid folder path, create '${relativePath}'`);
       }
 
-      await fs.mkdir(relativePath, { recursive: true });
+      await fs.mkdir(relativePath);
 
       this.files.setKey(folderPath, { type: 'folder' });
 

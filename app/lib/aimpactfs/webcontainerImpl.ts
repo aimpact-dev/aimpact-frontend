@@ -14,9 +14,9 @@ export class WebcontainerFs implements AimpactFs {
     this.containerPromise = containerPromise;
   }
 
-  async mkdir(dirPath: string, options: { recursive: true }): Promise<string> {
+  async mkdir(dirPath: string): Promise<string> {
     const container = await this.containerPromise;
-    return container.fs.mkdir(dirPath, options);
+    return container.fs.mkdir(dirPath, { recursive: true });
   }
 
   async readFile(filePath: string, encoding: BufferEncoding): Promise<string> {
