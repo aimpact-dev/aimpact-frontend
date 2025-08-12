@@ -174,7 +174,24 @@ export class ZenfsImpl extends AimpactFs {
   }
 
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
-    return;
+    await this.ensureInitialized();
+
+    const rmPromise = new Promise((resolve, reject) => {
+      fs.rm(filePath, options, (err: any) => {
+        if (err) {
+          console.warn(`ZenFS rm error for ${filePath}:`, err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    try {
+      await rmPromise;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async textSearch(pattern: string, options?: Partial<TextSearchOptions>, onProgress?: TextSearchOnProgressCallback): Promise<Map<string, TextSearchMatch[]>> {
