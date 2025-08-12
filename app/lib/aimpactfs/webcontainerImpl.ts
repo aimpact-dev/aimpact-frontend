@@ -25,11 +25,10 @@ export class WebcontainerFs implements AimpactFs {
   }
 
   async readdir(
-    path: string,
-    options: {encoding?: BufferEncoding | null, withFileTypes: true},
+    path: string
   ): Promise<DirEnt<string>[]> {
     const container = await this.containerPromise;
-    return container.fs.readdir(path, options);
+    return container.fs.readdir(path, { withFileTypes: true });
   }
 
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {

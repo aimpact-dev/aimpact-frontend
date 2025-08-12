@@ -7,7 +7,7 @@ import type {
   WatchPathsOptions
 } from '@webcontainer/api';
 import {
-  configureSingle, fs, InMemory
+  configureSingle, Dirent, fs, InMemory
 } from '@zenfs/core';
 import type { Backend } from '@zenfs/core';
 
@@ -142,8 +142,35 @@ export class ZenfsImpl extends AimpactFs {
     return dirPath.split('/')[0]; // Return the root of the created path
   }
 
-  async readdir(path: string, options: { encoding?: BufferEncoding | null; withFileTypes: true }): Promise<DirEnt<string>[]> {
-    return []
+  async readdir(path: string): Promise<DirEnt<string>[]> {
+    await this.ensureInitialized();
+
+    // Fall back to ZenFS if Daytona fails
+    try {
+      const readdirPromise = new Promise((resolve, reject) => {
+        const options = { withFileTypes: true };
+        fs.readdir(path, options, (err: any, dirents: Dirent<string, ArrayBufferLike>[]) => {
+          if (err) reject(err);
+          else {
+            console.log("Dirents:", dirents);
+            resolve(dirents);
+          }
+        });
+      });
+      const dirents = await readdirPromise;
+      // Convert fs.Dirent[] to DirEnt<string>[]
+      const entries: DirEnt<string>[] = dirents.map((dirent) => {
+        return {
+          name: dirent.name,
+          isFile: () => dirent.isFile(),
+          isDirectory: () => dirent.isDirectory(),
+        } as DirEnt<string>;
+      });
+      return entries;
+    } catch (error) {
+      console.error(`ZenFS readdir error for ${path}:`, error);
+      throw error;
+    }
   }
 
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {

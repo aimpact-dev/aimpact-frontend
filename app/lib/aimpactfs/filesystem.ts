@@ -37,9 +37,12 @@ export abstract class AimpactFs {
     options: {encoding?: BufferEncoding | null, withFileTypes: true},
   ): Promise<DirEnt<string>[]>;
 
+  /*
+  * Reads the contents of a directory at the specified path.
+  * Returns an array of directory entries, which may include files and subdirectories.
+   */
   abstract readdir(
-    path: string,
-    options: {encoding?: BufferEncoding | null, withFileTypes: true},
+    path: string
   ): Promise<DirEnt<string>[]>;
 
   abstract textSearch(
