@@ -53,10 +53,8 @@ export class WebcontainerFs implements AimpactFs {
     return container.workdir;
   }
 
-  async writeFile(filePath: string, content: string | Uint8Array, options?: string | {
-    encoding?: string | null
-  } | null): Promise<void> {
+  async writeFile(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
     const container = await this.containerPromise;
-    return container.fs.writeFile(filePath, content, options);
+    return container.fs.writeFile(filePath, content, encoding);
   }
 }
