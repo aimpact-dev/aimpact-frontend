@@ -36,6 +36,9 @@ export class ZenfsImpl extends AimpactFs {
     });
   }
 
+  /**
+   * Initialize ZenFS
+   */
   private async initialize(): Promise<void> {
     try {
       await configureSingle({
@@ -52,6 +55,9 @@ export class ZenfsImpl extends AimpactFs {
     }
   }
 
+  /**
+   * Ensures that ZenFS is initialized before proceeding
+   */
   private async ensureInitialized(): Promise<void> {
     if (this.zenFsInitialized) return;
     if (!this.initializationPromise) {
@@ -60,7 +66,7 @@ export class ZenfsImpl extends AimpactFs {
     await this.initializationPromise;
   }
 
-  private _getWatchPathCallbacks(path: string): ((events: PathWatcherEvent[]) => void)[] {
+  _getWatchPathCallbacks(path: string): ((events: PathWatcherEvent[]) => void)[] {
     const callbacks: ((events: PathWatcherEvent[]) => void)[] = [];
     for (const [options, cb] of this.watchCallbacks.entries()) {
       const included = options.include || [];
@@ -76,7 +82,7 @@ export class ZenfsImpl extends AimpactFs {
     return callbacks;
   }
 
-  private _fireEventsForPath(path: string, eventType: 'change' | 'add_file' | 'remove_file' | 'add_dir' | 'remove_dir' | 'update_directory'){
+  _fireEventsForPath(path: string, eventType: 'change' | 'add_file' | 'remove_file' | 'add_dir' | 'remove_dir' | 'update_directory'){
     //Check callbacks
     const callbacks = this._getWatchPathCallbacks(path);
     if (callbacks.length > 0) {
@@ -131,7 +137,7 @@ export class ZenfsImpl extends AimpactFs {
   /*
    * Checks if a path is a directory
    */
-  private async _isDir(path: string): Promise<boolean> {
+  async _isDir(path: string): Promise<boolean> {
     return new Promise<boolean>((resolve) => {
       fs.stat(path, (err: any, stats: fs.Stats) => {
         if (err) {
@@ -148,7 +154,7 @@ export class ZenfsImpl extends AimpactFs {
   * Recursively lists all contents of a directory
   * Name of each dirent is path relative to the root of ZenFS (which is '')
    */
-  private async _allContents(path: string): Promise<DirEnt<string>[]> {
+  async _allContents(path: string): Promise<DirEnt<string>[]> {
     await this.ensureInitialized();
     const results: DirEnt<string>[] = [];
     const walk = async (currentPath: string, relPath: string) => {
@@ -176,10 +182,11 @@ export class ZenfsImpl extends AimpactFs {
     return results;
   }
 
-  /**
+
+  /*
   * Promisified version of fs.exists
    */
-  private async _exists (path: string) {
+  async _exists (path: string) {
     return new Promise<boolean>((resolve) => fs.exists(path, resolve));
   }
 
@@ -187,7 +194,7 @@ export class ZenfsImpl extends AimpactFs {
    * Promisified version of fs.writeFile
    * Writes content to a file at the specified path with the given encoding
    */
-  private async _writeFile (path: string, conent: string | Uint8Array, encoding?: BufferEncoding) {
+  async _writeFile (path: string, conent: string | Uint8Array, encoding?: BufferEncoding) {
     return new Promise<void>((resolve, reject) => {
       fs.writeFile(path, conent, encoding, (err: any) => {
         if (err) reject(err);
@@ -200,7 +207,7 @@ export class ZenfsImpl extends AimpactFs {
    * Promisified version of fs.readFile
    * Reads a file from the specified path with the given encoding
    */
-  private async _readFile (path: string, enc: BufferEncoding) {
+  async _readFile (path: string, enc: BufferEncoding) {
     return new Promise<string>((resolve, reject) => {
       fs.readFile(path, { encoding: enc }, (err: any, data: string) => {
         if (err) reject(err);
@@ -212,6 +219,7 @@ export class ZenfsImpl extends AimpactFs {
 
   /**
    * Reads a file from the specified path
+   *
    */
   async readFile(filePath: string, encoding: BufferEncoding): Promise<string> {
     await this.ensureInitialized();
@@ -232,7 +240,7 @@ export class ZenfsImpl extends AimpactFs {
   }
 
   /**
-   * Lists objects (files and folders) in a directory
+   * Lists files in a directory
    */
   async readdir(path: string): Promise<DirEnt<string>[]> {
     await this.ensureInitialized();
@@ -313,7 +321,104 @@ export class ZenfsImpl extends AimpactFs {
    * Searches for text in files
    */
   async textSearch(pattern: string, options?: Partial<TextSearchOptions>, onProgress?: TextSearchOnProgressCallback): Promise<Map<string, TextSearchMatch[]>> {
-    return new Map();
+    await this.ensureInitialized();
+    const pathsToSearch = await this.getPathsToSearch(options);
+    const results = new Map<string, TextSearchMatch[]>();
+    let matchesCount = 0; //Should not exceed options?.resultLimit if set
+    // Use word boundary to match exact occurrences of the pattern
+    const regex = new RegExp(`\\b${pattern}\\b`, 'g');
+    for (const filePath of pathsToSearch) {
+      try {
+        const content = await this._readFile(filePath, 'utf-8');
+        const resultsLeft = options?.resultLimit ? options.resultLimit - matchesCount : undefined;
+        const matches = this.findMatches(content, regex, resultsLeft);
+        if (matches.length === 0) {
+          continue; // Skip files with no matches
+        }
+        matchesCount += matches.length;
+        onProgress?.(filePath, matches);
+        results.set(filePath, matches);
+
+      } catch (error) {
+        console.warn(`ZenFS textSearch error for ${filePath}:`, error);
+      }
+      // Check if we reached the result limit
+      if (options?.resultLimit && matchesCount >= options.resultLimit) {
+        break; // Stop searching if we reached the limit
+      }
+    }
+    return results;
+  }
+
+  /**
+   * Returns a list of paths to files that should be searched
+   * @private
+   */
+  private async getPathsToSearch(options?: Partial<TextSearchOptions>): Promise<string[]> {
+    await this.ensureInitialized();
+    const includes = options?.includes || [];
+    const excludes = options?.excludes || [];
+    const allPaths: string[] = [];
+    const stack: string[] = ['/'];
+    while (stack.length > 0) {
+      const currentPath = stack.pop()!;
+      if (excludes.some(pattern => minimatch(currentPath, pattern))) {
+        continue;
+      }
+      // List children
+      let children: DirEnt<string>[] = [];
+      const isDir = await this._isDir(currentPath);
+      if (!isDir) {
+        if (includes.length === 0 || includes.some(pattern => minimatch(currentPath, pattern))) {
+          //If file is excluded, skip it
+          if (excludes.some(pattern => minimatch(currentPath, pattern))) continue;
+          allPaths.push(currentPath);
+        }
+      }
+      else {
+        children = await this.readdir(currentPath);
+      }
+      // Directory: push children
+      for (const child of children) {
+        const childPath = currentPath === '/' ? `/${child.name}` : `${currentPath}/${child.name}`;
+        stack.push(childPath);
+      }
+    }
+    // Filter files by includes
+    if (includes.length > 0) {
+      return allPaths.filter(path => includes.some(pattern => minimatch(path, pattern)));
+    }
+    return allPaths;
+  }
+
+  private findMatches(text: string, pattern: RegExp, resultsLimit?: number): TextSearchMatch[] {
+    const lines = text.split('\n');
+    const matches: TextSearchMatch[] = [];
+    lines.forEach((line, i) => {
+      let match: RegExpExecArray | null;
+      const regex = new RegExp(pattern, pattern.flags.replace('g', '') + 'g');
+      while ((match = regex.exec(line)) !== null) {
+        const range: TextSearchRange = {
+          startLineNumber: i,
+          startColumn: match.index,
+          endLineNumber: i,
+          endColumn: match.index + match[0].length
+        };
+        const preview = line;
+        const textMatch : TextSearchMatch = {
+          preview: {
+            text: preview,
+            matches: [range]
+          },
+          ranges: [range]
+        };
+        matches.push(textMatch);
+        if( resultsLimit && matches.length >= resultsLimit) {
+          break; // Stop if we reached the result limit
+        }
+      }
+    });
+    return matches;
   }
 
   /**
