@@ -121,6 +121,7 @@
     "ky": "^1.8.1",
     "lucide-react": "^0.485.0",
     "mime": "^4.0.7",
+    "minimatch": "^10.0.3",
     "nanostores": "^0.10.3",
     "neverthrow": "^8.2.0",
     "ollama-ai-provider": "^0.15.2",
