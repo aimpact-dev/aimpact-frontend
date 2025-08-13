@@ -32,11 +32,6 @@ export abstract class AimpactFs {
 
   abstract rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
 
-  abstract readdir(
-    path: string,
-    options: {encoding?: BufferEncoding | null, withFileTypes: true},
-  ): Promise<DirEnt<string>[]>;
-
   /*
   * Reads the contents of a directory at the specified path.
   * Returns an array of directory entries, which may include files and subdirectories.

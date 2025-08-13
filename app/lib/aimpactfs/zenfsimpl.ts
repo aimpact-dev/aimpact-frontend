@@ -4,6 +4,7 @@ import type {
   PathWatcherEvent, TextSearchMatch,
   TextSearchOnProgressCallback,
   TextSearchOptions,
+  TextSearchRange,
   WatchPathsOptions
 } from '@webcontainer/api';
 import {

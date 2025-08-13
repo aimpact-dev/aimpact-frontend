@@ -23,8 +23,9 @@ import 'virtual:uno.css';
 import { workbenchStore } from "./lib/stores/workbench";
 import LoadingScreen from "./components/common/LoadingScreen";
 import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
+import { DaytonaCleanup } from '~/components/common/DaytonaCeanup';
 
-const SolanaProvider = React.lazy(() => 
+const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then(mod => ({
     default: mod.default
   }))
@@ -96,6 +97,7 @@ function Providers({ children }: { children: React.ReactNode }) {
               </AuthProvider>
             </RefCodeProvider>
           </SolanaProvider>
+          <DaytonaCleanup/>
         </Suspense>
       )}
     </ClientOnly>
