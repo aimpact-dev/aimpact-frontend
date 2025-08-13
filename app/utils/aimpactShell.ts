@@ -102,37 +102,39 @@ export class AimpactShell {
   //and outputs new logs to the ITerminal instance.
   async _pollCommandState(sessionId: string, commandId: string) : Promise<ExecutionResult>{
     try{
-      console.log("Polling command state for session:", sessionId, "command:", commandId);
-      const commandState = await this.#sandbox.process.getSessionCommand(sessionId, commandId);
-      console.log("Received command state:", commandState);
-      const commandLogs = await this.#sandbox.process.getSessionCommandLogs(sessionId, commandId);
-      console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
-      //We need to output new logs to the terminal.
-      //These have to be new logs only, so we keep track of the last log length.
-      if (commandLogs) {
-        let newLogs = commandLogs.slice(this.#lastLogLength);
-        if (newLogs) {
-          if(commandState.exitCode !== undefined && commandState.exitCode !== 0){
-            newLogs = coloredText.red(newLogs);
+      while (true){
+        console.log("Polling command state for session:", sessionId, "command:", commandId);
+        const commandState = await this.#sandbox.process.getSessionCommand(sessionId, commandId);
+        console.log("Received command state:", commandState);
+        const commandLogs = await this.#sandbox.process.getSessionCommandLogs(sessionId, commandId);
+        console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
+        //We need to output new logs to the terminal.
+        //These have to be new logs only, so we keep track of the last log length.
+        if (commandLogs) {
+          let newLogs = commandLogs.slice(this.#lastLogLength);
+          if (newLogs) {
+            if(commandState.exitCode !== undefined && commandState.exitCode !== 0){
+              newLogs = coloredText.red(newLogs);
+            }
+            this.#terminal.write(newLogs);
           }
-          this.#terminal.write(newLogs);
+          this.#lastLogLength = commandLogs.length;
         }
-        this.#lastLogLength = commandLogs.length;
-      }
-      if(commandState.exitCode !== undefined){
-        console.log("Received exit code for command:", commandState.exitCode, "in session:", sessionId, "command:", commandId);
-        console.log("Cleaning up session:", sessionId, "after command execution.");
-        //If command finished running, then we need to delete its session
-        await this.#sandbox.process.deleteSession(sessionId);
-        //Reset the execution state
-        this.#executionState = undefined;
-        this.#lastLogLength = 0;
-        return {
-          output: cleanTerminalOutput(commandLogs),
-          exitCode: commandState.exitCode,
+        if(commandState.exitCode !== undefined){
+          console.log("Received exit code for command:", commandState.exitCode, "in session:", sessionId, "command:", commandId);
+          console.log("Cleaning up session:", sessionId, "after command execution.");
+          //If command finished running, then we need to delete its session
+          await this.#sandbox.process.deleteSession(sessionId);
+          //Reset the execution state
+          this.#executionState = undefined;
+          this.#lastLogLength = 0;
+          return {
+            output: cleanTerminalOutput(commandLogs),
+            exitCode: commandState.exitCode,
+          }
         }
+        await new Promise(resolve => setTimeout(resolve, this.#commandPollingInterval));
       }
-      await new Promise(resolve => setTimeout(resolve, this.#commandPollingInterval));
     }
     catch (e) {
       console.error('Error polling command state:', e);
