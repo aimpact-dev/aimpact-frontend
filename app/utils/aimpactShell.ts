@@ -2,6 +2,7 @@
 import type { Sandbox } from '@daytonaio/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { coloredText } from '~/utils/terminal';
+import { getPortCatcher } from '~/utils/portCatcher';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -22,8 +23,13 @@ export class AimpactShell {
   #commandPollingInterval: number = 1000;
   #lastLogLength: number = 0;
 
+  //Every time we receive a new log, we pass it to these functions.
+  //May be useful for retrieving information from the logs.
+  #logsProcessors: {process: (log:string) => void}[] = [];
 
-  constructor(sandbox: Sandbox, terminal: ITerminal) {
+
+  constructor(sandbox: Sandbox, terminal: ITerminal, logsProcessors: {process: (log:string) => void}[] = []) {
+    this.#logsProcessors = logsProcessors;
     this.#sandbox = sandbox;
     if (!sandbox){
       console.log("Sandbox is undefined");
@@ -113,6 +119,10 @@ export class AimpactShell {
         if (commandLogs) {
           let newLogs = commandLogs.slice(this.#lastLogLength);
           if (newLogs) {
+            //Feed new logs to the logs processors.
+            for (const logsProcessor of this.#logsProcessors) {
+              logsProcessor.process(newLogs);
+            }
             if(commandState.exitCode !== undefined && commandState.exitCode !== 0){
               newLogs = coloredText.red(newLogs);
             }
@@ -145,8 +155,26 @@ export class AimpactShell {
   }
 }
 
+//Using this function for creating a new AimpactShell instance is preferable, because it attaches
+//log processor for capturing preview port from Daytona.io server.
 export function newAimpactShellProcess(sandbox: Sandbox, terminal: ITerminal): AimpactShell {
-  return new AimpactShell(sandbox, terminal);
+  const portCatcher = getPortCatcher();
+  const logsProcessor = {
+    process: (log: string) => {
+      const extractedPort = log.match(/http:\/\/localhost:(\d+)/)?.[1];
+      if (extractedPort) {
+        const portNumber = Number(extractedPort);
+        if (!isNaN(portNumber)) {
+          portCatcher.putNewPort(portNumber);
+          console.log(`Captured port: ${portNumber}`);
+        } else {
+          console.warn(`Invalid port number extracted: ${extractedPort}`);
+        }
+      }
+    }
+  }
+  const processors = [logsProcessor];
+  return new AimpactShell(sandbox, terminal, processors);
 }
 
 function cleanTerminalOutput(input: string): string {
