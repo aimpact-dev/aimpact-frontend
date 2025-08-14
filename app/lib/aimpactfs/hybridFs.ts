@@ -81,4 +81,8 @@ export class HybridFs extends AimpactFs {
   async writeFileLocal(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
     return this.zenfs.writeFile(filePath, content, encoding);
   }
+
+  async rmLocal(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
+    return this.zenfs.rm(filePath, options);
+  }
 }

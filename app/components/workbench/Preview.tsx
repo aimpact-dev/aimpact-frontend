@@ -455,11 +455,11 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   overflow: hidden;
                   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 }
-                
+
                 .device-container {
                   position: relative;
                 }
-                
+
                 .device-name {
                   position: absolute;
                   top: -30px;
@@ -469,7 +469,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   font-size: 14px;
                   color: #333;
                 }
-                
+
                 .device-frame {
                   position: relative;
                   border-radius: ${frameRadius};
@@ -478,7 +478,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                   overflow: hidden;
                 }
-                
+
                 /* Notch */
                 .device-frame:before {
                   content: '';
@@ -492,7 +492,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   border-radius: 4px;
                   z-index: 2;
                 }
-                
+
                 /* Home button */
                 .device-frame:after {
                   content: '';
@@ -506,7 +506,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   border-radius: 50%;
                   z-index: 2;
                 }
-                
+
                 iframe {
                   border: none;
                   width: ${width}px;
@@ -544,7 +544,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
           }
         }
       } else {
-        console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
+        console.warn('[Preview] Invalid URL:', activePreview.baseUrl);
       }
     }
   };
@@ -639,7 +639,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <Tooltip content="Ports" side='bottom'> 
+          <Tooltip content="Ports" side='bottom'>
             <PortDropdown
               activePreviewIndex={activePreviewIndex}
               setActivePreviewIndex={setActivePreviewIndex}

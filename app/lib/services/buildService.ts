@@ -38,6 +38,9 @@ export class BuildService {
       }
     }
 
+    //Delete the local build directory if it exists
+    await hybridFs.rmLocal(buildDir, { recursive: true, force: true });
+
     //Downloading the build directory content and saving to the local filesystem
     const buildDirContent = await this.listSubPaths(buildDir, sandbox);
     for (const file of buildDirContent) {
