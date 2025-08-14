@@ -17,6 +17,7 @@ import { minimatch } from 'minimatch';
  * ZenFS implementation of AimpactFs that uses ZenFS local filesystem
  */
 export class ZenfsImpl extends AimpactFs {
+  private homeDir: string = '/home/project';
   private zenFsInitialized: boolean;
   private zenFsBackend: Backend<any, any>;
   private initializationPromise?: Promise<void>;
@@ -45,6 +46,16 @@ export class ZenfsImpl extends AimpactFs {
       await configureSingle({
         backend: this.zenFsBackend,
         options: { name: 'aimpact-zenfs' }
+      });
+      await new Promise<void>((resolve, reject) => {
+        fs.mkdir(this.homeDir, { recursive: true }, (err: any) => {
+          if (err) {
+            console.warn(`ZenFS mkdir error for ${this.homeDir}:`, err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
       });
       this.zenFsInitialized = true;
       console.log('ZenFS initialized with backend:', this.zenFsBackend.name);
@@ -83,13 +94,26 @@ export class ZenfsImpl extends AimpactFs {
     return callbacks;
   }
 
-  _fireEventsForPath(path: string, eventType: 'change' | 'add_file' | 'remove_file' | 'add_dir' | 'remove_dir' | 'update_directory'){
+  async _fireEventsForPath(path: string, eventType: 'change' | 'add_file' | 'remove_file' | 'add_dir' | 'remove_dir' | 'update_directory'){
     //Check callbacks
     const callbacks = this._getWatchPathCallbacks(path);
     if (callbacks.length > 0) {
+      let buffer = '';
+      const isFileEvent = eventType === 'change' || eventType === 'add_file' || eventType === 'remove_file';
+      if (isFileEvent) {
+        // Read the file content to include in the event
+        try {
+          buffer = await this.readFile(path, 'utf-8');
+        } catch (error) {
+          console.warn(`ZenFS readFile error for ${path}:`, error);
+          // If we can't read the file, just log the error and continue
+          buffer = '';
+        }
+      }
       const event: PathWatcherEvent = {
         type: eventType,
-        path: path
+        path: path,
+        buffer: isFileEvent ? Buffer.from(buffer, 'utf-8') : undefined,
       }
       for (const cb of callbacks) {
         try {
@@ -106,6 +130,7 @@ export class ZenfsImpl extends AimpactFs {
    */
   async mkdir(dirPath: string): Promise<string> {
     await this.ensureInitialized();
+    dirPath = this.toLocalPath(dirPath);
 
     try {
       await new Promise<void>((resolve, reject) => {
@@ -124,7 +149,7 @@ export class ZenfsImpl extends AimpactFs {
     }
 
     //Imitating file watcher event.
-    this._fireEventsForPath('dirPath', 'add_dir');
+    this._fireEventsForPath(dirPath, 'add_dir');
 
     if(dirPath === '/') {
       return undefined; //Matching the webcontainer behavior
@@ -224,6 +249,7 @@ export class ZenfsImpl extends AimpactFs {
    */
   async readFile(filePath: string, encoding: BufferEncoding): Promise<string> {
     await this.ensureInitialized();
+    filePath = this.toLocalPath(filePath);
 
     const exists = await this._exists(filePath);
     if (!exists) {
@@ -245,6 +271,7 @@ export class ZenfsImpl extends AimpactFs {
    */
   async readdir(path: string): Promise<DirEnt<string>[]> {
     await this.ensureInitialized();
+    path = this.toLocalPath(path);
 
     // Fall back to ZenFS if Daytona fails
     try {
@@ -279,6 +306,7 @@ export class ZenfsImpl extends AimpactFs {
    */
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
     await this.ensureInitialized();
+    filePath = this.toLocalPath(filePath);
 
     //Tracking the removed content so we can fire file watcher events accordingly
     const removedContent: DirEnt<string>[] = [];
@@ -435,7 +463,15 @@ export class ZenfsImpl extends AimpactFs {
    * In ZenFS we can use the root directory
    */
   async workdir(): Promise<string> {
-    return '';
+    return this.homeDir;
+  }
+
+  private toLocalPath(path: string): string {
+    if (!path.startsWith('/')) {
+      //Add workdir
+      path = this.homeDir + '/' + path;
+    }
+    return path;
   }
 
   /**
@@ -443,6 +479,7 @@ export class ZenfsImpl extends AimpactFs {
    */
   async writeFile(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
     await this.ensureInitialized();
+    filePath = this.toLocalPath(filePath);
 
     //If filePath contains directories, ensure the parent directory exists
     if(!filePath.indexOf('/') === -1) {

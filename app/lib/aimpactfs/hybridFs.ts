@@ -19,9 +19,12 @@ export class HybridFs extends AimpactFs {
     this.sandboxPromise = sandboxPromise;
   }
 
-  private toDaytonaPath(path: string): string {
-    if (path.startsWith('/')) {
-      return "/home/daytona" + path;
+  private async toDaytonaPath(path: string): Promise<string> {
+    console.log("Converting path to Daytona format:", path);
+    const zenfsWorkdir = await this.zenfs.workdir();
+    if (path.startsWith('/') && zenfsWorkdir) {
+      // Replace zenfs workdir with Daytona's home directory
+      return "/home/daytona" + path.slice(zenfsWorkdir.length);
     }
     return path;
   }
@@ -29,7 +32,7 @@ export class HybridFs extends AimpactFs {
   async mkdir(dirPath: string): Promise<string> {
     const result = await this.zenfs.mkdir(dirPath);
     const sandbox = await this.sandboxPromise;
-    await sandbox.fs.createFolder(this.toDaytonaPath(dirPath), '755')
+    await sandbox.fs.createFolder(await this.toDaytonaPath(dirPath), '755')
     return result;
   }
 
@@ -44,7 +47,7 @@ export class HybridFs extends AimpactFs {
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
     const sandbox = await this.sandboxPromise;
     if(options && options.recursive) {
-      const daytonaPath = this.toDaytonaPath(filePath);
+      const daytonaPath = await this.toDaytonaPath(filePath);
       const rmCommand = "rm -rf " + daytonaPath;
       await sandbox.process.executeCommand(rmCommand, "/home/daytona/");
     }
@@ -70,7 +73,7 @@ export class HybridFs extends AimpactFs {
   async writeFile(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
     const sandbox = await this.sandboxPromise;
     const buffer = Buffer.from(content);
-    await sandbox.fs.uploadFile(buffer, this.toDaytonaPath(filePath));
+    await sandbox.fs.uploadFile(buffer, await this.toDaytonaPath(filePath));
     return this.zenfs.writeFile(filePath, content, encoding);
   }
 

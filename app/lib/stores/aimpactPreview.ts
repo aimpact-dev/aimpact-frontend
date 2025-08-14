@@ -17,14 +17,18 @@ export class AimpactPreviewStore {
   constructor(sandbox: Promise<Sandbox>, portCatcher: PortCatcher) {
     this.sandbox = sandbox;
     this.portCatcher = portCatcher;
+    this.previews.set([]);
 
-    portCatcher.addCallback(this.onPortChange);
+    portCatcher.addCallback((port: number) => {
+      this.onPortChange(port);
+    });
   }
 
   private async onPortChange(port: number){
     this.previews.set([]);
     const sandbox = await this.sandbox;
     const url = await sandbox.getPreviewLink(port);
+    console.log("Preview URL:", url.url);
     const previewInfo: PreviewInfo = {
       port: port,
       ready: true,

@@ -8,21 +8,37 @@ let daytonaOrgId = import.meta.env.VITE_DAYTONA_ORG_ID || '';
 
 export function getSandbox(): Promise<Sandbox> {
   if (!sandboxPromise) {
-    const daytona = new Daytona({
-      apiKey: import.meta.env.VITE_DAYTONA_API_KEY || '',
-    });
-    sandboxPromise = daytona.create({
-      language: 'typescript',
-      autoDeleteInterval: 0,
-    });
-    sandboxPromise.then((sandbox) => {
-      sandboxId = sandbox.id;
-      console.log('Sandbox created with ID:', sandboxId);
-    }).catch((error) => {
-      console.error('Error creating sandbox:', error);
+    sandboxPromise = initializeSandbox().catch((error) => {
+      console.error('Error initializing sandbox:', error);
+      sandboxPromise = null; // Reset the promise on failure
+      throw error; // Re-throw the error to handle it in the calling code
     });
   }
   return sandboxPromise;
+}
+
+async function initializeSandbox() : Promise<Sandbox>{
+  const daytona = new Daytona({
+    apiKey: import.meta.env.VITE_DAYTONA_API_KEY || '',
+  });
+  const sandbox = await daytona.create({
+    language: 'typescript',
+    autoDeleteInterval: 0,
+  });
+  sandboxId = sandbox.id;
+  console.log('Sandbox created with ID:', sandboxId);
+  const corepackInstallResponse = await sandbox.process.executeCommand("npm install --global corepack@latest");
+  if (corepackInstallResponse.exitCode !== 0) {
+    console.error('Failed to install corepack:', corepackInstallResponse.result);
+    throw new Error('Corepack installation failed');
+  }
+  console.log('Corepack installed successfully');
+  const pnpmInstallResponse = await sandbox.process.executeCommand("corepack enable pnpm && corepack use pnpm@latest-10");
+  if (pnpmInstallResponse.exitCode !== 0) {
+    console.error('Failed to enable pnpm:', pnpmInstallResponse.result);
+    throw new Error('PNPM enable failed');
+  }
+  return sandbox;
 }
 
 export function cleanup() {

@@ -24,7 +24,12 @@ export class BuildService {
     const command = buildWith === 'npm' ? 'npm run build' : 'pnpm run build';
     const executionResult = await shell.executeCommand(command, onAbort);
     if (executionResult?.exitCode !== 0) {
-      throw new Error(`Build failed with exit code ${executionResult.exitCode}`);
+      console.error(`Build failed with exit code ${executionResult?.exitCode}`);
+      return {
+        path: '',
+        exitCode: executionResult?.exitCode,
+        output: executionResult?.output,
+      }
     }
 
     //Determining the name of the build directory

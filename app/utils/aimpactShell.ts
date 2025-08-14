@@ -7,8 +7,8 @@ import { getPortCatcher } from '~/utils/portCatcher';
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
 export class AimpactShell {
-  #terminal: ITerminal;
-  #sandbox: Sandbox;
+  #terminal: ITerminal | undefined;
+  #sandboxPromise: Promise<Sandbox>;
 
   //Keeping track of the ITerminal onData events. They represent terminal input.
   #commandBuffer: string[] = [];
@@ -28,12 +28,15 @@ export class AimpactShell {
   #logsProcessors: {process: (log:string) => void}[] = [];
 
 
-  constructor(sandbox: Sandbox, terminal: ITerminal, logsProcessors: {process: (log:string) => void}[] = []) {
+  constructor(sandboxPromise: Promise<Sandbox>, logsProcessors: {process: (log:string) => void}[] = []) {
     this.#logsProcessors = logsProcessors;
-    this.#sandbox = sandbox;
-    if (!sandbox){
+    this.#sandboxPromise = sandboxPromise;
+    if (!sandboxPromise){
       console.log("Sandbox is undefined");
     }
+  }
+
+  setTerminal(terminal: ITerminal) {
     this.#terminal = terminal;
     terminal.onData(async (data: string) => {
       console.log('Terminal data received:', data);
@@ -41,7 +44,11 @@ export class AimpactShell {
     });
   }
 
-  async addToCommandBuffer(data: string){
+  private async addToCommandBuffer(data: string){
+    if(!this.#terminal) {
+      console.error("Terminal is not set. Cannot add to command buffer.");
+      return;
+    }
     for (const char of data) {
       //Checking for backspace (delete) key press.
       if (char === '\b' || char === '\x7f') {
@@ -67,6 +74,7 @@ export class AimpactShell {
   }
 
   async executeCommand(command: string, abort?: () => void): Promise<ExecutionResult>{
+    const sandbox = await this.#sandboxPromise;
     if (this.#executionState){
       console.log("Execution state is already set, aborting previous command.");
       //Some command is currently running, we need to abort it first.
@@ -76,14 +84,14 @@ export class AimpactShell {
       //Currently there is no way to kill running process in Daytona.io API,
       //so we delete the session instead.
       console.log("Deleting session:", this.#executionState.sessionId);
-      await this.#sandbox.process.deleteSession(this.#executionState.sessionId);
+      await sandbox.process.deleteSession(this.#executionState.sessionId);
       //Wait for previous command to finish executing.
       await this.#executionState.executionPromise;
     }
 
     //We create a new session for each new command.
     const sessionId = uuidv4();
-    await this.#sandbox.process.createSession(sessionId);
+    await sandbox.process.createSession(sessionId);
 
     const commandRequest = {
       command: command,
@@ -91,7 +99,7 @@ export class AimpactShell {
     };
     console.log("Executing command: ", command, "in session:", sessionId);
     const response =
-      await this.#sandbox.process.executeSessionCommand(sessionId, commandRequest);
+      await sandbox.process.executeSessionCommand(sessionId, commandRequest);
     const commandId = response.cmdId;
     const executionPromise = this._pollCommandState(sessionId, commandId!);
     this.#executionState = {
@@ -107,12 +115,13 @@ export class AimpactShell {
   //This method periodically checks the currently running command state, takes the logs
   //and outputs new logs to the ITerminal instance.
   async _pollCommandState(sessionId: string, commandId: string) : Promise<ExecutionResult>{
+    const sandbox = await this.#sandboxPromise;
     try{
       while (true){
         console.log("Polling command state for session:", sessionId, "command:", commandId);
-        const commandState = await this.#sandbox.process.getSessionCommand(sessionId, commandId);
+        const commandState = await sandbox.process.getSessionCommand(sessionId, commandId);
         console.log("Received command state:", commandState);
-        const commandLogs = await this.#sandbox.process.getSessionCommandLogs(sessionId, commandId);
+        const commandLogs = await sandbox.process.getSessionCommandLogs(sessionId, commandId);
         console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
         //We need to output new logs to the terminal.
         //These have to be new logs only, so we keep track of the last log length.
@@ -126,7 +135,7 @@ export class AimpactShell {
             if(commandState.exitCode !== undefined && commandState.exitCode !== 0){
               newLogs = coloredText.red(newLogs);
             }
-            this.#terminal.write(newLogs);
+            this.#terminal?.write(newLogs);
           }
           this.#lastLogLength = commandLogs.length;
         }
@@ -134,7 +143,7 @@ export class AimpactShell {
           console.log("Received exit code for command:", commandState.exitCode, "in session:", sessionId, "command:", commandId);
           console.log("Cleaning up session:", sessionId, "after command execution.");
           //If command finished running, then we need to delete its session
-          await this.#sandbox.process.deleteSession(sessionId);
+          await sandbox.process.deleteSession(sessionId);
           //Reset the execution state
           this.#executionState = undefined;
           this.#lastLogLength = 0;
@@ -157,11 +166,13 @@ export class AimpactShell {
 
 //Using this function for creating a new AimpactShell instance is preferable, because it attaches
 //log processor for capturing preview port from Daytona.io server.
-export function newAimpactShellProcess(sandbox: Sandbox, terminal: ITerminal): AimpactShell {
+export function newAimpactShellProcess(sandboxPromise: Promise<Sandbox>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessor = {
     process: (log: string) => {
+      console.log("Looking for port in log:", log);
       const extractedPort = log.match(/http:\/\/localhost:(\d+)/)?.[1];
+      console.log("Extracted port:", extractedPort);
       if (extractedPort) {
         const portNumber = Number(extractedPort);
         if (!isNaN(portNumber)) {
@@ -174,7 +185,7 @@ export function newAimpactShellProcess(sandbox: Sandbox, terminal: ITerminal): A
     }
   }
   const processors = [logsProcessor];
-  return new AimpactShell(sandbox, terminal, processors);
+  return new AimpactShell(sandboxPromise, processors);
 }
 
 function cleanTerminalOutput(input: string): string {
