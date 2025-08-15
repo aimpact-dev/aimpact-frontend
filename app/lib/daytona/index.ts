@@ -32,6 +32,7 @@ async function initializeSandbox() : Promise<Sandbox>{
     image: image,
     resources: resources,
     autoDeleteInterval: 0,
+    public: true,
   });
   sandboxId = sandbox.id;
   console.log('Sandbox created with ID:', sandboxId);
