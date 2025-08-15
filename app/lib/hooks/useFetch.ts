@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { useAuth } from './useAuth';
+import { HttpError } from '../errors';
 
 interface FetchOptions extends RequestInit {
   showError?: boolean;
@@ -45,7 +46,7 @@ export function useFetch<T = any>() {
 
         if (!authToken) {
           Cookies.remove('authToken');
-          throw new Error('No authentication token found');
+          throw new HttpError('No authentication token found', { status: 401 });
         }
 
         headers.set('Authorization', `Bearer ${authToken}`);
@@ -63,13 +64,13 @@ export function useFetch<T = any>() {
 
           const msg = 'Session expired. Please reconnect your wallet.';
           toast.error(msg);
-          throw new Error(msg);
+          throw new HttpError(msg, { status: response.status });
         }
 
         if (!response.ok) {
           const msg = `HTTP error! status: ${response.status}`;
           toast.error(msg);
-          throw new Error(msg);
+          throw new HttpError(msg, { status: response.status });
         }
 
         let rawData = await response.text();
@@ -103,7 +104,7 @@ export function useFetch<T = any>() {
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new HttpError(`HTTP error! status: ${response.status}`, { status: response.status });
         }
 
         const data = (await response.json()) as T;

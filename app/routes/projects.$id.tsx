@@ -1,10 +1,11 @@
 'use client';
 
-import { PencilIcon } from '@phosphor-icons/react';
 import { useParams } from '@remix-run/react';
 import { useProjectQuery, useS3DeployemntQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useGetIcpDeploy } from '~/lib/hooks/tanstack/useDeploy';
+import { useEffect } from 'react';
 
 export default function Project() {
   const params = useParams();
@@ -19,6 +20,12 @@ export default function Project() {
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
   const deploymentUrlQuery = useS3DeployemntQuery(params.id);
+  const { mutate: icpDeploymentUrlQuery, data: icpDeploymentData } = useGetIcpDeploy();  // TODO: Replace it with query? Right now I need to change some code so I'd like to leave it like this
+
+  useEffect(() => {
+    if (!params.id) return;
+    icpDeploymentUrlQuery(params.id);
+  }, [icpDeploymentUrlQuery, params.id]);
 
   if (projectQuery.isLoading) {
     return (
@@ -81,7 +88,7 @@ export default function Project() {
                 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
                   href={`/chat/${project.id}`}
                 >
-                  <PencilIcon size={20} />
+                  <div className='i-ph:pencil w-5 h-5' />
                   Edit project
                 </a>
               )
@@ -91,15 +98,15 @@ export default function Project() {
 
           {/* Project Details */}
           <section className="mb-12 bg-gray-900 rounded-xl p-8 border border-gray-800 shadow-xl">
-            <h2 className="text-2xl font-bold text-purple-300 mb-6">Project Details</h2>
+            <h2 className="text-xl font-semibold text-purple-300 mb-6">Project Details</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
                 <span className="text-gray-400">Created:</span>
-                <span className="text-xl font-bold text-white">{new Date(project.createdAt).toLocaleDateString()}</span>
+                <span className="text-xl font-bold text-white">{new Date(project.createdAt).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
                 <span className="text-gray-400">Last Updated:</span>
-                <span className="text-xl font-bold text-white">{new Date(project.updatedAt).toLocaleDateString()}</span>
+                <span className="text-xl font-bold text-white">{new Date(project.updatedAt).toLocaleString  ()}</span>
               </div>
               {project.category && (
                 <div className="flex justify-between items-center border-b border-gray-800 pb-3">
@@ -107,10 +114,21 @@ export default function Project() {
                   <span className="text-xl font-bold text-white">{project.category}</span>
                 </div>
               )}
+              <h2 className="text-xl font-semibold text-purple-300 mb-6">Deployment links</h2>
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
-                <span className="text-gray-400">Deployment URL:</span>
+                <span className="text-gray-400">AWS (Default):</span>
                 <span className="text-xl font-bold text-white">
-                  {deploymentUrlQuery.data ? <a href={deploymentUrlQuery.data} target={'_blank'}>{deploymentUrlQuery.data}</a> : 'Not deployed yet'}
+                  {deploymentUrlQuery.data ? <a href={deploymentUrlQuery.data} className='hover:underline' target={'_blank'}>
+                    {deploymentUrlQuery.data}
+                  </a> : 'Not deployed yet'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                <span className="text-gray-400">Internet Computer:</span>
+                <span className="text-xl font-bold text-white">
+                  {icpDeploymentData ? <a href={icpDeploymentData.finalUrl} className='hover:underline' target={'_blank'}>
+                    {icpDeploymentData.finalUrl}
+                  </a> : 'Not deployed yet'}
                 </span>
               </div>
             </div>

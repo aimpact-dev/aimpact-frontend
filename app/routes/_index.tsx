@@ -1,4 +1,4 @@
-import { json, type MetaFunction } from '@remix-run/cloudflare';
+import { type MetaFunction } from '@remix-run/cloudflare';
 import { useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
@@ -6,7 +6,6 @@ import { Chat } from '~/components/chat/Chat.client';
 import { IntroPopup } from '~/components/chat/IntroPopup';
 import UserPooling from '~/components/chat/UserPooling';
 import OnlyDesktopMessage from '~/components/common/OnlyDesktopMessage';
-import Footer from '~/components/footer/Footer.client';
 import { Header } from '~/components/header/Header';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 
@@ -16,8 +15,6 @@ export const meta: MetaFunction = () => {
     { name: 'description', content: 'Talk with AImpact, an AI assistant for generating web3 projects' },
   ];
 };
-
-export const loader = () => json({});
 
 /**
  * Landing page component for Bolt

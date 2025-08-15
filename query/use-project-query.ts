@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { HTTPError } from 'ky';
 import { ky } from 'query';
 
 export type Project = {

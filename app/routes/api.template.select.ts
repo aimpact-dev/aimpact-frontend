@@ -55,9 +55,13 @@ async function templateSelectAction({ context, request }: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
-  const user = (await userResponse.json()) as { id: string; messagesLeft: number };
-  if (user.messagesLeft <= 0) {
-    throw new Response('No messages left', { status: 402 });
+  const user = (await userResponse.json()) as { id: string; messagesLeft: number, pendingMessages: number };
+  const usableMessages = user.messagesLeft - user.pendingMessages;
+  if (usableMessages <= 0) {
+    throw new Response('You have no messages left', {
+      status: 403,
+      statusText: 'Forbidden',
+    });
   }
 
   const systemPrompt = starterTemplateSelectionPrompt(STARTER_TEMPLATES);
@@ -132,7 +136,7 @@ async function templateSelectAction({ context, request }: ActionFunctionArgs) {
 
       logger.info(`Generating response Provider: ${provider.name}, Model: ${modelDetails.name}`);
       logger.info(`Messages:` + `System: ${systemPrompt}` + `User message: ${message}`);
-      
+
 //       return new Response(JSON.stringify({
 //         text: `<selection>
 //   <templateName>vite-react-app</templateName>

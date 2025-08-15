@@ -8,7 +8,7 @@ import { logStore } from '~/lib/stores/logs'; // Import logStore
 import { openDatabase, duplicateChat, createChatFromMessages, type IChatMetadata } from './db';
 import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
-import { webcontainer } from '~/lib/webcontainer';
+import { getAimpactFs } from '~/lib/aimpactfs';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
 import { useHttpDb } from './http-db';
@@ -48,6 +48,7 @@ export function useChatHistory() {
   const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const creatingProjectRef = useRef<boolean>(false);
   const settingProjectWorkaroundRef = useRef<boolean>(false);
@@ -80,7 +81,7 @@ export function useChatHistory() {
                 ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
                 : storedMessages.messages.length;
               const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
-              
+
               if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
                 startingIdx = snapshotIndex;
               }
@@ -88,7 +89,7 @@ export function useChatHistory() {
               if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id == rewindId) {
                 startingIdx = -1;
               }
-                
+
               let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
               let archivedMessages: Message[] = [];
 
@@ -143,7 +144,7 @@ export function useChatHistory() {
                         }
                       })
                       .join('\n')}
-                    ${commandActionsString} 
+                    ${commandActionsString}
                     </boltArtifact>
                     `, // Added commandActionsString, followupMessage, updated id and title
                     annotations: [
@@ -170,7 +171,7 @@ export function useChatHistory() {
                 ];
                 restoreSnapshot(mixedId);
               }
-              
+
               setInitialMessages(filteredMessages);
 
               description.set(storedMessages.description);
@@ -189,6 +190,7 @@ export function useChatHistory() {
 
             logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
             toast.error('Failed to load chat: ' + error.message); // More specific error
+            setError(error);
           });
       } else {
         // Handle case where there is no mixedId (e.g., new chat)
@@ -224,8 +226,8 @@ export function useChatHistory() {
 
   const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
     // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const container = await webcontainer;
-
+    const fs = await getAimpactFs();
+    const workdir = await fs.workdir();
     const validSnapshot = snapshot || { chatIndex: '', files: {} };
 
     if (!validSnapshot?.files) {
@@ -233,31 +235,30 @@ export function useChatHistory() {
     }
 
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(container.workdir)) {
-        key = key.replace(container.workdir, '');
+      if (key.startsWith(workdir)) {
+        key = key.replace(workdir, '');
       }
 
       if (value?.type === 'folder') {
-        await container.fs.mkdir(key, { recursive: true });
+        await fs.mkdir(key);
       }
     });
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
       if (value?.type === 'file') {
-        if (key.startsWith(container.workdir)) {
-          key = key.replace(container.workdir, '');
+        if (key.startsWith(workdir)) {
+          key = key.replace(workdir, '');
         }
 
-        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
+        await fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
       } else {
       }
     });
-
-    // workbenchStore.files.setKey(snapshot?.files)
   }, []);
 
   return {
     ready: !mixedId || ready,
     initialMessages,
+    error,
     takeSnapshot,
     updateChatMestaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();
@@ -275,6 +276,7 @@ export function useChatHistory() {
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
+      console.log("Trying to store messages history. Messages count: ", messages.length);
       if (messages.length === 0) {
         return;
       }
@@ -288,10 +290,23 @@ export function useChatHistory() {
       if (initialMessages.length === 0 && !_chatId && !mixedId && !creatingProjectRef.current) {
         creatingProjectRef.current = true;
 
-        _chatId = await createProject(`${firstArtifact?.title || `Sample Project ${Date.now()}`}`);
+        console.log("Creating a new project, calling createProject of http database.");
+        try {
+          _chatId = await createProject(`${firstArtifact?.title || `Sample Project ${Date.now()}`}`);
+        }
+        catch (error) {
+          console.error('Failed to create project:', error);
+          toast.error('Failed to create new chat project.');
+          creatingProjectRef.current = false;
+          return;
+        }
+        console.log("New chat ID created: ", _chatId);
 
         chatId.set(_chatId);
+        console.log("Navigating to chat with ID: ", _chatId);
         navigateChat(_chatId);
+        console.log("Navigation completed.");
+        console.log("Chat id stored in atom: ", chatId.get());
 
         creatingProjectRef.current = false;
       }
@@ -317,6 +332,12 @@ export function useChatHistory() {
 
       // Ensure chatId.get() is used for the final setMessages call
       const finalChatId = _chatId;
+      console.log("Final chat ID to be used for storing messages: ", finalChatId);
+
+      if (creatingProjectRef.current){
+        console.warn('Creating project is in progress, cannot store messages yet.');
+        return;
+      }
 
       if (!finalChatId) {
         console.error('Cannot save messages, chat ID is not set.');

@@ -10,6 +10,7 @@ interface UserInfo {
   id: string;
   wallet: string;
   messagesLeft: number;
+  pendingMessages: number;
   inviteCode: string;
   discountPercent: number;
   referralsRewards: number;
@@ -141,10 +142,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [connected, isAuthorized]);
 
   useEffect(() => {
+    if (!connected || !isAuthorized) {
+        return;
+    }
+
     const req = async () => {
       const authToken = Cookies.get('authToken');
 
-      if (!connected || !isAuthorized || !authToken) {
+      if (!authToken) {
         return;
       }
 

@@ -1,4 +1,4 @@
-import { captureRemixErrorBoundaryError } from '@sentry/remix';
+import { captureRemixErrorBoundaryError } from "@sentry/remix";
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
@@ -13,7 +13,6 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { CivicAuthProvider } from '@civic/auth-web3/react';
 
 import { logStore } from './lib/stores/logs';
-import type { SolanaProviderProps } from './components/providers/SolanaProvider';
 import { AuthProvider } from './lib/hooks/useAuth';
 import { RefCodeProvider } from './lib/hooks/useRefCode';
 
@@ -22,7 +21,16 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
-import SolanaProvider from './components/providers/SolanaProvider';
+import { workbenchStore } from "./lib/stores/workbench";
+import LoadingScreen from "./components/common/LoadingScreen";
+import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
+import { DaytonaCleanup } from '~/components/common/DaytonaCeanup';
+
+const SolanaProvider = React.lazy(() =>
+  import('./components/providers/SolanaProvider').then(mod => ({
+    default: mod.default
+  }))
+);
 
 export const links: LinksFunction = () => [
   {
@@ -77,33 +85,23 @@ export const Head = createHead(() => (
 ));
 
 function Providers({ children }: { children: React.ReactNode }) {
-  type SolanaProviderType = FC<SolanaProviderProps>;
-
-  // const [SolanaProvider, setSolanaProvider] = useState<SolanaProviderType>(() => NoopProvider);
-
-  /*
-   * useEffect(() => {
-   * import("./components/providers/SolanaProvider").then(mod => {
-   * setSolanaProvider(() => mod.SolanaProvider);
-   * });
-   * }, [])
-   */
-
   return (
     <ClientOnly>
       {() => (
-        <Suspense fallback="">
+        <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
             <CivicAuthProvider
               autoCreateWallet
               autoConnectEmbeddedWallet
               clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}
             >
-              <RefCodeProvider>
-                <AuthProvider>
-                  <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-                </AuthProvider>
-              </RefCodeProvider>
+            <RefCodeProvider>
+              <AuthProvider>
+                <DndProvider backend={HTML5Backend}>
+                  {children}
+                </DndProvider>
+              </AuthProvider>
+            </RefCodeProvider>
             </CivicAuthProvider>
           </SolanaProvider>
         </Suspense>
@@ -144,6 +142,11 @@ export default function App() {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });
+
+    return () => {
+      // console.log('App unmounting, cleaning up...');
+      // workbenchStore.cleanup();
+    };
   }, []);
 
   return (

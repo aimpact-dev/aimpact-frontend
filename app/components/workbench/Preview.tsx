@@ -6,6 +6,7 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { Tooltip } from '../chat/Tooltip';
 
 type ResizeSide = 'left' | 'right' | null;
 
@@ -47,7 +48,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(() => {
+export const Preview = memo(({ customText }: { customText?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -375,68 +376,66 @@ export const Preview = memo(() => {
   );
 
   const openInNewWindow = (size: WindowSize) => {
-    if (activePreview?.baseUrl) {
-      const match = activePreview.baseUrl.match(/^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/);
+    if (!activePreview?.baseUrl) {
+      console.warn('[Preview] Invalid URL:', activePreview.baseUrl);
+      return;
+    }
 
-      if (match) {
-        const previewId = match[1];
-        const previewUrl = `/webcontainer/preview/${previewId}`;
+    let width = size.width;
+    let height = size.height;
 
-        // Adjust dimensions for landscape mode if applicable
-        let width = size.width;
-        let height = size.height;
+    if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
+      // Swap width and height for landscape mode
+      width = size.height;
+      height = size.width;
+    }
 
-        if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
-          // Swap width and height for landscape mode
-          width = size.height;
-          height = size.width;
-        }
+    // Create a window with device frame if enabled
+    const previewUrl = activePreview.baseUrl;
+    if (showDeviceFrame && size.hasFrame) {
+      // Calculate frame dimensions
+      const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
+      const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
 
-        // Create a window with device frame if enabled
-        if (showDeviceFrame && size.hasFrame) {
-          // Calculate frame dimensions
-          const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
-          const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
+      // Create a window with the correct dimensions first
+      const newWindow = window.open(
+        '',
+        '_blank',
+        `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
-          // Create a window with the correct dimensions first
-          const newWindow = window.open(
-            '',
-            '_blank',
-            `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
-          );
+      if (!newWindow) {
+        console.error('Failed to open new window');
+        return;
+      }
 
-          if (!newWindow) {
-            console.error('Failed to open new window');
-            return;
-          }
+      // Create the HTML content for the frame
+      const frameColor = getFrameColor();
+      const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
+      const framePadding =
+        size.frameType === 'mobile'
+          ? isLandscape
+            ? '40px 60px'
+            : '40px 20px'
+          : isLandscape
+            ? '30px 50px'
+            : '50px 30px';
 
-          // Create the HTML content for the frame
-          const frameColor = getFrameColor();
-          const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
-          const framePadding =
-            size.frameType === 'mobile'
-              ? isLandscape
-                ? '40px 60px'
-                : '40px 20px'
-              : isLandscape
-                ? '30px 50px'
-                : '50px 30px';
+      // Position notch and home button based on orientation
+      const notchTop = isLandscape ? '50%' : '20px';
+      const notchLeft = isLandscape ? '30px' : '50%';
+      const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
+      const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
+      const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
 
-          // Position notch and home button based on orientation
-          const notchTop = isLandscape ? '50%' : '20px';
-          const notchLeft = isLandscape ? '30px' : '50%';
-          const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
-          const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
-          const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
+      const homeBottom = isLandscape ? '50%' : '15px';
+      const homeRight = isLandscape ? '30px' : '50%';
+      const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
+      const homeWidth = isLandscape ? '4px' : '40px';
+      const homeHeight = isLandscape ? '40px' : '4px';
 
-          const homeBottom = isLandscape ? '50%' : '15px';
-          const homeRight = isLandscape ? '30px' : '50%';
-          const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
-          const homeWidth = isLandscape ? '4px' : '40px';
-          const homeHeight = isLandscape ? '40px' : '4px';
-
-          // Create HTML content for the wrapper page
-          const htmlContent = `
+      // Create HTML content for the wrapper page
+      const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -454,11 +453,11 @@ export const Preview = memo(() => {
                   overflow: hidden;
                   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 }
-                
+
                 .device-container {
                   position: relative;
                 }
-                
+
                 .device-name {
                   position: absolute;
                   top: -30px;
@@ -468,7 +467,7 @@ export const Preview = memo(() => {
                   font-size: 14px;
                   color: #333;
                 }
-                
+
                 .device-frame {
                   position: relative;
                   border-radius: ${frameRadius};
@@ -477,7 +476,7 @@ export const Preview = memo(() => {
                   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                   overflow: hidden;
                 }
-                
+
                 /* Notch */
                 .device-frame:before {
                   content: '';
@@ -491,7 +490,7 @@ export const Preview = memo(() => {
                   border-radius: 4px;
                   z-index: 2;
                 }
-                
+
                 /* Home button */
                 .device-frame:after {
                   content: '';
@@ -505,7 +504,7 @@ export const Preview = memo(() => {
                   border-radius: 50%;
                   z-index: 2;
                 }
-                
+
                 iframe {
                   border: none;
                   width: ${width}px;
@@ -526,24 +525,20 @@ export const Preview = memo(() => {
             </html>
           `;
 
-          // Write the HTML content to the new window
-          newWindow.document.open();
-          newWindow.document.write(htmlContent);
-          newWindow.document.close();
-        } else {
-          // Standard window without frame
-          const newWindow = window.open(
-            previewUrl,
-            '_blank',
-            `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
-          );
+      // Write the HTML content to the new window
+      newWindow.document.open();
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+    } else {
+      // Standard window without frame
+      const newWindow = window.open(
+        previewUrl,
+        '_blank',
+        `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
-          if (newWindow) {
-            newWindow.focus();
-          }
-        }
-      } else {
-        console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
+      if (newWindow) {
+        newWindow.focus();
       }
     }
   };
@@ -625,23 +620,29 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-2">
         <div className="flex items-center gap-2">
-          <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
-          <IconButton
-            icon="i-ph:selection"
-            onClick={() => setIsSelectionMode(!isSelectionMode)}
-            className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
-          />
+          <Tooltip content="Reload page" side='bottom'>
+            <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
+          </Tooltip>
+          <Tooltip content="Send screenshot to chat" side='bottom'>
+            <IconButton
+              icon="i-ph:selection"
+              onClick={() => setIsSelectionMode(!isSelectionMode)}
+              className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
+            />
+          </Tooltip>
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <PortDropdown
-            activePreviewIndex={activePreviewIndex}
-            setActivePreviewIndex={setActivePreviewIndex}
-            isDropdownOpen={isPortDropdownOpen}
-            setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
-            setIsDropdownOpen={setIsPortDropdownOpen}
-            previews={previews}
-          />
+          <Tooltip content="Ports" side='bottom'>
+            <PortDropdown
+              activePreviewIndex={activePreviewIndex}
+              setActivePreviewIndex={setActivePreviewIndex}
+              isDropdownOpen={isPortDropdownOpen}
+              setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
+              setIsDropdownOpen={setIsPortDropdownOpen}
+              previews={previews}
+            />
+          </Tooltip>
           <input
             title="URL Path"
             ref={inputRef}
@@ -673,11 +674,12 @@ export const Preview = memo(() => {
         </div>
 
         <div className="flex items-center gap-2">
-          <IconButton
-            icon="i-ph:devices"
-            onClick={toggleDeviceMode}
-            title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
-          />
+          <Tooltip content="Change layout" side='bottom'>
+            <IconButton
+              icon="i-ph:devices"
+              onClick={toggleDeviceMode}
+            />
+          </Tooltip>
 
           {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
 
@@ -685,31 +687,35 @@ export const Preview = memo(() => {
 
           {isDeviceModeOn && (
             <>
-              <IconButton
-                icon="i-ph:device-rotate"
-                onClick={() => setIsLandscape(!isLandscape)}
-                title={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'}
-              />
-              <IconButton
-                icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
-                onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
-                title={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'}
-              />
+              <Tooltip content={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'} side='bottom'>
+                <IconButton
+                  icon="i-ph:device-rotate"
+                  onClick={() => setIsLandscape(!isLandscape)}
+                />
+              </Tooltip>
+              <Tooltip content={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'} side='bottom'>
+                <IconButton
+                  icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
+                  onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
+                />
+              </Tooltip>
             </>
           )}
 
-          <IconButton
-            icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
-          />
+          <Tooltip content={isFullscreen ? 'Exit Full Screen' : 'Full Screen'} side='bottom'>
+            <IconButton
+              icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
+              onClick={toggleFullscreen}
+            />
+          </Tooltip>
 
           <div className="flex items-center relative">
-            <IconButton
-              icon="i-ph:list"
-              onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-              title="New Window Options"
-            />
+            <Tooltip content="Window options" side='bottom'>
+              <IconButton
+                icon="i-ph:list"
+                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
+              />
+            </Tooltip>
 
             {isWindowSizeDropdownOpen && (
               <>
@@ -737,22 +743,12 @@ export const Preview = memo(() => {
                             return;
                           }
 
-                          const match = activePreview.baseUrl.match(
-                            /^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/,
-                          );
-
-                          if (!match) {
-                            console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
-                            return;
-                          }
-
-                          const previewId = match[1];
-                          const previewUrl = `/webcontainer/preview/${previewId}`;
+                          const previewUrl = activePreview.baseUrl;
 
                           // Open in a new window with simple parameters
                           window.open(
                             previewUrl,
-                            `preview-${previewId}`,
+                            `preview-${activePreviewIndex}`,
                             'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,resizable=yes',
                           );
                         }}
@@ -963,7 +959,7 @@ export const Preview = memo(() => {
             </>
           ) : (
             <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-              No preview available
+              {customText || 'No preview available'}
             </div>
           )}
 

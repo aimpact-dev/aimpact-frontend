@@ -7,6 +7,7 @@ import { Button } from '../ui';
 import { useSolanaProxy } from '~/lib/api-hooks/useSolanaProxyApi';
 import { classNames } from '~/utils/classNames';
 import waterStyles from '../ui/WaterButton.module.scss';
+import { Tooltip } from './Tooltip';
 
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);
 
@@ -101,9 +102,11 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
 
   return (
     <div className="max-w-md mx-auto">
-      <Button onClick={handleToggle} variant="default" className="flex py-2.5 items-center gap-2 border border-bolt-elements-borderColor font-medium">
-        Get Messages
-      </Button>
+      <Tooltip content="Buy some messages for SOL">
+        <Button onClick={handleToggle} variant="default" className="flex py-2.5 items-center gap-2 border border-bolt-elements-borderColor font-medium">
+          Buy Messages
+        </Button>
+      </Tooltip>
 
       {isOpen && (
         <div className="fixed inset-0 z-10 overflow-y-auto">

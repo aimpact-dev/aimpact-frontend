@@ -10,8 +10,6 @@ import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
-import { getApiKeysFromCookies } from './APIKeyManager';
-import Cookies from 'js-cookie';
 import * as Tooltip from '@radix-ui/react-tooltip';
 
 import styles from './BaseChat.module.scss';
@@ -30,7 +28,6 @@ import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
 import type { ProgressAnnotation } from '~/types/context';
 import type { ActionRunner } from '~/lib/runtime/action-runner';
-import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
@@ -119,13 +116,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-    const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [transcript, setTranscript] = useState('');
-    const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -157,10 +151,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [data]);
 
     useEffect(() => {
-      console.log(transcript);
-    }, [transcript]);
-
-    useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
 
@@ -177,8 +167,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .map((result) => result.transcript)
             .join('');
 
-          setTranscript(transcript);
-
           if (handleInputChange) {
             const syntheticEvent = {
               target: { value: transcript },
@@ -193,6 +181,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         };
 
         setRecognition(recognition);
+
+        return () => {
+          recognition.stop();
+        }
       }
     }, []);
 
@@ -200,55 +192,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (typeof window !== 'undefined') {
         let parsedApiKeys: Record<string, string> | undefined = {};
 
-        try {
-          parsedApiKeys = getApiKeysFromCookies();
-          setApiKeys(parsedApiKeys);
-        } catch (error) {
-          console.error('Error loading API keys from cookies:', error);
-          Cookies.remove('apiKeys');
-        }
-
-        setIsModelLoading('all');
         fetch('/api/models')
           .then((response) => response.json())
           .then((data) => {
             const typedData = data as { modelList: ModelInfo[] };
             setModelList(typedData.modelList);
-            // console.log(typedData.modelList);
           })
           .catch((error) => {
             console.error('Error fetching model list:', error);
           })
-          .finally(() => {
-            setIsModelLoading(undefined);
-          });
       }
     }, [providerList, provider]);
-
-    const onApiKeysChange = async (providerName: string, apiKey: string) => {
-      const newApiKeys = { ...apiKeys, [providerName]: apiKey };
-      setApiKeys(newApiKeys);
-      Cookies.set('apiKeys', JSON.stringify(newApiKeys));
-
-      setIsModelLoading(providerName);
-
-      let providerModels: ModelInfo[] = [];
-
-      try {
-        const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
-        const data = await response.json();
-        providerModels = (data as { modelList: ModelInfo[] }).modelList;
-      } catch (error) {
-        console.error('Error loading dynamic models for:', providerName, error);
-      }
-
-      // Only update models for the specific provider
-      setModelList((prevModels) => {
-        const otherModels = prevModels.filter((model) => model.provider !== providerName);
-        return [...otherModels, ...providerModels];
-      });
-      setIsModelLoading(undefined);
-    };
 
     const startListening = () => {
       if (recognition) {
@@ -277,7 +231,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setTranscript(''); // Clear transcript
           setIsListening(false);
 
           // Clear the input by triggering handleInputChange with empty value
@@ -401,16 +354,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }}
                     />
                   )}
-                  {supabaseAlert && (
-                    <SupabaseChatAlert
-                      alert={supabaseAlert}
-                      clearAlert={() => clearSupabaseAlert?.()}
-                      postMessage={(message) => {
-                        sendMessage?.({} as any, message);
-                        clearSupabaseAlert?.();
-                      }}
-                    />
-                  )}
                   {actionAlert && (
                     <ChatAlert
                       alert={actionAlert}
@@ -426,7 +369,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
                 <div
                   className={classNames(
-                    'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
+                    'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor w-full max-w-chat mx-auto z-prompt',
 
                     /*
                      * {
@@ -461,36 +404,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
                     <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
                   </svg>
-                  {/* <div className='mb-3'>
-                    <ClientOnly>
-                      {() => (
-                        <div className={isModelSettingsCollapsed ? 'hidden' : ''}>
-                          <ModelSelector
-                            key={provider?.name + ':' + modelList.length}
-                            model={model}
-                            setModel={setModel}
-                            modelList={modelList}
-                            provider={provider}
-                            setProvider={setProvider}
-                            providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
-                            apiKeys={apiKeys}
-                            modelLoading={isModelLoading}
-                          />
-                          {(providerList || []).length > 0 &&
-                            provider &&
-                            (!LOCAL_PROVIDERS.includes(provider.name) || 'OpenAILike') && (
-                              <APIKeyManager
-                                provider={provider}
-                                apiKey={apiKeys[provider.name] || ''}
-                                setApiKey={(key) => {
-                                  onApiKeysChange(provider.name, key);
-                                }}
-                              />
-                            )}
-                        </div>
-                      )}
-                    </ClientOnly>
-                  </div> */}
                   <FilePreview
                     files={uploadedFiles}
                     imageDataList={imageDataList}
@@ -511,7 +424,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </ClientOnly>
                   <div
                     className={classNames(
-                      'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg transition-all duration-200',
+                      'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg transition-all duration-150',
                       ...((!isAuthorized || !userInfoData?.messagesLeft) ? ['blur-[2px] pointer-events-none select-none'] : [])
                     )}
                   >
@@ -520,7 +433,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       disabled={isDisabled}
                       className={classNames(
                         'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-                        'transition-all duration-200',
+                        'transition-all duration-150',
                         'hover:border-bolt-elements-focus',
                       )}
                       onDragEnter={(e) => {
@@ -583,6 +496,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         minHeight: TEXTAREA_MIN_HEIGHT,
                         maxHeight: TEXTAREA_MAX_HEIGHT,
                       }}
+                      maxLength={16000}
                       placeholder="How can AImpact help you today?"
                       translate="no"
                     />

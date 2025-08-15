@@ -39,6 +39,7 @@ export const IconButton = memo(
         title,
         onClick,
         children,
+        ...props
       }: IconButtonProps,
       ref: ForwardedRef<HTMLButtonElement>,
     ) => {
@@ -61,6 +62,7 @@ export const IconButton = memo(
 
             onClick?.(event);
           }}
+          {...props}
         >
           {children ? children : <div className={classNames(icon, getIconSize(size), iconClassName)}></div>}
         </button>

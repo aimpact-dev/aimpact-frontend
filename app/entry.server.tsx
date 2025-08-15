@@ -37,26 +37,27 @@ export default async function handleRequest(
 
       const reader = readable.getReader();
 
-      function read() {
-        reader
-          .read()
-          .then(({ done, value }) => {
-            if (done) {
-              controller.enqueue(new Uint8Array(new TextEncoder().encode('</div></body></html>')));
-              controller.close();
+      const pump = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
 
-              return;
+            if (done) {
+              controller.enqueue(
+                new Uint8Array(new TextEncoder().encode('</div></body></html>'))
+              );
+              controller.close();
+              break;
             }
 
             controller.enqueue(value);
-            read();
-          })
-          .catch((error) => {
-            controller.error(error);
-            readable.cancel();
-          });
-      }
-      read();
+          }
+        } catch (error) {
+          controller.error(error);
+          reader.cancel();
+        }
+    };
+      pump();
     },
 
     cancel() {
@@ -70,8 +71,9 @@ export default async function handleRequest(
 
   responseHeaders.set('Content-Type', 'text/html');
 
-  responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
-  responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  // responseHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  // responseHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+  responseHeaders.set("Document-Policy", "js-profiling");
 
   return new Response(body, {
     headers: responseHeaders,
