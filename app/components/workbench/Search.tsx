@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { TextSearchOptions, TextSearchOnProgressCallback, WebContainer } from '@webcontainer/api';
+import type { TextSearchOptions, TextSearchOnProgressCallback } from '@webcontainer/api';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { webcontainer } from '~/lib/webcontainer';
+import { getAimpactFs } from '~/lib/aimpactfs';
 import { WORK_DIR } from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
+import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
 interface DisplayMatch {
   path: string;
@@ -14,13 +15,13 @@ interface DisplayMatch {
 }
 
 async function performTextSearch(
-  instance: WebContainer,
+  aimpactFs: AimpactFs,
   query: string,
   options: Omit<TextSearchOptions, 'folders'>,
   onProgress: (results: DisplayMatch[]) => void,
 ): Promise<void> {
-  if (!instance || typeof instance.internal?.textSearch !== 'function') {
-    console.error('WebContainer instance not available or internal searchText method is missing/not a function.');
+  if (!aimpactFs || typeof aimpactFs?.textSearch !== 'function') {
+    console.error('AimpactFs instance not available or internal searchText method is missing/not a function.');
 
     return;
   }
@@ -67,7 +68,7 @@ async function performTextSearch(
   };
 
   try {
-    await instance.internal.textSearch(query, searchOptions, progressCallback);
+    await aimpactFs.textSearch(query, searchOptions, progressCallback);
   } catch (error) {
     console.error('Error during internal text search:', error);
   }
@@ -126,7 +127,7 @@ export function Search() {
     const start = Date.now();
 
     try {
-      const instance = await webcontainer;
+      const aimpactFs = await getAimpactFs();
       const options: Omit<TextSearchOptions, 'folders'> = {
         homeDir: WORK_DIR, // Adjust this path as needed
         includes: ['**/*.*'],
@@ -145,7 +146,7 @@ export function Search() {
         setSearchResults((prevResults) => [...prevResults, ...batchResults]);
       };
 
-      await performTextSearch(instance, query, options, progressHandler);
+      await performTextSearch(aimpactFs, query, options, progressHandler);
     } catch (error) {
       console.error('Failed to initiate search:', error);
     } finally {

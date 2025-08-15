@@ -376,68 +376,66 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   );
 
   const openInNewWindow = (size: WindowSize) => {
-    if (activePreview?.baseUrl) {
-      const match = activePreview.baseUrl.match(/^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/);
+    if (!activePreview?.baseUrl) {
+      console.warn('[Preview] Invalid URL:', activePreview.baseUrl);
+      return;
+    }
 
-      if (match) {
-        const previewId = match[1];
-        const previewUrl = `/webcontainer/preview/${previewId}`;
+    let width = size.width;
+    let height = size.height;
 
-        // Adjust dimensions for landscape mode if applicable
-        let width = size.width;
-        let height = size.height;
+    if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
+      // Swap width and height for landscape mode
+      width = size.height;
+      height = size.width;
+    }
 
-        if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
-          // Swap width and height for landscape mode
-          width = size.height;
-          height = size.width;
-        }
+    // Create a window with device frame if enabled
+    const previewUrl = activePreview.baseUrl;
+    if (showDeviceFrame && size.hasFrame) {
+      // Calculate frame dimensions
+      const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
+      const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
 
-        // Create a window with device frame if enabled
-        if (showDeviceFrame && size.hasFrame) {
-          // Calculate frame dimensions
-          const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
-          const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
+      // Create a window with the correct dimensions first
+      const newWindow = window.open(
+        '',
+        '_blank',
+        `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
-          // Create a window with the correct dimensions first
-          const newWindow = window.open(
-            '',
-            '_blank',
-            `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
-          );
+      if (!newWindow) {
+        console.error('Failed to open new window');
+        return;
+      }
 
-          if (!newWindow) {
-            console.error('Failed to open new window');
-            return;
-          }
+      // Create the HTML content for the frame
+      const frameColor = getFrameColor();
+      const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
+      const framePadding =
+        size.frameType === 'mobile'
+          ? isLandscape
+            ? '40px 60px'
+            : '40px 20px'
+          : isLandscape
+            ? '30px 50px'
+            : '50px 30px';
 
-          // Create the HTML content for the frame
-          const frameColor = getFrameColor();
-          const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
-          const framePadding =
-            size.frameType === 'mobile'
-              ? isLandscape
-                ? '40px 60px'
-                : '40px 20px'
-              : isLandscape
-                ? '30px 50px'
-                : '50px 30px';
+      // Position notch and home button based on orientation
+      const notchTop = isLandscape ? '50%' : '20px';
+      const notchLeft = isLandscape ? '30px' : '50%';
+      const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
+      const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
+      const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
 
-          // Position notch and home button based on orientation
-          const notchTop = isLandscape ? '50%' : '20px';
-          const notchLeft = isLandscape ? '30px' : '50%';
-          const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
-          const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
-          const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
+      const homeBottom = isLandscape ? '50%' : '15px';
+      const homeRight = isLandscape ? '30px' : '50%';
+      const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
+      const homeWidth = isLandscape ? '4px' : '40px';
+      const homeHeight = isLandscape ? '40px' : '4px';
 
-          const homeBottom = isLandscape ? '50%' : '15px';
-          const homeRight = isLandscape ? '30px' : '50%';
-          const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
-          const homeWidth = isLandscape ? '4px' : '40px';
-          const homeHeight = isLandscape ? '40px' : '4px';
-
-          // Create HTML content for the wrapper page
-          const htmlContent = `
+      // Create HTML content for the wrapper page
+      const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -455,11 +453,11 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   overflow: hidden;
                   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 }
-                
+
                 .device-container {
                   position: relative;
                 }
-                
+
                 .device-name {
                   position: absolute;
                   top: -30px;
@@ -469,7 +467,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   font-size: 14px;
                   color: #333;
                 }
-                
+
                 .device-frame {
                   position: relative;
                   border-radius: ${frameRadius};
@@ -478,7 +476,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                   overflow: hidden;
                 }
-                
+
                 /* Notch */
                 .device-frame:before {
                   content: '';
@@ -492,7 +490,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   border-radius: 4px;
                   z-index: 2;
                 }
-                
+
                 /* Home button */
                 .device-frame:after {
                   content: '';
@@ -506,7 +504,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   border-radius: 50%;
                   z-index: 2;
                 }
-                
+
                 iframe {
                   border: none;
                   width: ${width}px;
@@ -527,24 +525,20 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
             </html>
           `;
 
-          // Write the HTML content to the new window
-          newWindow.document.open();
-          newWindow.document.write(htmlContent);
-          newWindow.document.close();
-        } else {
-          // Standard window without frame
-          const newWindow = window.open(
-            previewUrl,
-            '_blank',
-            `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
-          );
+      // Write the HTML content to the new window
+      newWindow.document.open();
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+    } else {
+      // Standard window without frame
+      const newWindow = window.open(
+        previewUrl,
+        '_blank',
+        `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
-          if (newWindow) {
-            newWindow.focus();
-          }
-        }
-      } else {
-        console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
+      if (newWindow) {
+        newWindow.focus();
       }
     }
   };
@@ -639,7 +633,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <Tooltip content="Ports" side='bottom'> 
+          <Tooltip content="Ports" side='bottom'>
             <PortDropdown
               activePreviewIndex={activePreviewIndex}
               setActivePreviewIndex={setActivePreviewIndex}
@@ -749,22 +743,12 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                             return;
                           }
 
-                          const match = activePreview.baseUrl.match(
-                            /^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/,
-                          );
-
-                          if (!match) {
-                            console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
-                            return;
-                          }
-
-                          const previewId = match[1];
-                          const previewUrl = `/webcontainer/preview/${previewId}`;
+                          const previewUrl = activePreview.baseUrl;
 
                           // Open in a new window with simple parameters
                           window.open(
                             previewUrl,
-                            `preview-${previewId}`,
+                            `preview-${activePreviewIndex}`,
                             'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,resizable=yes',
                           );
                         }}

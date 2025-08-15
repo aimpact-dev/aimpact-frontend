@@ -156,8 +156,8 @@ export const TerminalTabs = memo(() => {
                   ref={(ref) => {
                     terminalRefs.current.push(ref);
                   }}
-                  onTerminalReady={(terminal) => workbenchStore.attachBoltTerminal(terminal)}
-                  onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
+                  onTerminalReady={(terminal) => workbenchStore.attachMainTerminal(terminal)}
+                  onTerminalResize={(cols, rows) => {}}
                   theme={theme}
                 />
               );
@@ -172,8 +172,8 @@ export const TerminalTabs = memo(() => {
                   ref={(ref) => {
                     terminalRefs.current.push(ref);
                   }}
-                  onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
-                  onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
+                  onTerminalReady={(terminal) => workbenchStore.attachAimpactTerminal(terminal)}
+                  onTerminalResize={(cols, rows) => {}}
                   theme={theme}
                 />
               );
