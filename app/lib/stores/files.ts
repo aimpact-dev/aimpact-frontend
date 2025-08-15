@@ -8,6 +8,7 @@ import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
+import {readContent, isBinaryFile} from '~/utils/fileContentReader';
 import {
   addLockedFile,
   removeLockedFile,
@@ -738,22 +739,10 @@ export class FilesStore {
             this.#size++;
           }
 
-          let content = '';
+          let content = readContent(buffer);
           const isBinary = isBinaryFile(buffer);
-
-          if (isBinary && buffer) {
-            // For binary files, we need to preserve the content as base64
-            content = Buffer.from(buffer).toString('base64');
-          } else if (!isBinary) {
-            content = this.#decodeFileContent(buffer);
-
-            /*
-             * If the content is a single space and this is from our empty file workaround,
-             * convert it back to an actual empty string
-             */
-            if (content === ' ' && type === 'add_file') {
-              content = '';
-            }
+          if (content === ' ' && type === 'add_file') {
+            content = '';
           }
 
           const existingFile = this.files.get()[sanitizedPath];
@@ -764,6 +753,7 @@ export class FilesStore {
 
           // Preserve lock state if the file already exists
           const isLocked = existingFile?.type === 'file' ? existingFile.isLocked : false;
+
 
           this.files.setKey(sanitizedPath, {
             type: 'file',
@@ -786,18 +776,6 @@ export class FilesStore {
     }
   }
 
-  #decodeFileContent(buffer?: Uint8Array) {
-    if (!buffer || buffer.byteLength === 0) {
-      return '';
-    }
-
-    try {
-      return utf8TextDecoder.decode(buffer);
-    } catch (error) {
-      console.log(error);
-      return '';
-    }
-  }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
     const fs = await this.#aimpactFs;
@@ -963,22 +941,4 @@ export class FilesStore {
       logger.error('Failed to persist deleted paths to localStorage', error);
     }
   }
-}
-
-function isBinaryFile(buffer: Uint8Array | undefined) {
-  if (buffer === undefined) {
-    return false;
-  }
-
-  return getEncoding(convertToBuffer(buffer), { chunkLength: 100 }) === 'binary';
-}
-
-/**
- * Converts a `Uint8Array` into a Node.js `Buffer` by copying the prototype.
- * The goal is to  avoid expensive copies. It does create a new typed array
- * but that's generally cheap as long as it uses the same underlying
- * array buffer.
- */
-function convertToBuffer(view: Uint8Array): Buffer {
-  return Buffer.from(view.buffer, view.byteOffset, view.byteLength);
 }

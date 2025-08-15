@@ -1,4 +1,4 @@
-﻿import { Daytona, Sandbox } from '@daytonaio/sdk';
+﻿import { Daytona, Sandbox, Image } from '@daytonaio/sdk';
 
 let sandboxPromise: Promise<Sandbox> | null = null;
 let sandboxId: string | null = null;
@@ -21,8 +21,16 @@ async function initializeSandbox() : Promise<Sandbox>{
   const daytona = new Daytona({
     apiKey: import.meta.env.VITE_DAYTONA_API_KEY || '',
   });
+  const resources = {
+    cpu: 1,
+    memory: 4,
+    disk: 3
+  };
+  const image = Image.base('node:20-alpine').workdir('/home/daytona');
   const sandbox = await daytona.create({
     language: 'typescript',
+    image: image,
+    resources: resources,
     autoDeleteInterval: 0,
   });
   sandboxId = sandbox.id;

@@ -149,7 +149,7 @@ export class ZenfsImpl extends AimpactFs {
     }
 
     //Imitating file watcher event.
-    this._fireEventsForPath(dirPath, 'add_dir');
+    await this._fireEventsForPath(dirPath, 'add_dir');
 
     if(dirPath === '/') {
       return undefined; //Matching the webcontainer behavior
@@ -339,7 +339,7 @@ export class ZenfsImpl extends AimpactFs {
       //Imitating file watcher events for each removed entry
       for (const entry of removedContent) {
         const eventType = entry.isDirectory() ? 'remove_dir' : 'remove_file';
-        this._fireEventsForPath(entry.name, eventType);
+        await this._fireEventsForPath(entry.name, eventType);
       }
     } catch (error) {
       throw error;
@@ -494,10 +494,10 @@ export class ZenfsImpl extends AimpactFs {
       const fileExists = await this._exists(filePath);
       await this._writeFile(filePath, content, encoding);
       if (fileExists) {
-        this._fireEventsForPath(filePath, 'change');
+        await this._fireEventsForPath(filePath, 'change');
       }
       else {
-        this._fireEventsForPath(filePath, 'add_file');
+        await this._fireEventsForPath(filePath, 'add_file');
       }
     }
     catch (error) {

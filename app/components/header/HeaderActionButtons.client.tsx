@@ -196,26 +196,23 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         return;
       }
 
-      const buildScript = await buildService.current.runBuildScript('npm');
+      const buildResult = await buildService.current.runBuildScript('pnpm');
 
-      console.log(buildScript);
-      if (buildScript.exitCode !== 0 && buildScript.exitCode !== 143) {
-        toast.error(`Failed to build. Status code: ${buildScript.exitCode}.`, { autoClose: false })
+      console.log(buildResult);
+      if (buildResult.exitCode !== 0 && buildResult.exitCode !== 143) {
+        toast.error(`Failed to build. Status code: ${buildResult.exitCode}.`, { autoClose: false })
       }
-
-      const files = workbenchStore.files.get();
-      const filteredFiles = Object.fromEntries(Object.entries(files).filter(
-        ([key, value]) => {
-          return key.startsWith("dist/");
-        }
-      ));
+      if(!buildResult.fileMap) {
+        toast.error(`Failed to build. No files found in the build directory.`);
+        return;
+      }
 
       let data: IcpDeployResponse | S3DeployResponse;
       let url: string;
       if (provider === DeployProviders.AWS) {
         data = await createaS3DeployRequest({
           projectId: currentChatId,
-          snapshot: filteredFiles,
+          snapshot: buildResult.fileMap,
         });
         url = data.url;
         formattedLinkToast(url, provider);
@@ -224,7 +221,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       } else if (provider === DeployProviders.ICP) {
         data = await createIcpDeployRequest({
           projectId: currentChatId,
-          snapshot: filteredFiles,
+          snapshot: buildResult.fileMap,
         });
         clearDeployStatusInterval();
         deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
