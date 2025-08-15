@@ -20,6 +20,9 @@ import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
+import { BuildService } from '~/lib/services/buildService';
+import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
+import { getPortCatcher } from '~/utils/portCatcher';
 
 const { saveAs } = fileSaver;
 
@@ -38,10 +41,10 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
 export class WorkbenchStore {
-  #previewsStore = new PreviewsStore(webcontainer);
+  #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
   #filesStore = new FilesStore(getAimpactFs());
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(webcontainer, getSandbox());
+  #terminalStore = new TerminalStore(getSandbox());
 
   #reloadedMessages = new Set<string>();
 
@@ -112,8 +115,8 @@ export class WorkbenchStore {
   get showTerminal() {
     return this.#terminalStore.showTerminal;
   }
-  get boltTerminal() {
-    return this.#terminalStore.boltTerminal;
+  get getMainShell() {
+    return this.#terminalStore.getMainShell;
   }
   get alert() {
     return this.actionAlert;
@@ -142,19 +145,14 @@ export class WorkbenchStore {
     this.#terminalStore.toggleTerminal(value);
   }
 
-  attachTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachTerminal(terminal);
+  attachMainTerminal(terminal: ITerminal) {
+    this.#terminalStore.attachMainAimpactTerminal(terminal);
   }
+
   attachAimpactTerminal(terminal: ITerminal) {
     this.#terminalStore.attachAimpactTerminal(terminal);
   }
-  attachBoltTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachBoltTerminal(terminal);
-  }
 
-  onTerminalResize(cols: number, rows: number) {
-    this.#terminalStore.onTerminalResize(cols, rows);
-  }
 
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
@@ -483,9 +481,9 @@ export class WorkbenchStore {
       closed: false,
       type,
       runner: new ActionRunner(
-        webcontainer,
+        Promise.resolve(new BuildService(Promise.resolve(this.getMainShell), getSandbox(), getAimpactFs())),
         getAimpactFs(),
-        () => this.boltTerminal,
+        () => this.getMainShell,
         (alert) => {
           if (this.#reloadedMessages.has(messageId)) {
             return;

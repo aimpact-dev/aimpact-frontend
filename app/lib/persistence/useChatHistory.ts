@@ -240,7 +240,7 @@ export function useChatHistory() {
       }
 
       if (value?.type === 'folder') {
-        await fs.mkdir(key, { recursive: true });
+        await fs.mkdir(key);
       }
     });
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {

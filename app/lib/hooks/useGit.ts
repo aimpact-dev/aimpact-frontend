@@ -218,7 +218,7 @@ const getFs = (
       const relativePath = pathUtils.relative(await aimpactFs.workdir(), path);
 
       try {
-        const result = await aimpactFs.mkdir(relativePath, { ...options, recursive: true });
+        const result = await aimpactFs.mkdir(relativePath);
 
         return result;
       } catch (error) {
@@ -229,7 +229,7 @@ const getFs = (
       const relativePath = pathUtils.relative(await aimpactFs.workdir(), path);
 
       try {
-        const result = await aimpactFs.readdir(relativePath, options);
+        const result = await aimpactFs.readdir(relativePath);
 
         return result;
       } catch (error) {
@@ -300,7 +300,7 @@ const getFs = (
           };
         }
 
-        const resp = await aimpactFs.readdir(dirPath, { withFileTypes: true });
+        const resp = await aimpactFs.readdir(dirPath);
         const fileInfo = resp.find((x) => x.name === fileName);
 
         if (!fileInfo) {

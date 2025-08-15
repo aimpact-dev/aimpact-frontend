@@ -14,9 +14,9 @@ export class WebcontainerFs implements AimpactFs {
     this.containerPromise = containerPromise;
   }
 
-  async mkdir(dirPath: string, options: { recursive: true }): Promise<string> {
+  async mkdir(dirPath: string): Promise<string> {
     const container = await this.containerPromise;
-    return container.fs.mkdir(dirPath, options);
+    return container.fs.mkdir(dirPath, { recursive: true });
   }
 
   async readFile(filePath: string, encoding: BufferEncoding): Promise<string> {
@@ -25,11 +25,10 @@ export class WebcontainerFs implements AimpactFs {
   }
 
   async readdir(
-    path: string,
-    options: {encoding?: BufferEncoding | null, withFileTypes: true},
+    path: string
   ): Promise<DirEnt<string>[]> {
     const container = await this.containerPromise;
-    return container.fs.readdir(path, options);
+    return container.fs.readdir(path, { withFileTypes: true });
   }
 
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
@@ -53,10 +52,8 @@ export class WebcontainerFs implements AimpactFs {
     return container.workdir;
   }
 
-  async writeFile(filePath: string, content: string | Uint8Array, options?: string | {
-    encoding?: string | null
-  } | null): Promise<void> {
+  async writeFile(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
     const container = await this.containerPromise;
-    return container.fs.writeFile(filePath, content, options);
+    return container.fs.writeFile(filePath, content, encoding);
   }
 }

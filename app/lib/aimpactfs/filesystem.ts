@@ -13,8 +13,7 @@ export abstract class AimpactFs {
   abstract writeFile(
     filePath: string,
     content: string | Uint8Array,
-    options?: string | { encoding?: string | null } | null
-  ): Promise<void>;
+    encoding?: BufferEncoding): Promise<void>;
 
   abstract readFile(filePath: string, encoding: BufferEncoding): Promise<string>;
 
@@ -23,18 +22,22 @@ export abstract class AimpactFs {
     cb: (events: PathWatcherEvent[]) => void
   ): Promise<void>;
 
-  abstract mkdir(dirPath: string, options: { recursive: true }): Promise<string>;
+  /*
+  * Creates a directory at the specified path.
+  * Always creates the directory recursively.
+  * Returns the root of the created path, e.g. if you create 'a/b/c', it returns 'a'.
+  * It is done to imitate webcontainer behavior.
+  */
+  abstract mkdir(dirPath: string): Promise<string>;
 
   abstract rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
 
+  /*
+  * Reads the contents of a directory at the specified path.
+  * Returns an array of directory entries, which may include files and subdirectories.
+   */
   abstract readdir(
-    path: string,
-    options: {encoding?: BufferEncoding | null, withFileTypes: true},
-  ): Promise<DirEnt<string>[]>;
-
-  abstract readdir(
-    path: string,
-    options: {encoding?: BufferEncoding | null, withFileTypes: true},
+    path: string
   ): Promise<DirEnt<string>[]>;
 
   abstract textSearch(
