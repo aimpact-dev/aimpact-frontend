@@ -6,6 +6,7 @@ const EXAMPLE_PROMPTS = [
   { text: 'Create a Personal finance tracker for crypto portfolio' },
   { text: 'Make a space invaders game' },
   { text: 'Make a Tic Tac Toe game' },
+  { text: 'Build a Solana dApp for token swapping' },
 ];
 
 export function ExamplePrompts(sendMessage?: { (event: React.UIEvent, messageInput?: string): void | undefined }) {

@@ -57,4 +57,12 @@ export const STARTER_TEMPLATES: Template[] = [
     icon: 'i-bolt:react',
     files: snapshotsData['vite-threejs-app'].files,
   },
+  {
+    name: 'vite-solana-app',
+    label: 'Vite + Solana + React + Typescript',
+    description: 'Solana blockchain development with React + TypeScript + Vite + Tailwind for building Web3 applications',
+    tags: ['typescript', 'vite', 'vitejs', 'react', 'solana', 'blockchain', 'web3', 'anchor', 'dapp'],
+    icon: 'i-bolt:react',
+    files: snapshotsData['vite-solana-app'].files,
+  },
 ];

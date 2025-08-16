@@ -6,21 +6,11 @@ const ENABLE_SOLANA_PROMPT = process.env.ENABLE_SOLANA_PROMPT === "true";
 console.log(ENABLE_SOLANA_PROMPT);
 
 const getSolanaPrompt = (): string => {
-  const prompt = `# Artifact Info
-You can use Solana to store data. Here is the code of the program:
-<code>
-  ${ENABLE_SOLANA_PROMPT ? SOLANA_PROGRAM_CODE : ""}
-</code>
+  const prompt = `# Web3 and Smart Contract Instructions
+When users ask to generate a Web3 application or smart contract functionality, follow these guidelines:
 
-It is already deployed on devnet:
-- Program ID: ${SOLANA_PROGRAM_ID}
-- RPC URL: ${SOLANA_DEVNET_RPC_URL}
-
-Created app should genereate an application ID that is used to store data in the program. 
-Use current timestamp as application ID.
-domain parameter is used to separate data for different applications. Use application ID as domain.
-
-When user interacts with the app, you should use the program to store data. 
+## For Web3 Applications:
+- Generate solana smart contract code for the app in the \`src-anchor\` directory (lib.rs file)
 Pop up a Phantom Wallet to confirm transactions for each action.`
 
   return ENABLE_SOLANA_PROMPT ? prompt : "";
