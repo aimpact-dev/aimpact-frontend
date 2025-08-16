@@ -3,7 +3,6 @@ import { WORK_DIR } from '~/utils/constants';
 import { stripIndents } from '~/utils/stripIndent';
 
 const ENABLE_SOLANA_PROMPT = process.env.ENABLE_SOLANA_PROMPT === "true";
-console.log(ENABLE_SOLANA_PROMPT);
 
 const getSolanaPrompt = (): string => {
   const prompt = `# Web3 and Smart Contract Instructions
