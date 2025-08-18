@@ -22,7 +22,7 @@ export default function SolanaProvider({ children }: SolanaProviderProps) {
       {() => {
         return (
           <ConnectionProvider endpoint={endpoint}>
-            <WalletProvider wallets={wallets} autoConnect>
+            <WalletProvider wallets={wallets} autoConnect onError={(error: Error) => console.error("Wallet error:", error)}>
               <WalletModalProvider>{children}</WalletModalProvider>
             </WalletProvider>
           </ConnectionProvider>
