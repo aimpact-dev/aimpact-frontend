@@ -10,6 +10,7 @@ import React, { Suspense, useEffect, useState, type FC, type PropsWithChildren }
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
+import { CivicAuthProvider } from '@civic/auth-web3/react';
 
 import { logStore } from './lib/stores/logs';
 import { AuthProvider } from './lib/hooks/useAuth';
@@ -23,8 +24,9 @@ import 'virtual:uno.css';
 import { workbenchStore } from "./lib/stores/workbench";
 import LoadingScreen from "./components/common/LoadingScreen";
 import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
+import { DaytonaCleanup } from '~/components/common/DaytonaCeanup';
 
-const SolanaProvider = React.lazy(() => 
+const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then(mod => ({
     default: mod.default
   }))
@@ -88,6 +90,11 @@ function Providers({ children }: { children: React.ReactNode }) {
       {() => (
         <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
+            <CivicAuthProvider
+              autoCreateWallet
+              autoConnectEmbeddedWallet
+              clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}
+            >
             <RefCodeProvider>
               <AuthProvider>
                 <DndProvider backend={HTML5Backend}>
@@ -95,6 +102,7 @@ function Providers({ children }: { children: React.ReactNode }) {
                 </DndProvider>
               </AuthProvider>
             </RefCodeProvider>
+            </CivicAuthProvider>
           </SolanaProvider>
         </Suspense>
       )}
@@ -126,7 +134,6 @@ export const ErrorBoundary = () => {
 
 export default function App() {
   const theme = useStore(themeStore);
-  useMemoryMonitor();
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {
