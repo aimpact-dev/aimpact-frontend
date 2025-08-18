@@ -91,8 +91,8 @@ function Providers({ children }: { children: React.ReactNode }) {
         <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
             <CivicAuthProvider
-              autoCreateWallet
-              autoConnectEmbeddedWallet
+              autoCreateWallet={true}
+              autoConnectEmbeddedWallet={true}
               clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}
             >
             <RefCodeProvider>

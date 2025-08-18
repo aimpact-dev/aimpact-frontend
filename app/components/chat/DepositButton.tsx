@@ -8,6 +8,7 @@ import { useSolanaProxy } from '~/lib/api-hooks/useSolanaProxyApi';
 import { classNames } from '~/utils/classNames';
 import waterStyles from '../ui/WaterButton.module.scss';
 import { Tooltip } from './Tooltip';
+import Cookies from 'js-cookie';
 
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);
 
@@ -18,7 +19,7 @@ interface DepositButtonProps {
 export default function DepositButton({ discountPercent }: DepositButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigation = useNavigation();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, signTransaction } = useWallet();
   const { getRecentBlockhash } = useSolanaProxy();
   const detectMobileScreen = () => {
     return window.innerWidth <= 768;
@@ -41,12 +42,17 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
   };
 
   const handlePurchase = async () => {
-    if (!publicKey || !sendTransaction) {
+    if (!publicKey || !sendTransaction || !signTransaction) {
       return;
     }
 
     // 1. Fetch recent blockhash and lastValidBlockHeight from backend
     let blockhash, lastValidBlockHeight;
+    const authToken = Cookies.get('authToken');
+    if (!authToken) {
+      toast.error('You need to be logged in to purchase messages.');
+      return;
+    }
 
     try {
       const data = await getRecentBlockhash();
@@ -69,22 +75,33 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
       }),
     );
 
-    // public rpc connection
-    const connection = new Connection('https://api.mainnet-beta.solana.com');
+    const signedTransaction = await signTransaction(transaction);
+    const serializedTransaction = signedTransaction.serialize();
+    const base64 = Buffer.from(serializedTransaction).toString('base64');
+
 
     // 3. Send transaction with wallet
     try {
-      await sendTransaction(transaction, connection);
-
-      (window as any).plausible('purchase_messages', { props: {
-        message_count: baseMessageCount,
-        purchase_messages_success: true,
-        error: null,
+      const response = await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/submit-signed-transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ serializedTransaction: base64 }),
+      });
+      if (!response.ok) {
+        throw new Error( 'Failed to submit transaction');
       }
-    });
+      (window as any).plausible('purchase_messages', { props: {
+          message_count: baseMessageCount,
+          purchase_messages_success: true,
+          error: null,
+        }
+      });
 
-    setIsOpen(false);
-    toast.success('Purchase completed!');
+      setIsOpen(false);
+      toast.success('Purchase completed!');
     } catch (err) {
       if (err instanceof Error && err.message.includes('User rejected the request')) {
         (window as any).plausible('purchase_messages', { props: {
@@ -93,7 +110,7 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
             error: 'Sign transaction failed',
           }
         });
-      return;
+        return;
       }
 
       toast.error('Transaction failed. Please try again.');
