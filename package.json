@@ -135,6 +135,7 @@
     "react-markdown": "^9.1.0",
     "react-qrcode-logo": "3.0.0",
     "react-resizable-panels": "^2.1.9",
+    "react-spinners": "^0.17.0",
     "react-toastify": "^10.0.6",
     "react-window": "^1.8.11",
     "rehype-raw": "^7.0.0",
