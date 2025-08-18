@@ -49,7 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!connected || !signMessage || !publicKey) {
-        Cookies.remove('authToken');
         setIsAuthorized(false);
         return;
       }
