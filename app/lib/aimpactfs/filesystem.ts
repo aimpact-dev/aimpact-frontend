@@ -1,10 +1,10 @@
 ﻿import type {
-  BufferEncoding, DirEnt,
-  PathWatcherEvent, TextSearchMatch,
+  BufferEncoding, DirEnt, TextSearchMatch,
   TextSearchOnProgressCallback,
   TextSearchOptions,
   WatchPathsOptions
 } from '@webcontainer/api';
+import type { PathWatcherEvent } from './types';
 
 export abstract class AimpactFs {
 

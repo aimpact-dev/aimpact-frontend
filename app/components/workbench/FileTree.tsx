@@ -58,6 +58,7 @@ export const FileTree = memo(
       return buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);
     }, [files, rootFolder, hideRoot, computedHiddenFiles]);
 
+
     const [collapsedFolders, setCollapsedFolders] = useState(() => {
       return collapsed
         ? new Set(fileList.filter((item) => item.kind === 'folder').map((item) => item.fullPath))
@@ -126,7 +127,7 @@ export const FileTree = memo(
       });
     };
 
-    const onCopyPath = (fileOrFolder: FileNode | FolderNode) => {
+    const onCopyPath = (fileOrFolder: FileNode | FolderNode | PendingNode) => {
       try {
         navigator.clipboard.writeText(fileOrFolder.fullPath);
       } catch (error) {
@@ -134,7 +135,7 @@ export const FileTree = memo(
       }
     };
 
-    const onCopyRelativePath = (fileOrFolder: FileNode | FolderNode) => {
+    const onCopyRelativePath = (fileOrFolder: FileNode | FolderNode | PendingNode) => {
       try {
         navigator.clipboard.writeText(fileOrFolder.fullPath.substring((rootFolder || '').length));
       } catch (error) {
@@ -182,6 +183,22 @@ export const FileTree = memo(
                   onClick={() => {
                     toggleCollapseState(fileOrFolder.fullPath);
                   }}
+                />
+              );
+            }
+            case 'pending' : {
+              return (
+                <Pending
+                  key={fileOrFolder.id}
+                  node={fileOrFolder}
+                  selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
+                  onCopyPath={() => {
+                    onCopyPath(fileOrFolder);
+                  }}
+                  onCopyRelativePath={() => {
+                    onCopyRelativePath(fileOrFolder);
+                  }}
+                  onClick={() => {}}
                 />
               );
             }
@@ -620,6 +637,45 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
   );
 }
 
+interface PendingNodeProps {
+  node: PendingNode;
+  selected: boolean;
+  onCopyPath: () => void;
+  onCopyRelativePath: () => void;
+  onClick: () => void;
+}
+
+
+function Pending({
+  node,
+  onClick,
+  onCopyPath,
+  onCopyRelativePath,
+  selected,
+}: PendingNodeProps){
+  console.log('Rendering Pending Node:', node);
+  return (
+    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={node.fullPath}>
+      <NodeButton
+        className={classNames('group', {
+          'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
+            !selected,
+          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
+        })}
+        depth={node.depth}
+        onClick={onClick}
+        iconClasses={
+          'i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault'
+        }
+      >
+        <div className="flex items-center w-full">
+          <div className="flex-1 truncate pr-2">{node.name}</div>
+        </div>
+      </NodeButton>
+    </FileContextMenu>
+  );
+}
+
 interface FileProps {
   file: FileNode;
   selected: boolean;
@@ -748,7 +804,7 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
   );
 }
 
-type Node = FileNode | FolderNode;
+type Node = FileNode | FolderNode | PendingNode;
 
 interface BaseNode {
   id: number;
@@ -763,6 +819,11 @@ interface FileNode extends BaseNode {
 
 interface FolderNode extends BaseNode {
   kind: 'folder';
+}
+
+//Represents a file or folder that is in the process of being loaded.
+interface PendingNode extends BaseNode{
+  kind: 'pending';
 }
 
 function buildFileList(
@@ -805,7 +866,7 @@ function buildFileList(
 
       if (i === segments.length - 1 && dirent?.type === 'file') {
         fileList.push({
-          kind: 'file',
+          kind: dirent?.pending ? 'pending' : 'file',
           id: fileList.length,
           name,
           fullPath,
@@ -815,7 +876,7 @@ function buildFileList(
         folderPaths.add(fullPath);
 
         fileList.push({
-          kind: 'folder',
+          kind: dirent?.pending ? 'pending' : 'folder',
           id: fileList.length,
           name,
           fullPath,
