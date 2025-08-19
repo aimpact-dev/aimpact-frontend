@@ -1,4 +1,4 @@
-﻿import type { ITerminal } from '~/types/terminal';
+import type { ITerminal } from '~/types/terminal';
 import type { Sandbox } from '@daytonaio/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { coloredText } from '~/utils/terminal';
