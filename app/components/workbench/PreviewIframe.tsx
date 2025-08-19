@@ -36,7 +36,7 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
           data-testid="loader"
         />
         <span style={{ marginTop: 24 }}>Loading preview…</span>
-        <span style={{ fontSize: 13 }}>Hold on, it make take a while.</span>
+        <span style={{ fontSize: 13 }}>Hold on, it may take a while.</span>
       </div>
     )}
     <iframe
