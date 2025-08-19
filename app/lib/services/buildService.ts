@@ -27,7 +27,7 @@ export class BuildService {
     }
     const command = buildWith === 'npm' ? 'npm run build' : 'pnpm run build';
     const executionResult = await shell.executeCommand(command, onAbort);
-    if (executionResult?.exitCode !== 0 && executionResult?.exitCode !== 137) {
+    if (executionResult?.exitCode !== 0) {
       console.error(`Build failed with exit code ${executionResult?.exitCode}`);
       return {
         path: '',
