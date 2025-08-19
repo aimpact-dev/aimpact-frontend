@@ -56,4 +56,16 @@ export class WebcontainerFs implements AimpactFs {
     const container = await this.containerPromise;
     return container.fs.writeFile(filePath, content, encoding);
   }
+
+  async mkdirLocal(dirPath: string): Promise<string> {
+    return this.mkdir(dirPath);
+  }
+
+  rmLocal(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
+    return this.rm(filePath, options);
+  }
+
+  writeFileLocal(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
+    return this.writeFile(filePath, content, encoding);
+  }
 }
