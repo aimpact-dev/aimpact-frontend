@@ -482,7 +482,7 @@ export class ZenfsImpl extends AimpactFs {
     filePath = this.toLocalPath(filePath);
 
     //If filePath contains directories, ensure the parent directory exists
-    if(!filePath.indexOf('/') === -1) {
+    if(filePath.indexOf('/') !== -1) {
       const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
       const exists = await this._exists(parentDir);
       if (!exists) {
