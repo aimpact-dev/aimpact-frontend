@@ -201,18 +201,18 @@ export function useChatHistory() {
     handleMixedId();
   }, [mixedId, navigate, searchParams]);
 
-  const takeSnapshot = async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string, disableIngore = false) => {
+  const takeSnapshot = async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
     const id = _chatId || chatId.get();
 
     if (!id) {
       return;
     }
 
-    const filteredFiles = disableIngore ? files : filterIgnoreFiles(files);
+    const filteredFiles = filterIgnoreFiles('/home/project/', files);
 
     const snapshot: Snapshot = {
       chatIndex: chatIdx,
-      files,
+      files: filteredFiles,
       summary: chatSummary,
     };
 
