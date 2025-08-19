@@ -23,7 +23,7 @@ import 'virtual:uno.css';
 import { workbenchStore } from "./lib/stores/workbench";
 import LoadingScreen from "./components/common/LoadingScreen";
 import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
-import { DaytonaCleanup } from '~/components/common/DaytonaCeanup';
+import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then(mod => ({
