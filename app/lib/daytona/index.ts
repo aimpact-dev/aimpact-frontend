@@ -17,7 +17,7 @@ export function getSandbox(): Promise<Sandbox> {
   return sandboxPromise;
 }
 
-async function initializeSandbox() : Promise<Sandbox>{
+async function initializeSandbox() : Promise<Sandbox> {
   const daytona = new Daytona({
     apiKey: import.meta.env.VITE_DAYTONA_API_KEY || '',
   });
