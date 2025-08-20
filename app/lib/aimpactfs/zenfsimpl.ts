@@ -122,7 +122,6 @@ export class ZenfsImpl extends AimpactFs {
     dirPath = this.toLocalPath(dirPath);
 
     try {
-      //Simulate delay
       await new Promise<void>((resolve, reject) => {
         fs.mkdir(dirPath, { recursive: true }, (err: any) => {
           if (err) {

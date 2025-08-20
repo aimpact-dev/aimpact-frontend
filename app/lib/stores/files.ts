@@ -732,12 +732,10 @@ export class FilesStore {
 
       switch (type) {
         case 'pre_add_dir': {
-          console.log("Pre add dir: " + sanitizedPath);
           this.files.setKey(sanitizedPath, { type: 'folder', pending: true });
           break;
         }
         case 'add_dir': {
-          console.log("add_dir");
           this.files.setKey(sanitizedPath, { type: 'folder', pending: false });
           break;
         }
@@ -753,7 +751,6 @@ export class FilesStore {
           break;
         }
         case 'pre_add_file':{
-          console.log("Pre add file: " + sanitizedPath);
           this.files.setKey(sanitizedPath, {
             type: 'file',
             content: '',
@@ -764,7 +761,6 @@ export class FilesStore {
           break;
         }
         case 'add_file':
-          console.log("add_file");
         case 'change': {
           if (type === 'add_file') {
             this.#size++;
@@ -828,7 +824,6 @@ export class FilesStore {
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
-        console.log("Saving a binary file.");
         await fs.writeFile(relativePath, Buffer.from(content));
 
         const base64Content = Buffer.from(content).toString('base64');

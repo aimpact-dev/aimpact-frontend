@@ -653,7 +653,6 @@ function Pending({
   onCopyRelativePath,
   selected,
 }: PendingNodeProps){
-  console.log('Rendering Pending Node:', node);
   return (
     <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={node.fullPath}>
       <NodeButton
