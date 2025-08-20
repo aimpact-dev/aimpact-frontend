@@ -1,14 +1,14 @@
 ﻿import type { ITerminal } from '~/types/terminal';
-import type { Sandbox } from '@daytonaio/sdk';
 import { v4 as uuidv4 } from 'uuid';
 import { coloredText } from '~/utils/terminal';
 import { getPortCatcher } from '~/utils/portCatcher';
+import type { LazySandbox } from '~/lib/daytona/lazySandbox';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
 export class AimpactShell {
   #terminal: ITerminal | undefined;
-  #sandboxPromise: Promise<Sandbox>;
+  #sandboxPromise: Promise<LazySandbox>;
 
   //Keeping track of the ITerminal onData events. They represent terminal input.
   #commandBuffer: string[] = [];
@@ -28,7 +28,7 @@ export class AimpactShell {
   #logsProcessors: {process: (log:string) => void}[] = [];
 
 
-  constructor(sandboxPromise: Promise<Sandbox>, logsProcessors: {process: (log:string) => void}[] = []) {
+  constructor(sandboxPromise: Promise<LazySandbox>, logsProcessors: {process: (log:string) => void}[] = []) {
     this.#logsProcessors = logsProcessors;
     this.#sandboxPromise = sandboxPromise;
     if (!sandboxPromise){
@@ -84,14 +84,14 @@ export class AimpactShell {
       //Currently there is no way to kill running process in Daytona.io API,
       //so we delete the session instead.
       console.log("Deleting session:", this.#executionState.sessionId);
-      await sandbox.process.deleteSession(this.#executionState.sessionId);
+      await sandbox.deleteSession(this.#executionState.sessionId);
       //Wait for previous command to finish executing.
       await this.#executionState.executionPromise;
     }
 
     //We create a new session for each new command.
     const sessionId = uuidv4();
-    await sandbox.process.createSession(sessionId);
+    await sandbox.createSession(sessionId);
 
     const commandRequest = {
       command: command,
@@ -99,7 +99,7 @@ export class AimpactShell {
     };
     console.log("Executing command: ", command, "in session:", sessionId);
     const response =
-      await sandbox.process.executeSessionCommand(sessionId, commandRequest);
+      await sandbox.executeSessionCommand(sessionId, commandRequest);
     const commandId = response.cmdId;
     const executionPromise = this._pollCommandState(sessionId, commandId!);
     this.#executionState = {
@@ -119,9 +119,9 @@ export class AimpactShell {
     try{
       while (true){
         console.log("Polling command state for session:", sessionId, "command:", commandId);
-        const commandState = await sandbox.process.getSessionCommand(sessionId, commandId);
+        const commandState = await sandbox.getSessionCommand(sessionId, commandId);
         console.log("Received command state:", commandState);
-        const commandLogs = await sandbox.process.getSessionCommandLogs(sessionId, commandId);
+        const commandLogs = await sandbox.getSessionCommandLogs(sessionId, commandId);
         console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
         //We need to output new logs to the terminal.
         //These have to be new logs only, so we keep track of the last log length.
@@ -143,7 +143,7 @@ export class AimpactShell {
           console.log("Received exit code for command:", commandState.exitCode, "in session:", sessionId, "command:", commandId);
           console.log("Cleaning up session:", sessionId, "after command execution.");
           //If command finished running, then we need to delete its session
-          await sandbox.process.deleteSession(sessionId);
+          await sandbox.deleteSession(sessionId);
           //Reset the execution state
           this.#executionState = undefined;
           this.#lastLogLength = 0;
@@ -166,7 +166,7 @@ export class AimpactShell {
 
 //Using this function for creating a new AimpactShell instance is preferable, because it attaches
 //log processor for capturing preview port from Daytona.io server.
-export function newAimpactShellProcess(sandboxPromise: Promise<Sandbox>): AimpactShell {
+export function newAimpactShellProcess(sandboxPromise: Promise<LazySandbox>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessor = {
     process: (log: string) => {

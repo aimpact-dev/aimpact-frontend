@@ -1,6 +1,7 @@
 ﻿import type { Sandbox } from '@daytonaio/sdk';
 import type { PortCatcher } from '~/utils/portCatcher';
 import { atom } from 'nanostores';
+import type { LazySandbox } from '~/lib/daytona/lazySandbox';
 
 export interface PreviewInfo {
   port: number;
@@ -9,12 +10,12 @@ export interface PreviewInfo {
 }
 
 export class AimpactPreviewStore {
-  private sandbox: Promise<Sandbox>;
+  private sandbox: Promise<LazySandbox>;
   private portCatcher: PortCatcher;
 
   previews = atom<PreviewInfo[]>([]);
 
-  constructor(sandbox: Promise<Sandbox>, portCatcher: PortCatcher) {
+  constructor(sandbox: Promise<LazySandbox>, portCatcher: PortCatcher) {
     this.sandbox = sandbox;
     this.portCatcher = portCatcher;
     this.previews.set([]);
