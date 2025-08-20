@@ -146,10 +146,18 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     try {
       let url: string;
       if (provider === DeployProviders.ICP) {
-        const data = await getIcpDeployRequest(projectId);
+        const data = await getIcpDeployRequest(projectId, {
+          onError: () => {
+            console.error(`ICP project not found (${projectId})`);
+          },
+        });
         url = data.finalUrl;
       } else if (provider === DeployProviders.AWS) {
-        const data = await getS3DeployRequest(projectId);
+        const data = await getS3DeployRequest(projectId, { 
+          onError: () => {
+            console.error(`AWS project not found (${projectId})`);
+          },
+        });
         url = data.url;
       } else {
         throw new Error('Invalid provider');

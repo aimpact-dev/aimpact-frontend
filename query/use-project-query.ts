@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { ky } from 'query';
+import { client } from '~/lib/api/backend/api';
 
 interface AppDeployments {
   provider: string;
@@ -91,3 +93,18 @@ export const useS3DeployemntQuery = (id: string) => {
     },
   });
 };
+
+export interface SetProjectTokenPayload {
+  tokenAddress: string;
+}
+
+export const useSetProjectToken = (id: string) => {
+  return useMutation<{}, AxiosError, SetProjectTokenPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<{}>(`projects/${id}/add-token`, {
+        json: payload,
+      });
+      return data;
+    }
+  })
+}
