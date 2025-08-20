@@ -8,10 +8,10 @@ import { streamingState } from '~/lib/stores/streaming';
 import { chatId, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { toast, type Id as ToastId } from 'react-toastify';
 import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, type IcpDeployResponse, type PostDeployResponse, type S3DeployResponse } from '~/lib/hooks/tanstack/useDeploy';
-import { DeployService } from '~/lib/services/deployService';
-import { webcontainer } from '~/lib/webcontainer';
-import type { UseMutateAsyncFunction } from '@tanstack/react-query';
 import { Tooltip } from '../chat/Tooltip';
+import { BuildService } from '~/lib/services/buildService';
+import { getSandbox } from '~/lib/daytona';
+import { getAimpactFs } from '~/lib/aimpactfs';
 
 interface HeaderActionButtonsProps {}
 enum DeployProviders {
@@ -58,7 +58,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const chatSummary = useStore(lastChatSummary);
 
   // TODO: Add AbortController for canceling deploy
-  const deployService = useRef<DeployService>();
+  const buildService = useRef<BuildService>();
   const toastIds = useRef<Set<ToastId>>(new Set());
   const deployingToastId = useRef<ToastId | null>(null);
 
@@ -70,14 +70,15 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
 
   useEffect(() => {
-    if (!deployService.current) {
-      deployService.current = new DeployService(
-        webcontainer,
+    if (!buildService.current) {
+      buildService.current = new BuildService(
+        Promise.resolve(workbenchStore.getMainShell),
+        getSandbox(),
+        getAimpactFs()
       );
     }
 
     return () => {
-      deployService.current?.cleanup?.();
     };
   }, []);
 
@@ -91,7 +92,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const formattedLinkToast = (url: string, provider: DeployProviders) => {
     const toastId = toast.success(
       <div>
-        Project is published to <b>{provider}</b>. 
+        Project is published to <b>{provider}</b>.
         You can click to the button in the "Publish" dropdown and go to app by link or just click link here.
         <br /> <br />
         <a href={url} target="_blank" rel="noopener noreferrer" className='underline cursor-pointer'>
@@ -118,12 +119,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     const currentChatId = chatId.get();
     if (!currentChatId) return;
 
-    fetchDeployRequest({ 
+    fetchDeployRequest({
       projectId: currentChatId,
       showError: false,
       provider: DeployProviders.AWS,
     });
-    fetchDeployRequest({ 
+    fetchDeployRequest({
       projectId: currentChatId,
       showError: false,
       provider: DeployProviders.ICP,
@@ -163,7 +164,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         throw new Error('Invalid provider');
       }
       setFinalDeployLink(url);
-      
+
       if (url) {
         if (deployingToastId.current) {
           toast.dismiss(deployingToastId.current);
@@ -198,31 +199,27 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         return;
       }
 
-      if (!deployService?.current) {
+      if (!buildService?.current) {
         toast.error("Failed to init deploy service. Try to reload page");
         return;
       }
 
-      const deployResult = await deployService.current.runDeployScript();
-      
-      console.log(deployResult);
-      if (deployResult.exitCode !== 0 && deployResult.exitCode !== 143) {
-        toast.error(`Failed to build. Status code: ${deployResult.exitCode}.`, { autoClose: false })
+      const buildResult = await buildService.current.runBuildScript('pnpm');
+
+      if (buildResult.exitCode !== 0 && buildResult.exitCode !== 143) {
+        toast.error(`Failed to build. Status code: ${buildResult.exitCode}.`, { autoClose: false })
+      }
+      if(!buildResult.fileMap) {
+        toast.error(`Failed to build. No files found in the build directory.`);
+        return;
       }
 
-      const files = workbenchStore.files.get();
-      const filteredFiles = Object.fromEntries(Object.entries(files).filter(
-        ([key, value]) => {
-          return key.startsWith("/home/project/dist/");
-        }
-      ));
-      
       let data: IcpDeployResponse | S3DeployResponse;
       let url: string;
       if (provider === DeployProviders.AWS) {
         data = await createaS3DeployRequest({
           projectId: currentChatId,
-          snapshot: filteredFiles,
+          snapshot: buildResult.fileMap,
         });
         url = data.url;
         formattedLinkToast(url, provider);
@@ -231,7 +228,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       } else if (provider === DeployProviders.ICP) {
         data = await createIcpDeployRequest({
           projectId: currentChatId,
-          snapshot: filteredFiles,
+          snapshot: buildResult.fileMap,
         });
         clearDeployStatusInterval();
         deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
