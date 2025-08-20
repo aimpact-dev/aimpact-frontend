@@ -1,11 +1,9 @@
 ﻿import type { HybridFs} from '~/lib/aimpactfs/hybridFs';
 import type {AimpactShell } from '~/utils/aimpactShell'
-import type { FileInfo, Sandbox } from '@daytonaio/sdk';
-import { getEncoding } from 'istextorbinary';
-import { Buffer } from 'node:buffer';
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
 import type { LazySandbox } from '~/lib/daytona/lazySandbox';
+import {workbenchStore} from '~/lib/stores/workbench';
 
 export class BuildService {
   private shellPromise: Promise<AimpactShell>;
@@ -30,6 +28,14 @@ export class BuildService {
     const executionResult = await shell.executeCommand(command, onAbort);
     if (executionResult?.exitCode !== 0 && executionResult?.exitCode !== 137) {
       console.error(`Build failed with exit code ${executionResult?.exitCode}`);
+      workbenchStore.deployAlert.set({
+        type: 'error',
+        title: 'Build Failed',
+        description: 'Build failed with exit code ' + executionResult?.exitCode,
+        content: executionResult?.output || 'No output',
+        stage: 'building',
+        buildStatus: 'failed'
+      });
       return {
         path: '',
         exitCode: executionResult?.exitCode,
