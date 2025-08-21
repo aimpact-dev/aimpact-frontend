@@ -2,16 +2,16 @@ import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
 import { coloredText } from '~/utils/terminal';
 import { AimpactShell, newAimpactShellProcess } from '~/utils/aimpactShell';
-import type { LazySandbox } from '~/lib/daytona/lazySandbox';
+import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
 export class TerminalStore {
-  #sandbox: Promise<LazySandbox>;
+  #sandbox: Promise<RemoteSandbox>;
   private aimpactTerminals: Array<AimpactShell> = [];
   private mainShell: AimpactShell;
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
 
-  constructor(sandboxPromise: Promise<LazySandbox>) {
+  constructor(sandboxPromise: Promise<RemoteSandbox>) {
     this.#sandbox = sandboxPromise;
 
     this.mainShell = newAimpactShellProcess(sandboxPromise);

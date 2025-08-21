@@ -1,18 +1,15 @@
 ﻿import type { HybridFs} from '~/lib/aimpactfs/hybridFs';
 import type {AimpactShell } from '~/utils/aimpactShell'
-import type { FileInfo, Sandbox } from '@daytonaio/sdk';
-import { getEncoding } from 'istextorbinary';
-import { Buffer } from 'node:buffer';
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
-import type { LazySandbox } from '~/lib/daytona/lazySandbox';
+import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
 export class BuildService {
-  private shellPromise: Promise<AimpactShell>;
-  private sandbox: Promise<LazySandbox>;
-  private hybridFs: Promise<HybridFs>;
+  private readonly shellPromise: Promise<AimpactShell>;
+  private readonly sandbox: Promise<RemoteSandbox>;
+  private readonly hybridFs: Promise<HybridFs>;
 
-  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<LazySandbox>, hybridFs: Promise<HybridFs>) {
+  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<RemoteSandbox>, hybridFs: Promise<HybridFs>) {
     this.hybridFs = hybridFs;
     this.sandbox = sandbox;
     this.shellPromise = shellPromise;
@@ -98,7 +95,7 @@ export class BuildService {
     };
   }
 
-  private async listSubPaths(dir: string, sandbox: LazySandbox): Promise<{ path: string, isDir: boolean}[]>{
+  private async listSubPaths(dir: string, sandbox: RemoteSandbox): Promise<{ path: string, isDir: boolean}[]>{
     const files = await sandbox.listFiles(dir);
     const subPaths: { path: string, isDir: boolean}[] = [];
 

@@ -1,10 +1,10 @@
-﻿import { LazySandbox } from '~/lib/daytona/lazySandbox';
+﻿import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
-let sandbox: LazySandbox | null = null;
+let sandbox: RemoteSandbox | null = null;
 
-export function getSandbox(): Promise<LazySandbox> {
+export function getSandbox(): Promise<RemoteSandbox> {
   if (!sandbox) {
-    sandbox = new LazySandbox();
+    sandbox = new RemoteSandbox();
   }
   return Promise.resolve(sandbox);
 }

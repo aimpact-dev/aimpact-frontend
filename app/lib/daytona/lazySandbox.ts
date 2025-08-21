@@ -1,15 +1,22 @@
 ﻿import { Daytona, type FileInfo, Image, type Sandbox, type SearchFilesResponse } from '@daytonaio/sdk';
 import type { Command, ExecuteResponse, SessionExecuteRequest, SessionExecuteResponse } from '@daytonaio/api-client';
+import { Buffer } from 'buffer';
 
 
-let daytonaApiUrl = import.meta.env.VITE_DAYTONA_API_URL || 'https://app.daytona.io/api';
-let daytonaApiKey = import.meta.env.VITE_DAYTONA_API_KEY || '';
-let daytonaOrgId = import.meta.env.VITE_DAYTONA_ORG_ID || '';
-
-//Lazily initializes daytona sandbox upon the first use
-//We don't want to have a daytona sandbox instance hanging while user doesn't need it.
+/** Lazily initializes daytona sandbox upon the first use
+* We don't want to have a daytona sandbox instance hanging while user doesn't need it.
+ * */
 export class LazySandbox{
   private sandbox: Sandbox | null = null;
+  private readonly apiKey: string;
+  private readonly orgId: string;
+  private readonly apiUrl: string;
+
+  public constructor(apiUrl: string, apiKey: string, orgId: string) {
+    this.apiUrl = apiUrl;
+    this.apiKey = apiKey;
+    this.orgId = orgId;
+  }
 
   private async ensureSandboxInitialized(): Promise<Sandbox> {
     if (!this.sandbox) {
@@ -20,7 +27,7 @@ export class LazySandbox{
 
   private async initializeSandbox() : Promise<Sandbox>{
     const daytona = new Daytona({
-      apiKey: import.meta.env.VITE_DAYTONA_API_KEY || '',
+      apiKey: this.apiKey,
     });
     const resources = {
       cpu: 1,
@@ -102,7 +109,8 @@ export class LazySandbox{
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
-    return sandbox.fs.uploadFile(file, remotePath, timeout);
+    console.log('Uploading buffer with: ', file.toString())
+    return sandbox.fs.uploadFile(Buffer.from('{"setting": "value"}'), remotePath, timeout);
   }
 
   async searchFiles(
@@ -191,17 +199,14 @@ export class LazySandbox{
     return sandbox.process.getSessionCommandLogs(sessionId, commandId);
   }
 
-  /**
-   * Removes daytona instance via keepalive API call, so it can be sent after page unload/reload.
-   */
-  dispose() {
+  async dispose() {
     const sandboxId = this.sandbox?.id;
     if (!sandboxId) return;
-    fetch(`${daytonaApiUrl}/sandbox/${sandboxId}/stop`, {
+    await fetch(`${this.apiUrl}/sandbox/${sandboxId}/stop`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${daytonaApiKey}`,
-        'X-Daytona-Organization-ID': daytonaOrgId,
+        'Authorization': `Bearer ${this.apiKey}`,
+        'X-Daytona-Organization-ID': this.orgId,
         'Content-Type': 'application/json'
       },
       keepalive: true  // This ensures the request completes even during page unload

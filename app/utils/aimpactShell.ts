@@ -2,13 +2,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { coloredText } from '~/utils/terminal';
 import { getPortCatcher } from '~/utils/portCatcher';
-import type { LazySandbox } from '~/lib/daytona/lazySandbox';
+import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
 export class AimpactShell {
   #terminal: ITerminal | undefined;
-  #sandboxPromise: Promise<LazySandbox>;
+  #sandboxPromise: Promise<RemoteSandbox>;
 
   //Keeping track of the ITerminal onData events. They represent terminal input.
   #commandBuffer: string[] = [];
@@ -28,7 +28,7 @@ export class AimpactShell {
   #logsProcessors: {process: (log:string) => void}[] = [];
 
 
-  constructor(sandboxPromise: Promise<LazySandbox>, logsProcessors: {process: (log:string) => void}[] = []) {
+  constructor(sandboxPromise: Promise<RemoteSandbox>, logsProcessors: {process: (log:string) => void}[] = []) {
     this.#logsProcessors = logsProcessors;
     this.#sandboxPromise = sandboxPromise;
     if (!sandboxPromise){
@@ -166,7 +166,7 @@ export class AimpactShell {
 
 //Using this function for creating a new AimpactShell instance is preferable, because it attaches
 //log processor for capturing preview port from Daytona.io server.
-export function newAimpactShellProcess(sandboxPromise: Promise<LazySandbox>): AimpactShell {
+export function newAimpactShellProcess(sandboxPromise: Promise<RemoteSandbox>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessor = {
     process: (log: string) => {
