@@ -7,6 +7,8 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { Tooltip } from '../chat/Tooltip';
+import { ClipLoader } from 'react-spinners';
+import { PreviewIframe } from '~/components/workbench/PreviewIframe';
 
 type ResizeSide = 'left' | 'right' | null;
 
@@ -52,6 +54,9 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Indicates whether the iframe loaded content from preview url
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
@@ -101,6 +106,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
     const { baseUrl } = activePreview;
     setIframeUrl(baseUrl);
     setDisplayPath('/');
+    setIsPreviewLoading(true);
   }, [activePreview]);
 
   const findMinPortIndex = useCallback(
@@ -120,6 +126,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const reloadPreview = () => {
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
+      setIsPreviewLoading(true);
     }
   };
 
@@ -924,31 +931,20 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                         zIndex: 2,
                       }}
                     />
-
-                    <iframe
-                      ref={iframeRef}
-                      title="preview"
-                      style={{
-                        border: 'none',
-                        width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
-                        height: isLandscape ? `${selectedWindowSize.width}px` : `${selectedWindowSize.height}px`,
-                        background: 'white',
-                        display: 'block',
-                      }}
-                      src={iframeUrl}
-                      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                      allow="cross-origin-isolated"
+                    <PreviewIframe
+                      isPreviewLoading={isPreviewLoading}
+                      iframeRef={iframeRef}
+                      iframeUrl={iframeUrl}
+                      onLoad={() => setIsPreviewLoading(false)}
                     />
                   </div>
                 </div>
               ) : (
-                <iframe
-                  ref={iframeRef}
-                  title="preview"
-                  className="border-none w-full h-full bg-bolt-elements-background-depth-1"
-                  src={iframeUrl}
-                  sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                  allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+                <PreviewIframe
+                  isPreviewLoading={isPreviewLoading}
+                  iframeRef={iframeRef}
+                  iframeUrl={iframeUrl}
+                  onLoad={() => setIsPreviewLoading(false)}
                 />
               )}
               <ScreenshotSelector

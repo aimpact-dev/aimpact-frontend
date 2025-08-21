@@ -1,4 +1,4 @@
-import type { PathWatcherEvent } from '@webcontainer/api';
+import type { PathWatcherEvent } from '~/lib/aimpactfs/types';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
 import { Buffer } from 'node:buffer';
@@ -30,6 +30,7 @@ const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
 
 export interface File {
   type: 'file';
+  pending: boolean;
   content: string;
   isBinary?: boolean;
   isLocked?: boolean;
@@ -38,6 +39,7 @@ export interface File {
 
 export interface Folder {
   type: 'folder';
+  pending: boolean;
   isLocked?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this folder (for nested folders)
 }
@@ -600,8 +602,20 @@ export class FilesStore {
     // Set up file watcher
     await fs.watchPaths(
       { include: [`${WORK_DIR}/**`], exclude: ['**/node_modules', '.git'], includeContent: true },
-      bufferWatchEvents(100, this.#processEventBuffer.bind(this)),
-    );
+      (events) => {
+        const bufferEvents: PathWatcherEvent[] = [];
+        const immediateEvents: PathWatcherEvent[] = [];
+        for (const event of events) {
+          if (event.type === 'pre_add_dir' || event.type === 'pre_add_file') {
+            immediateEvents.push(event);
+          } else {
+            bufferEvents.push(event);
+          }
+        }
+        const bufferProcessor = bufferWatchEvents(100, this.#processEventBuffer.bind(this));
+        this.#processEventBuffer([[immediateEvents]]);
+        bufferProcessor(bufferEvents);
+      });
 
     // Get the current chat ID
     const currentChatId = getCurrentChatId();
@@ -717,9 +731,12 @@ export class FilesStore {
       }
 
       switch (type) {
+        case 'pre_add_dir': {
+          this.files.setKey(sanitizedPath, { type: 'folder', pending: true });
+          break;
+        }
         case 'add_dir': {
-          // we intentionally add a trailing slash so we can distinguish files from folders in the file tree
-          this.files.setKey(sanitizedPath, { type: 'folder' });
+          this.files.setKey(sanitizedPath, { type: 'folder', pending: false });
           break;
         }
         case 'remove_dir': {
@@ -731,6 +748,16 @@ export class FilesStore {
             }
           }
 
+          break;
+        }
+        case 'pre_add_file':{
+          this.files.setKey(sanitizedPath, {
+            type: 'file',
+            content: '',
+            isBinary: false,
+            isLocked: false,
+            pending: true
+          });
           break;
         }
         case 'add_file':
@@ -760,6 +787,7 @@ export class FilesStore {
             content,
             isBinary,
             isLocked,
+            pending: false
           });
           break;
         }
@@ -796,7 +824,6 @@ export class FilesStore {
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
-        console.log("Saving a binary file.");
         await fs.writeFile(relativePath, Buffer.from(content));
 
         const base64Content = Buffer.from(content).toString('base64');
