@@ -118,11 +118,8 @@ export class AimpactShell {
     const sandbox = await this.#sandboxPromise;
     try{
       while (true){
-        console.log("Polling command state for session:", sessionId, "command:", commandId);
         const commandState = await sandbox.getSessionCommand(sessionId, commandId);
-        console.log("Received command state:", commandState);
         const commandLogs = await sandbox.getSessionCommandLogs(sessionId, commandId);
-        console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
         //We need to output new logs to the terminal.
         //These have to be new logs only, so we keep track of the last log length.
         if (commandLogs) {

@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
-import type { SessionExecuteRequest } from '@daytonaio/api-client';
 
 const allowedMethods = [
   'getPreviewLink',
@@ -17,7 +16,7 @@ const allowedMethods = [
   'executeSessionCommand',
   'getSessionCommand',
   'getSessionCommandLogs',
-  'dispose'
+  'dispose',
 ];
 
 const authTokenToSandboxMap = new Map<string, LazySandbox>();
@@ -30,7 +29,9 @@ function getEnvVar(context: any, key: string): string | undefined {
 }
 
 function getSandbox(context: any, authToken: string): LazySandbox {
+  console.log("Rows count in map:", authTokenToSandboxMap.size);
   if (!authTokenToSandboxMap.has(authToken)) {
+    console.log("Creating new LazySandbox for authToken:", authToken);
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
@@ -99,7 +100,7 @@ export async function action({context, request}: ActionFunctionArgs) {
     case 'getSessionCommandLogs':
       return getSessionCommandLogs(context, args, authToken);
     case 'dispose':
-      return dispose(context, args, authToken);
+      return disposeSandbox(context, args, authToken);
     default:
       return new Response('Method not implemented', { status: 501 });
   }
@@ -123,7 +124,6 @@ async function handleGetPreviewLink(context: any, args: any, authToken: string){
     });
   }
   catch (error) {
-    console.error('Error in getPreviewLink:', error);
     return new Response('Failed to get preview link', { status: 500 });
   }
 }
@@ -144,13 +144,12 @@ async function handleCreateFolder(context: any, args: any, authToken: string){
     await sandbox.createFolder(path, mode);
     return new Response('Folder created successfully', { status: 200 });
   } catch (error) {
-    console.error('Error in createFolder:', error);
     return new Response('Failed to create folder', { status: 500 });
   }
 }
 
 async function deleteFile(context: any, args: any, authToken: string){
-const path = args?.path;
+  const path = args?.path;
 
   if (!path || typeof path !== 'string') {
     return new Response('Invalid path for deleteFile method.', { status: 400 });
@@ -161,7 +160,6 @@ const path = args?.path;
     await sandbox.deleteFile(path);
     return new Response('File deleted successfully', { status: 200 });
   } catch (error) {
-    console.error('Error in deleteFile:', error);
     return new Response('Failed to delete file', { status: 500 });
   }
 }
@@ -191,9 +189,7 @@ async function executeCommand(context: any, args: any, authToken: string){
 async function uploadFile(context: any, args: any, authToken: string){
   const fileStr = args?.file;
   const remotePath = args?.remotePath;
-  const timeout = args?.timeout;
 
-  console.log("uploadFile called with args:", args);
   if (!fileStr) {
     return new Response('Invalid file for uploadFile method.', { status: 400 });
   }
@@ -205,12 +201,10 @@ async function uploadFile(context: any, args: any, authToken: string){
 
   const sandbox = getSandbox(context, authToken);
   try {
-    console.log("Uploading file to remote path:", remotePath);
-    await sandbox.uploadFile(Buffer.from(fileStrDecoded), remotePath, timeout);
+    await sandbox.uploadFile(Buffer.from(fileStrDecoded), remotePath);
     return new Response('File uploaded successfully', { status: 200 });
   } catch (error) {
-    console.error('Error in uploadFile:', error);
-    return new Response('Failed to upload file', { status: 500 });
+    return new Response('Failed to upload file. Error: ' + error, { status: 500 });
   }
 }
 
@@ -253,7 +247,7 @@ async function downloadFile(context: any, args: any, authToken: string){
       fileContent: fileStr,
     });
     return new Response(body, {
-      headers: { 'Content-Type': 'application/octet-stream' },
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in downloadFile:', error);
@@ -274,13 +268,12 @@ async function listFiles(context: any, args: any, authToken: string){
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in listFiles:', error);
     return new Response('Failed to list files', { status: 500 });
   }
 }
 
 async function createSession(context: any, args: any, authToken: string){
-const sessionId = args?.sessionId;
+  const sessionId = args?.sessionId;
   if (!sessionId || typeof sessionId !== 'string') {
     return new Response('Invalid session ID for createSession method.', { status: 400 });
   }
@@ -290,13 +283,12 @@ const sessionId = args?.sessionId;
     await sandbox.createSession(sessionId);
     return new Response('Session created successfully', { status: 200 });
   } catch (error) {
-    console.error('Error in createSession:', error);
     return new Response('Failed to create session', { status: 500 });
   }
 }
 
 async function deleteSession(context: any, args: any, authToken: string){
-const sessionId = args?.sessionId;
+  const sessionId = args?.sessionId;
   if (!sessionId || typeof sessionId !== 'string') {
     return new Response('Invalid session ID for deleteSession method.', { status: 400 });
   }
@@ -305,8 +297,7 @@ const sessionId = args?.sessionId;
   try {
     await sandbox.deleteSession(sessionId);
     return new Response('Session deleted successfully', { status: 200 });
-  } catch (error) {
-    console.error('Error in deleteSession:', error);
+  } catch (error) {;
     return new Response('Failed to delete session', { status: 500 });
   }
 }
@@ -323,27 +314,19 @@ async function executeSessionCommand(context: any, args: any, authToken: string)
     return new Response('Invalid command for executeSessionCommand method.', { status: 400 });
   }
 
-  let request: SessionExecuteRequest;
-  try {
-    request = JSON.parse(requestObj);
-  } catch (error) {
-    return new Response('Invalid command format', { status: 400 });
-  }
-
   const sandbox = getSandbox(context, authToken);
   try {
-    const response = await sandbox.executeSessionCommand(sessionId, request, timeout);
+    const response = await sandbox.executeSessionCommand(sessionId, requestObj, timeout);
     return new Response(JSON.stringify(response), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in executeSessionCommand:', error);
     return new Response('Failed to execute session command', { status: 500 });
   }
 }
 
 async function getSessionCommand(context: any, args: any, authToken: string){
-const sessionId = args?.sessionId;
+  const sessionId = args?.sessionId;
   const commandId = args?.commandId;
 
   if (!sessionId || typeof sessionId !== 'string') {
@@ -360,13 +343,12 @@ const sessionId = args?.sessionId;
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in getSessionCommand:', error);
     return new Response('Failed to get session command', { status: 500 });
   }
 }
 
 async function getSessionCommandLogs(context: any, args: any, authToken: string){
-const sessionId = args?.sessionId;
+  const sessionId = args?.sessionId;
   const commandId = args?.commandId;
 
   if (!sessionId || typeof sessionId !== 'string') {
@@ -383,18 +365,20 @@ const sessionId = args?.sessionId;
       headers: { 'Content-Type': 'text/plain' },
     });
   } catch (error) {
-    console.error('Error in getSessionCommandLogs:', error);
     return new Response('Failed to get session command logs', { status: 500 });
   }
 }
 
-async function dispose(context: any, args: any, authToken: string){
-  const sandbox = getSandbox(context, authToken);
-  try {
-    await sandbox.dispose();
-    return new Response('Sandbox disposed successfully', { status: 200 });
-  } catch (error) {
-    console.error('Error in dispose:', error);
-    return new Response('Failed to dispose sandbox', { status: 500 });
+async function disposeSandbox(context: any, args: any, authToken: string){
+  if(authTokenToSandboxMap.has(authToken)){
+    const sandbox = authTokenToSandboxMap.get(authToken);
+    authTokenToSandboxMap.delete(authToken);
+    try {
+      await sandbox.dispose();
+      return new Response('Sandbox disposed successfully', { status: 200 });
+    } catch (error) {
+      return new Response('Failed to dispose sandbox', { status: 500 });
+    }
   }
+  return new Response('Sandbox not found for the provided auth token', { status: 404 });
 }

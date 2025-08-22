@@ -14,7 +14,7 @@ import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
  */
 export class RemoteSandbox{
 
-  private async callApi(method: string, args: any, authToken: string): Promise<any> {
+  private async callApi(method: string, args: any, authToken: string): Promise<Response> {
     const response = await fetch('/api/daytona', {
       method: 'POST',
       headers: {
@@ -28,10 +28,10 @@ export class RemoteSandbox{
     });
 
     if (!response.ok) {
-      throw new Error(`API call failed with status ${response.status}`);
+      throw new Error(`API call failed with status ${response.status}. Method: ${method}, Args: ${JSON.stringify(args)}. Response: ${await response.text()}`);
     }
 
-    return response.json();
+    return response;
   }
 
   private getAuthToken(): string{
@@ -49,9 +49,9 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('getPreviewLink', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to get preview link: ${response.error}`);
+      throw new Error(`Failed to get preview link: ${response.statusText}`);
     }
-    const data = response.data;
+    const data = await response.json();
     if(!data.token || !data.url){
       throw new Error('Invalid response from getPreviewLink');
     }
@@ -72,7 +72,7 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('createFolder', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to create folder: ${response.error}`);
+      throw new Error(`Failed to create folder: ${response.statusText}`);
     }
   }
 
@@ -86,7 +86,7 @@ export class RemoteSandbox{
 
     const response = await this.callApi('deleteFile', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to delete file: ${response.error}`);
+      throw new Error(`Failed to delete file: ${response.statusText}`);
     }
   }
 
@@ -106,11 +106,11 @@ export class RemoteSandbox{
 
     const response = await this.callApi('executeCommand', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to execute command: ${response.error}`);
+      throw new Error(`Failed to execute command: ${response.statusText}`);
     }
     let responseParsed: ExecuteResponse;
     try {
-      responseParsed = JSON.parse(response.data);
+      responseParsed = await response.json();
     } catch (e) {
       throw new Error(`Failed to parse execute command response: ${e}`);
     }
@@ -129,10 +129,9 @@ export class RemoteSandbox{
       timeout: timeout,
     };
     const authToken = this.getAuthToken();
-    console.log('Uploading buffer with: ', file.toString('base64'));
     const response = await this.callApi('uploadFile', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to upload file: ${response.error}`);
+      throw new Error(`Failed to upload file: ${response.statusText}`);
     }
   }
 
@@ -147,11 +146,11 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('searchFiles', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to search files: ${response.error}`);
+      throw new Error(`Failed to search files: ${response.statusText}`);
     }
     let responseParsed: SearchFilesResponse;
     try {
-      responseParsed = JSON.parse(response.data);
+      responseParsed = await response.json();
     } catch (e) {
       throw new Error(`Failed to parse search files response: ${e}`);
     }
@@ -169,12 +168,16 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('downloadFile', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to download file: ${response.error}`);
+      throw new Error(`Failed to download file: ${response.statusText}`);
     }
-    if(!response.data || !response.data.fileContent){
-      throw new Error('Invalid response from downloadFile');
+    let fileContent: string; //Base64 encoded file content
+    try {
+      const json = await response.json();
+      fileContent = json.fileContent;
+    } catch (e) {
+      throw new Error(`Failed to read file content: ${e}`);
     }
-    return Buffer.from(response.data.fileContent, 'base64');
+    return Buffer.from(fileContent, 'base64');
   }
 
   async listFiles(
@@ -186,11 +189,11 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('listFiles', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to list files: ${response.error}`);
+      throw new Error(`Failed to list files: ${response.statusText}`);
     }
     let responseParsed: FileInfo[];
     try {
-      responseParsed = JSON.parse(response.data);
+      responseParsed = await response.json();
     } catch (e) {
       throw new Error(`Failed to parse list files response: ${e}`);
     }
@@ -206,7 +209,7 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('createSession', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to create session: ${response.error}`);
+      throw new Error(`Failed to create session: ${response.statusText}`);
     }
   }
 
@@ -219,7 +222,7 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('deleteSession', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to delete session: ${response.error}`);
+      throw new Error(`Failed to delete session: ${response.statusText}`);
     }
   }
 
@@ -230,17 +233,18 @@ export class RemoteSandbox{
   ): Promise<SessionExecuteResponse>{
     const args = {
       sessionId: sessionId,
-      req: req,
+      request: req,
       timeout: timeout,
     };
     const authToken = this.getAuthToken();
     const response = await this.callApi('executeSessionCommand', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to execute session command: ${response.error}`);
+      const responseText = await response.text();
+      throw new Error(`Failed to execute session command. Status: ${response.statusText}. Response: ${responseText}`);
     }
     let responseParsed: SessionExecuteResponse;
     try {
-      responseParsed = JSON.parse(response.data);
+      responseParsed = await response.json();
     } catch (e) {
       throw new Error(`Failed to parse execute session command response: ${e}`);
     }
@@ -258,11 +262,11 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('getSessionCommand', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to get session command: ${response.error}`);
+      throw new Error(`Failed to get session command: ${response.statusText}`);
     }
     let responseParsed: Command;
     try {
-      responseParsed = JSON.parse(response.data);
+      responseParsed = await response.json();
     } catch (e) {
       throw new Error(`Failed to parse get session command response: ${e}`);
     }
@@ -280,22 +284,22 @@ export class RemoteSandbox{
     const authToken = this.getAuthToken();
     const response = await this.callApi('getSessionCommandLogs', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to get session command logs: ${response.error}`);
+      throw new Error(`Failed to get session command logs: ${response.statusText}`);
     }
-    return response.data;
+    return response.text();
   }
 
-  async dispose(){
+  //This method is called during page unload, so we need to get authToken in a more reliable way than from cookies.
+  dispose(authToken: string){
     // We need to call dispose action via keepalive request
-    const authToken = this.getAuthToken();
-    const response = await fetch('/api/daytona', {
+    fetch('/api/daytona', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         method: 'dispose',
-        authToken: authToken,
+        authToken: authToken
       }),
       keepalive: true, // This ensures the request completes even during page unload
     });
