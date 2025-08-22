@@ -1,8 +1,8 @@
-import { IconButton } from "../ui";
-import { useState } from "react";
-import { classNames } from "~/utils/classNames";
-import Popup from "../common/Popup";
-import { Tooltip } from "../chat/Tooltip";
+import { IconButton } from '../ui';
+import { useState } from 'react';
+import { classNames } from '~/utils/classNames';
+import Popup from '../common/Popup';
+import { Tooltip } from '../chat/Tooltip';
 
 interface FooterProps {
   positionClass?: string;
@@ -13,44 +13,41 @@ export default function Footer({ positionClass }: FooterProps) {
   const [bountyOpen, setBountyOpen] = useState(false);
   const custHandleToggle = () => {
     setCustOpen(!custOpen);
-  }
+  };
 
   const bountyHandleToggle = () => {
     setBountyOpen(!bountyOpen);
-  }
+  };
 
   return (
-    <footer className={classNames(
-      "pb-2.5 px-2.5 bottom-0 left-0 w-full z-50",
-      positionClass,
-    )}>
+    <footer className={classNames('pb-2.5 px-2.5 bottom-0 left-0 w-full z-50 pointer-events-none', positionClass)}>
       {/* Bug bounty button and Cast-Dev popup  */}
       <div className="relative w-full flex justify-between items-center">
-        <div className="flex flex-col gap-2" onClick={bountyHandleToggle}>
-            <IconButton className="text-4xl">
-              <Tooltip content="Bug bounty form">
-                <div className="i-bolt:bugbounty text-gray-400 hover:text-purple-400"></div>
-              </Tooltip>
-            </IconButton>
-          {bountyOpen && 
+        <div className="flex flex-col gap-2 pointer-events-auto" onClick={bountyHandleToggle}>
+          <IconButton className="text-4xl">
+            <Tooltip content="Bug bounty form">
+              <div className="i-bolt:bugbounty text-gray-400 hover:text-purple-400"></div>
+            </Tooltip>
+          </IconButton>
+          {bountyOpen && (
             <Popup isShow={bountyOpen} handleToggle={bountyHandleToggle}>
               <h3 className="text-2xl font-bold mb-4">Found a bug? Fill the form</h3>
-              <a 
-                target="_blank" 
+              <a
+                target="_blank"
                 href="https://forms.gle/RQs67LKavBFiP1JL8"
                 className="underline font-medium text-xl hover:text-gray-200"
               >
                 Bug bounty form
               </a>
             </Popup>
-          }
+          )}
 
-            <IconButton className="text-4xl" onClick={custHandleToggle}>
-              <Tooltip content="Schedule a call" side="right">
-                <div className="i-bolt:custdev text-gray-400 hover:text-purple-400" />
-              </Tooltip>
-            </IconButton>
-          {custOpen && 
+          <IconButton className="text-4xl" onClick={custHandleToggle}>
+            <Tooltip content="Schedule a call" side="right">
+              <div className="i-bolt:custdev text-gray-400 hover:text-purple-400" />
+            </Tooltip>
+          </IconButton>
+          {custOpen && (
             <Popup isShow={custOpen} handleToggle={custHandleToggle}>
               <h3 className="text-2xl font-bold mb-4">Let’s discuss how you are using AImpact to make it better</h3>
               <a
@@ -61,10 +58,10 @@ export default function Footer({ positionClass }: FooterProps) {
                 Schedule call
               </a>
             </Popup>
-          }
+          )}
         </div>
 
-        <div className="flex gap-2 text-4xl margin-0 p-0 flex-col">
+        <div className="flex gap-2 text-4xl margin-0 p-0 flex-col pointer-events-auto">
           <Tooltip content="Subscribe on X">
             <a href="https://x.com/ostolex" target="_blank">
               <IconButton>
@@ -83,5 +80,5 @@ export default function Footer({ positionClass }: FooterProps) {
         </div>
       </div>
     </footer>
-  )
+  );
 }
