@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigation } from '@remix-run/react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { toast } from 'react-toastify';
 import { Button } from '../ui';
@@ -19,8 +19,8 @@ interface DepositButtonProps {
 export default function DepositButton({ discountPercent }: DepositButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigation = useNavigation();
-  const { publicKey, sendTransaction, signTransaction } = useWallet();
-  const { getRecentBlockhash } = useSolanaProxy();
+  const { publicKey, signTransaction } = useWallet();
+  const { getRecentBlockhash, sendTransaction } = useSolanaProxy();
   const detectMobileScreen = () => {
     return window.innerWidth <= 768;
   };
@@ -82,17 +82,7 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
 
     // 3. Send transaction with wallet
     try {
-      const response = await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/submit-signed-transaction`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({ serializedTransaction: base64 }),
-      });
-      if (!response.ok) {
-        throw new Error( 'Failed to submit transaction');
-      }
+      await sendTransaction(base64);
       (window as any).plausible('purchase_messages', { props: {
           message_count: baseMessageCount,
           purchase_messages_success: true,
