@@ -2,6 +2,20 @@ import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
 
+/**
+ * Parameters required for identifying a user's sandbox.
+ */
+interface Identification {
+  context: any;
+  authToken: string;
+  uuid: string;
+}
+
+interface MethodParams {
+  args: any;
+  identification: Identification;
+}
+
 const allowedMethods = [
   'getPreviewLink',
   'createFolder',
@@ -19,7 +33,7 @@ const allowedMethods = [
   'dispose',
 ];
 
-const authTokenToSandboxMap = new Map<string, LazySandbox>();
+const usersSandboxes = new Map<string, LazySandbox>();
 
 function getEnvVar(context: any, key: string): string | undefined {
   if (context.cloudflare?.env?.[key]) {
@@ -28,10 +42,10 @@ function getEnvVar(context: any, key: string): string | undefined {
   return process.env[key];
 }
 
-function getSandbox(context: any, authToken: string): LazySandbox {
-  console.log("Rows count in map:", authTokenToSandboxMap.size);
-  if (!authTokenToSandboxMap.has(authToken)) {
-    console.log("Creating new LazySandbox for authToken:", authToken);
+function getSandbox(identification: Identification): LazySandbox {
+  const { context, authToken, uuid } = identification;
+  const compositeId = `${authToken}:${uuid}`;
+  if (!usersSandboxes.has(compositeId)) {
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
@@ -39,9 +53,9 @@ function getSandbox(context: any, authToken: string): LazySandbox {
       throw new Error('Missing Daytona API configuration');
     }
     const sandbox = new LazySandbox(apiUrl, apiKey, orgId);
-    authTokenToSandboxMap.set(authToken, sandbox);
+    usersSandboxes.set(compositeId, sandbox);
   }
-  return authTokenToSandboxMap.get(authToken)!;
+  return usersSandboxes.get(compositeId)!;
 }
 
 
@@ -52,18 +66,27 @@ function getSandbox(context: any, authToken: string): LazySandbox {
  * @param request
  */
 export async function action({context, request}: ActionFunctionArgs) {
-  let payload: {method: string, args: any, authToken: string};
+  let payload: {method: string, args: any, authToken: string, uuid: string};
   try{
     payload = await request.json<{
       method: string,
       args: any,
-      authToken: string
+      authToken: string,
+      uuid: string
     }>();
   }
   catch (error){
     return new Response('Invalid request format', { status: 400 });
   }
-  const { method, args, authToken } = payload;
+  const { method, args, authToken, uuid } = payload;
+  const params: MethodParams = {
+    args,
+    identification: {
+      context,
+      authToken,
+      uuid
+    }
+  }
 
   if (!allowedMethods.includes(method)) {
     throw new Response('Method not allowed', { status: 405 });
@@ -74,45 +97,46 @@ export async function action({context, request}: ActionFunctionArgs) {
 
   switch (method){
     case 'getPreviewLink':
-      return handleGetPreviewLink(context, args, authToken);
+      return handleGetPreviewLink(params);
     case 'createFolder':
-      return handleCreateFolder(context, args, authToken);
+      return handleCreateFolder(params);
     case 'deleteFile':
-      return deleteFile(context, args, authToken);
+      return deleteFile(params);
     case 'executeCommand':
-      return executeCommand(context, args, authToken);
+      return executeCommand(params);
     case 'uploadFile':
-      return uploadFile(context, args, authToken);
+      return uploadFile(params);
     case 'searchFiles':
-      return searchFiles(context, args, authToken);
+      return searchFiles(params);
     case 'downloadFile':
-      return downloadFile(context, args, authToken);
+      return downloadFile(params);
     case 'listFiles':
-      return listFiles(context, args, authToken);
+      return listFiles(params);
     case 'createSession':
-      return createSession(context, args, authToken);
+      return createSession(params);
     case 'deleteSession':
-      return deleteSession(context, args, authToken);
+      return deleteSession(params);
     case 'executeSessionCommand':
-      return executeSessionCommand(context, args, authToken);
+      return executeSessionCommand(params);
     case 'getSessionCommand':
-      return getSessionCommand(context, args, authToken);
+      return getSessionCommand(params);
     case 'getSessionCommandLogs':
-      return getSessionCommandLogs(context, args, authToken);
+      return getSessionCommandLogs(params);
     case 'dispose':
-      return disposeSandbox(context, args, authToken);
+      return disposeSandbox(params);
     default:
       return new Response('Method not implemented', { status: 501 });
   }
 }
 
-async function handleGetPreviewLink(context: any, args: any, authToken: string){
+async function handleGetPreviewLink(params: MethodParams){
+  const { args, identification } = params;
   const port = args?.port;
   if(!port || typeof port !== 'number' || port <= 0 || port > 65535) {
     return new Response('Invalid port number for getPreviewLink method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try{
     const link = await sandbox.getPreviewLink(port);
     const result = {
@@ -128,7 +152,8 @@ async function handleGetPreviewLink(context: any, args: any, authToken: string){
   }
 }
 
-async function handleCreateFolder(context: any, args: any, authToken: string){
+async function handleCreateFolder(params: MethodParams){
+  const { args, identification } = params;
   const path = args?.path;
   const mode = args?.mode;
 
@@ -139,7 +164,7 @@ async function handleCreateFolder(context: any, args: any, authToken: string){
     return new Response('Invalid mode for createFolder method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     await sandbox.createFolder(path, mode);
     return new Response('Folder created successfully', { status: 200 });
@@ -148,14 +173,15 @@ async function handleCreateFolder(context: any, args: any, authToken: string){
   }
 }
 
-async function deleteFile(context: any, args: any, authToken: string){
+async function deleteFile(params: MethodParams){
+  const { args, identification } = params;
   const path = args?.path;
 
   if (!path || typeof path !== 'string') {
     return new Response('Invalid path for deleteFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     await sandbox.deleteFile(path);
     return new Response('File deleted successfully', { status: 200 });
@@ -164,7 +190,8 @@ async function deleteFile(context: any, args: any, authToken: string){
   }
 }
 
-async function executeCommand(context: any, args: any, authToken: string){
+async function executeCommand(params: MethodParams){
+  const { args, identification } = params;
   const command = args?.command;
   const cwd = args?.cwd;
   const env = args?.env;
@@ -174,7 +201,7 @@ async function executeCommand(context: any, args: any, authToken: string){
     return new Response('Invalid command for executeCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     const response = await sandbox.executeCommand(command, cwd, env, timeout);
     return new Response(JSON.stringify(response), {
@@ -186,7 +213,8 @@ async function executeCommand(context: any, args: any, authToken: string){
   }
 }
 
-async function uploadFile(context: any, args: any, authToken: string){
+async function uploadFile(params: MethodParams){
+  const { args, identification } = params;
   const fileStr = args?.file;
   const remotePath = args?.remotePath;
 
@@ -199,7 +227,7 @@ async function uploadFile(context: any, args: any, authToken: string){
     return new Response('Invalid remote path for uploadFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     await sandbox.uploadFile(Buffer.from(fileStrDecoded), remotePath);
     return new Response('File uploaded successfully', { status: 200 });
@@ -208,7 +236,8 @@ async function uploadFile(context: any, args: any, authToken: string){
   }
 }
 
-async function searchFiles(context: any, args: any, authToken: string){
+async function searchFiles(params: MethodParams){
+  const { args, identification } = params;
   const path = args?.path;
   const pattern = args?.pattern;
 
@@ -219,7 +248,7 @@ async function searchFiles(context: any, args: any, authToken: string){
     return new Response('Invalid pattern for searchFiles method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     const response = await sandbox.searchFiles(path, pattern);
     return new Response(JSON.stringify(response), {
@@ -231,7 +260,8 @@ async function searchFiles(context: any, args: any, authToken: string){
   }
 }
 
-async function downloadFile(context: any, args: any, authToken: string){
+async function downloadFile(params: MethodParams){
+  const { args, identification } = params;
   const remotePath = args?.remotePath;
   const timeout = args?.timeout;
 
@@ -239,7 +269,8 @@ async function downloadFile(context: any, args: any, authToken: string){
     return new Response('Invalid remote path for downloadFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
+
   try {
     const fileBuffer = await sandbox.downloadFile(remotePath, timeout);
     const fileStr = fileBuffer.toString('base64');
@@ -255,13 +286,14 @@ async function downloadFile(context: any, args: any, authToken: string){
   }
 }
 
-async function listFiles(context: any, args: any, authToken: string){
+async function listFiles(params: MethodParams){
+  const { args, identification } = params;
   const path = args?.path;
   if (!path || typeof path !== 'string') {
     return new Response('Invalid path for listFiles method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     const files = await sandbox.listFiles(path);
     return new Response(JSON.stringify(files), {
@@ -272,13 +304,14 @@ async function listFiles(context: any, args: any, authToken: string){
   }
 }
 
-async function createSession(context: any, args: any, authToken: string){
+async function createSession(params: MethodParams){
+  const { args, identification } = params;
   const sessionId = args?.sessionId;
   if (!sessionId || typeof sessionId !== 'string') {
     return new Response('Invalid session ID for createSession method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     await sandbox.createSession(sessionId);
     return new Response('Session created successfully', { status: 200 });
@@ -287,22 +320,24 @@ async function createSession(context: any, args: any, authToken: string){
   }
 }
 
-async function deleteSession(context: any, args: any, authToken: string){
+async function deleteSession(params: MethodParams){
+  const { args, identification } = params;
   const sessionId = args?.sessionId;
   if (!sessionId || typeof sessionId !== 'string') {
     return new Response('Invalid session ID for deleteSession method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     await sandbox.deleteSession(sessionId);
     return new Response('Session deleted successfully', { status: 200 });
-  } catch (error) {;
+  } catch (error) {
     return new Response('Failed to delete session', { status: 500 });
   }
 }
 
-async function executeSessionCommand(context: any, args: any, authToken: string){
+async function executeSessionCommand(params: MethodParams){
+  const { args, identification } = params;
   const sessionId = args?.sessionId;
   const requestObj = args?.request;
   const timeout = args?.timeout;
@@ -314,7 +349,7 @@ async function executeSessionCommand(context: any, args: any, authToken: string)
     return new Response('Invalid command for executeSessionCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     const response = await sandbox.executeSessionCommand(sessionId, requestObj, timeout);
     return new Response(JSON.stringify(response), {
@@ -325,7 +360,8 @@ async function executeSessionCommand(context: any, args: any, authToken: string)
   }
 }
 
-async function getSessionCommand(context: any, args: any, authToken: string){
+async function getSessionCommand(params: MethodParams){
+  const { args, identification } = params;
   const sessionId = args?.sessionId;
   const commandId = args?.commandId;
 
@@ -336,7 +372,7 @@ async function getSessionCommand(context: any, args: any, authToken: string){
     return new Response('Invalid command ID for getSessionCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     const command = await sandbox.getSessionCommand(sessionId, commandId);
     return new Response(JSON.stringify(command), {
@@ -347,7 +383,8 @@ async function getSessionCommand(context: any, args: any, authToken: string){
   }
 }
 
-async function getSessionCommandLogs(context: any, args: any, authToken: string){
+async function getSessionCommandLogs(params: MethodParams){
+  const { args, identification } = params;
   const sessionId = args?.sessionId;
   const commandId = args?.commandId;
 
@@ -358,7 +395,7 @@ async function getSessionCommandLogs(context: any, args: any, authToken: string)
     return new Response('Invalid command ID for getSessionCommandLogs method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(context, authToken);
+  const sandbox = getSandbox(identification);
   try {
     const logs = await sandbox.getSessionCommandLogs(sessionId, commandId);
     return new Response(logs, {
@@ -369,10 +406,16 @@ async function getSessionCommandLogs(context: any, args: any, authToken: string)
   }
 }
 
-async function disposeSandbox(context: any, args: any, authToken: string){
-  if(authTokenToSandboxMap.has(authToken)){
-    const sandbox = authTokenToSandboxMap.get(authToken);
-    authTokenToSandboxMap.delete(authToken);
+async function disposeSandbox(params: MethodParams){
+  const { identification } = params;
+  const { authToken, uuid } = identification;
+  const compositeId = `${authToken}:${uuid}`;
+  if(usersSandboxes.has(compositeId)){
+    const sandbox = usersSandboxes.get(compositeId);
+    if(!sandbox){
+      return new Response('Sandbox instance not found', { status: 404 });
+    }
+    usersSandboxes.delete(compositeId);
     try {
       await sandbox.dispose();
       return new Response('Sandbox disposed successfully', { status: 200 });

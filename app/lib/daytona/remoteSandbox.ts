@@ -13,6 +13,7 @@ import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
  * Imitates daytona API calls by calling actions from api.daytona.ts.
  */
 export class RemoteSandbox{
+  private readonly uuid: string = crypto.randomUUID();
 
   private async callApi(method: string, args: any, authToken: string): Promise<Response> {
     const response = await fetch('/api/daytona', {
@@ -24,6 +25,7 @@ export class RemoteSandbox{
         method,
         args,
         authToken: authToken,
+        uuid: this.uuid,
       }),
     });
 
@@ -299,7 +301,8 @@ export class RemoteSandbox{
       },
       body: JSON.stringify({
         method: 'dispose',
-        authToken: authToken
+        authToken: authToken,
+        uuid: this.uuid,
       }),
       keepalive: true, // This ensures the request completes even during page unload
     });
