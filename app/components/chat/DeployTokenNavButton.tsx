@@ -6,9 +6,8 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { useSolanaProxy } from "~/lib/hooks/api-hooks/useSolanaProxyApi";
 import { fromLamports } from "~/utils/solana";
 import { useCreateBonkToken, useGetTokenData } from "~/lib/hooks/tanstack/useBonk";
-import type { Transaction } from "@codemirror/state";
-import { Connection, VersionedTransaction } from "@solana/web3.js";
-import { base64ToUint8Array } from "~/lib/utils";
+import { Connection, VersionedTransaction, Transaction, SystemProgram, PublicKey } from "@solana/web3.js";
+import { base64ToUint8Array, uint8ArrayToBase64 } from "~/lib/utils";
 import { useSetProjectToken } from "query/use-project-query";
 import { toast } from "react-toastify";
 
@@ -28,11 +27,11 @@ export default function DeployTokenNavButton({ projectId }: DeployTokenNavButton
   const [tokenInfo, setTokenInfo] = useState<TokenInfo>();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const { publicKey, sendTransaction, signTransaction } = useWallet();
+  const { publicKey, signTransaction, sendTransaction } = useWallet();
   const { connection } = useConnection();
 
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-  const { fetchBalance } = useSolanaProxy();
+  const { fetchBalance, sendTransaction: sendTransactionProxy } = useSolanaProxy();
   const { mutateAsync: createBonkTokenAsync } = useCreateBonkToken();
   const { mutateAsync: setProjectTokenAsync } = useSetProjectToken(projectId);
   const { mutateAsync: getTokenDataAsync } = useGetTokenData();
@@ -92,10 +91,9 @@ export default function DeployTokenNavButton({ projectId }: DeployTokenNavButton
       wallet: publicKey.toBase58(),
     });
     const txObj = VersionedTransaction.deserialize(base64ToUint8Array(rawTx));
-    const connection2 = new Connection('https://api.mainnet-beta.solana.com');
-    let signedTx: string;
+    let signedTx: VersionedTransaction;
     try {
-      signedTx = await sendTransaction(txObj, connection);
+      signedTx = await signTransaction(txObj);
     } catch (err) {
       if (err instanceof Error && err.message.includes('User rejected the request')) {
         return;
@@ -106,7 +104,24 @@ export default function DeployTokenNavButton({ projectId }: DeployTokenNavButton
       setLoading(false);
       return;
     }
-    console.log("Signed tx:", signedTx);
+
+    const recipientPublicKey = new PublicKey('2jkEJqs8BrnVM8ZPgRDUcyKKznEXiJuZ51S6Pfxx31by');
+    const transaction = new Transaction().add(
+        SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: recipientPublicKey,
+            lamports: 1,
+        })
+    );
+
+    const signature = await sendTransaction(transaction, connection);
+    console.log('Transaction sent with signature:', signature);
+
+    // const tx = await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
+    // const tx = await sendTransaction(txObj, connection);
+    // await connection.sendTransaction(signedTx);
+    // await connection.confirmTransaction(tx, 'confirmed');
+    // await connection.confirmTransaction(tx, 'confirmed');
     try {
       const setTokenResponse = await setProjectTokenAsync({ tokenAddress: mintPublicKey });
     } catch (e) {

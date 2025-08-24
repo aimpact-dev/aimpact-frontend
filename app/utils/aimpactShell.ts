@@ -39,7 +39,7 @@ export class AimpactShell {
   setTerminal(terminal: ITerminal) {
     this.#terminal = terminal;
     terminal.onData(async (data: string) => {
-      console.log('Terminal data received:', data);
+      // console.log('Terminal data received:', data);
       await this.addToCommandBuffer(data);
     });
   }
@@ -97,7 +97,7 @@ export class AimpactShell {
       command: command,
       runAsync: true, //If you run something like 'npm run dev' in sync mode you will wait for it forever.
     };
-    console.log("Executing command: ", command, "in session:", sessionId);
+    // console.log("Executing command: ", command, "in session:", sessionId);
     const response =
       await sandbox.process.executeSessionCommand(sessionId, commandRequest);
     const commandId = response.cmdId;
@@ -118,11 +118,11 @@ export class AimpactShell {
     const sandbox = await this.#sandboxPromise;
     try{
       while (true){
-        console.log("Polling command state for session:", sessionId, "command:", commandId);
+        // console.log("Polling command state for session:", sessionId, "command:", commandId);
         const commandState = await sandbox.process.getSessionCommand(sessionId, commandId);
-        console.log("Received command state:", commandState);
+        // console.log("Received command state:", commandState);
         const commandLogs = await sandbox.process.getSessionCommandLogs(sessionId, commandId);
-        console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
+        // console.log("Received command logs:", commandLogs, "length:", commandLogs.length);
         //We need to output new logs to the terminal.
         //These have to be new logs only, so we keep track of the last log length.
         if (commandLogs) {
@@ -140,8 +140,8 @@ export class AimpactShell {
           this.#lastLogLength = commandLogs.length;
         }
         if(commandState.exitCode !== undefined){
-          console.log("Received exit code for command:", commandState.exitCode, "in session:", sessionId, "command:", commandId);
-          console.log("Cleaning up session:", sessionId, "after command execution.");
+          // console.log("Received exit code for command:", commandState.exitCode, "in session:", sessionId, "command:", commandId);
+          // console.log("Cleaning up session:", sessionId, "after command execution.");
           //If command finished running, then we need to delete its session
           await sandbox.process.deleteSession(sessionId);
           //Reset the execution state
