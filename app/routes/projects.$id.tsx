@@ -148,9 +148,14 @@ export default function Project() {
                         disabled={updateProjectMutation.isPending}
                         onClick={async () => {
                           setErrorMsg(null);
+                          const trimmedName = editName.trim();
+                          if (!trimmedName) {
+                            setErrorMsg('Project name cannot be empty');
+                            return;
+                          }
                           try {
                             await updateProjectMutation.mutateAsync({
-                              name: editName.trim() || project.name,
+                              name: trimmedName,
                               description: editDescription,
                             });
                             setIsEditing(false);
