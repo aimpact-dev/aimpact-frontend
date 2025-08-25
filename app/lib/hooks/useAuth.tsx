@@ -202,6 +202,6 @@ export function useAuth() {
 }
 
 // For usage outside of React components
-export function getAuthToken(): string | undefined {
+export function getAuthTokenFromCookies(): string | undefined {
   return Cookies.get('authToken');
 }

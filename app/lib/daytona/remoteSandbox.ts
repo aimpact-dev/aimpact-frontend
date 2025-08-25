@@ -7,7 +7,7 @@ import type {
 } from '@daytonaio/api-client';
 import { Buffer } from 'buffer';
 import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
-import { getAuthToken, useAuth } from '~/lib/hooks/useAuth';
+import { getAuthTokenFromCookies, useAuth } from '~/lib/hooks/useAuth';
 
 /**
  * Imitates daytona API calls by calling actions from api.daytona.ts.
@@ -47,7 +47,7 @@ export class RemoteSandbox{
   }
 
   private getAuthToken(): string{
-    const authToken = getAuthToken();
+    const authToken = getAuthTokenFromCookies();
     if (!authToken) {
       throw new Error('Not authorized');
     }
