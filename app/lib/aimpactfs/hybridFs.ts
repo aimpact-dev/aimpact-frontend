@@ -7,18 +7,18 @@ import type {
   TextSearchOptions, WatchPathsOptions
 } from "@webcontainer/api";
 import type { PathWatcherEvent } from './types';
-import {Sandbox} from "@daytonaio/sdk";
 import type { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl';
 import { WatchPathsCallbacks } from '~/lib/aimpactfs/WatchPathsCallbacks';
+import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
 export class HybridFs extends AimpactFs {
   private readonly zenfs: ZenfsImpl;
-  private readonly sandboxPromise: Promise<Sandbox>;
+  private readonly sandboxPromise: Promise<RemoteSandbox>;
   //This map is only for pre_add_file and pre_add_dir events
   //Other events are handled in zenfs implementation.
   private watchCallbacks: WatchPathsCallbacks = new WatchPathsCallbacks();
 
-  constructor(zenfs: ZenfsImpl, sandboxPromise: Promise<Sandbox>) {
+  constructor(zenfs: ZenfsImpl, sandboxPromise: Promise<RemoteSandbox>) {
     super();
     this.zenfs = zenfs;
     this.sandboxPromise = sandboxPromise;
@@ -58,7 +58,7 @@ export class HybridFs extends AimpactFs {
       this.fireEventsForPath(this.zenfs.toLocalPath(dirPath), 'pre_add_dir');
     }
     const sandbox = await this.sandboxPromise;
-    await sandbox.fs.createFolder(await this.toDaytonaPath(dirPath), '755')
+    await sandbox.createFolder(await this.toDaytonaPath(dirPath), '755')
     return this.zenfs.mkdir(dirPath);
   }
 
@@ -75,10 +75,10 @@ export class HybridFs extends AimpactFs {
     if(options && options.recursive) {
       const daytonaPath = await this.toDaytonaPath(filePath);
       const rmCommand = "rm -rf " + daytonaPath;
-      await sandbox.process.executeCommand(rmCommand, "/home/daytona/");
+      await sandbox.executeCommand(rmCommand, "/home/daytona/");
     }
     else {
-      await sandbox.fs.deleteFile(filePath);
+      await sandbox.deleteFile(filePath);
     }
 
     return this.zenfs.rm(filePath, options);
@@ -103,7 +103,7 @@ export class HybridFs extends AimpactFs {
     }
     const sandbox = await this.sandboxPromise;
     const buffer = Buffer.from(content);
-    await sandbox.fs.uploadFile(buffer, await this.toDaytonaPath(filePath));
+    await sandbox.uploadFile(buffer, await this.toDaytonaPath(filePath));
     await this.zenfs.writeFile(filePath, content, encoding);
   }
 

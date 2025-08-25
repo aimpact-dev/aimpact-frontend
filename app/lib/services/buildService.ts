@@ -1,17 +1,15 @@
 ﻿import type { HybridFs} from '~/lib/aimpactfs/hybridFs';
 import type {AimpactShell } from '~/utils/aimpactShell'
-import type { FileInfo, Sandbox } from '@daytonaio/sdk';
-import { getEncoding } from 'istextorbinary';
-import { Buffer } from 'node:buffer';
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
+import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
 export class BuildService {
-  private shellPromise: Promise<AimpactShell>;
-  private sandbox: Promise<Sandbox>;
-  private hybridFs: Promise<HybridFs>;
+  private readonly shellPromise: Promise<AimpactShell>;
+  private readonly sandbox: Promise<RemoteSandbox>;
+  private readonly hybridFs: Promise<HybridFs>;
 
-  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<Sandbox>, hybridFs: Promise<HybridFs>) {
+  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<RemoteSandbox>, hybridFs: Promise<HybridFs>) {
     this.hybridFs = hybridFs;
     this.sandbox = sandbox;
     this.shellPromise = shellPromise;
@@ -41,7 +39,7 @@ export class BuildService {
     let buildDir = '';
     for (const dir of commonBuildDirs) {
       console.log(`Checking build directory: ${dir}`);
-      const fileSearchResult = await sandbox.fs.searchFiles(dir, '*.*');
+      const fileSearchResult = await sandbox.searchFiles(dir, '*.*');
       if(!fileSearchResult || !fileSearchResult.files) continue;
       if(fileSearchResult.files.length > 0){
         buildDir = dir;
@@ -70,12 +68,13 @@ export class BuildService {
         console.log("Creating directory for build:", file.path);
         await hybridFs.mkdirLocal(file.path);
         fileMap[workDir + '/' + file.path] = {
-          type: 'folder'
+          type: 'folder',
+          pending: false
         }
       }
       else {
         console.log("Creating file for build:", file.path);
-        const fileContent = await sandbox.fs.downloadFile(file.path);
+        const fileContent = await sandbox.downloadFile(file.path);
         await hybridFs.writeFileLocal(file.path, fileContent, 'utf-8');
         const stringContent = readContent(fileContent);
         const isBinary = isBinaryFile(fileContent);
@@ -83,6 +82,7 @@ export class BuildService {
           type: 'file',
           content: stringContent,
           isBinary: isBinary,
+          pending: false
         }
       }
     }
@@ -95,8 +95,8 @@ export class BuildService {
     };
   }
 
-  private async listSubPaths(dir: string, sandbox: Sandbox): Promise<{ path: string, isDir: boolean}[]>{
-    const files = await sandbox.fs.listFiles(dir);
+  private async listSubPaths(dir: string, sandbox: RemoteSandbox): Promise<{ path: string, isDir: boolean}[]>{
+    const files = await sandbox.listFiles(dir);
     const subPaths: { path: string, isDir: boolean}[] = [];
 
     for (const file of files) {

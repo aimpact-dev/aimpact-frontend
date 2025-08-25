@@ -68,6 +68,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.36.8
         version: 6.36.8
+      '@daytonaio/api-client':
+        specifier: ^0.25.5
+        version: 0.25.5
       '@daytonaio/sdk':
         specifier: ^0.25.5
         version: 0.25.5
@@ -203,6 +206,9 @@ importers:
       bs58:
         specifier: ^6.0.0
         version: 6.0.0
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       chalk:
         specifier: ^5.4.1
         version: 5.4.1
@@ -269,6 +275,9 @@ importers:
       mime:
         specifier: ^4.0.7
         version: 4.0.7
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.1
       minimatch:
         specifier: ^10.0.3
         version: 10.0.3
@@ -8610,6 +8619,10 @@ packages:
 
   mime-types@2.1.35:
     resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
+    engines: {node: '>= 0.6'}
+
+  mime-types@3.0.1:
+    resolution: {integrity: sha512-xRc4oEhT6eaBpU1XF7AjpOFD+xQmXNB5OVKwp4tqCuBpHLS/ZbBDrc07mYTDqVMg6PfxUjjNp85O6Cd2Z/5HWA==}
     engines: {node: '>= 0.6'}
 
   mime@1.6.0:
@@ -22745,6 +22758,10 @@ snapshots:
   mime-types@2.1.35:
     dependencies:
       mime-db: 1.52.0
+
+  mime-types@3.0.1:
+    dependencies:
+      mime-db: 1.54.0
 
   mime@1.6.0: {}
 
