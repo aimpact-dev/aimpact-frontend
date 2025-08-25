@@ -20,7 +20,7 @@ export type UpdateProjectInfoPayload = {
   name?: string;
   description?: string;
   category?: string;
-  image?: string;
+  featured?: string;
 };
 
 export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
@@ -59,7 +59,7 @@ export const useUpdateProjectInfoMutation = (id: string, jwtToken?: string) => {
       if (jwtToken) {
         headers['Authorization'] = `Bearer ${jwtToken}`;
       }
-      const res = await ky.post(`projects/${id}/projectInfo`, {
+      const res = await ky.post(`projects/${id}/update`, {
         json: payload,
         headers,
       });
