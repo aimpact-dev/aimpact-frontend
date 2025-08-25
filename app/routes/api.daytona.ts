@@ -17,6 +17,7 @@ interface MethodParams {
 }
 
 const allowedMethods = [
+  'createSandbox',
   'getPreviewLink',
   'createFolder',
   'deleteFile',
@@ -42,10 +43,22 @@ function getEnvVar(context: any, key: string): string | undefined {
   return process.env[key];
 }
 
+function getCompositeId(identification: Identification){
+  return `${identification.authToken}:${identification.uuid}`;
+}
+
 function getSandbox(identification: Identification): LazySandbox {
-  const { context, authToken, uuid } = identification;
-  const compositeId = `${authToken}:${uuid}`;
+  const compositeId = getCompositeId(identification);
   if (!usersSandboxes.has(compositeId)) {
+    throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
+  }
+  return usersSandboxes.get(compositeId)!;
+}
+
+function createSandboxIfNotExists(identification: Identification): LazySandbox{
+  const compositeId = getCompositeId(identification);
+  const {context} = identification;
+  if(!usersSandboxes.has(compositeId)) {
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
@@ -96,10 +109,12 @@ export async function action({context, request}: ActionFunctionArgs) {
   }
 
   switch (method){
+    case 'createSandbox':
+      return createSandbox(params);
     case 'getPreviewLink':
-      return handleGetPreviewLink(params);
+      return getPreviewLink(params);
     case 'createFolder':
-      return handleCreateFolder(params);
+      return createFolder(params);
     case 'deleteFile':
       return deleteFile(params);
     case 'executeCommand':
@@ -129,7 +144,18 @@ export async function action({context, request}: ActionFunctionArgs) {
   }
 }
 
-async function handleGetPreviewLink(params: MethodParams){
+async function createSandbox(params: MethodParams) {
+  const { identification } = params;
+  try{
+    createSandboxIfNotExists(identification);
+  }
+  catch (error) {
+    return new Response('Failed to create sandbox: ' + error, { status: 500 });
+  }
+  return new Response('Sandbox created successfully', { status: 200 });
+}
+
+async function getPreviewLink(params: MethodParams){
   const { args, identification } = params;
   const port = args?.port;
   if(!port || typeof port !== 'number' || port <= 0 || port > 65535) {
@@ -152,7 +178,7 @@ async function handleGetPreviewLink(params: MethodParams){
   }
 }
 
-async function handleCreateFolder(params: MethodParams){
+async function createFolder(params: MethodParams){
   const { args, identification } = params;
   const path = args?.path;
   const mode = args?.mode;
@@ -408,8 +434,7 @@ async function getSessionCommandLogs(params: MethodParams){
 
 async function disposeSandbox(params: MethodParams){
   const { identification } = params;
-  const { authToken, uuid } = identification;
-  const compositeId = `${authToken}:${uuid}`;
+  const compositeId = getCompositeId(identification);
   if(usersSandboxes.has(compositeId)){
     const sandbox = usersSandboxes.get(compositeId);
     if(!sandbox){

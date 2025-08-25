@@ -74,6 +74,10 @@ export class LazySandbox{
     return path;
   }
 
+  getSandboxId(): string | null {
+    return this.sandboxId;
+  }
+
 
   async getPreviewLink(port: number){
     const sandbox = await this.getSandboxPromise();
@@ -291,6 +295,7 @@ export class LazySandbox{
         },
         keepalive: true  // This ensures the request completes even during page unload
       });
+      console.log("Disposed sandbox:", sandbox.id);
     }
   }
 }

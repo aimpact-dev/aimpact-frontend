@@ -1,4 +1,3 @@
-import Cookies from 'js-cookie';
 import type {
   Command,
   ExecuteResponse,
@@ -16,8 +15,9 @@ import { getAuthToken, useAuth } from '~/lib/hooks/useAuth';
 export class RemoteSandbox{
   private readonly uuid: string = crypto.randomUUID();
   private cachedToken: string | null = null;
+  private remoteSandboxCreated: boolean = false;
 
-  private async callApi(method: string, args: any, authToken: string): Promise<Response> {
+  private async callApi(method: string, args: any, authToken: string){
     const response = await fetch('/api/daytona', {
       method: 'POST',
       headers: {
@@ -31,11 +31,19 @@ export class RemoteSandbox{
       }),
     });
 
-    if (!response.ok) {
-      throw new Error(`API call failed with status ${response.status}. Method: ${method}, Args: ${JSON.stringify(args)}. Response: ${await response.text()}`);
-    }
-
     return response;
+  }
+
+  private async callRemoteSandbox(method: string, args: any, authToken: string): Promise<Response> {
+    if (!this.remoteSandboxCreated){
+      const createResponse = await this.callApi('createSandbox', {}, authToken);
+      if (!createResponse.ok){
+        // Error responses are handled by the caller
+        return createResponse;
+      }
+      this.remoteSandboxCreated = true;
+    }
+    return this.callApi(method, args, authToken);
   }
 
   private getAuthToken(): string{
@@ -52,7 +60,7 @@ export class RemoteSandbox{
       port: port,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('getPreviewLink', args, authToken);
+    const response = await this.callRemoteSandbox('getPreviewLink', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to get preview link: ${response.statusText}`);
     }
@@ -75,7 +83,7 @@ export class RemoteSandbox{
       mode: mode,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('createFolder', args, authToken);
+    const response = await this.callRemoteSandbox('createFolder', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to create folder: ${response.statusText}`);
     }
@@ -89,7 +97,7 @@ export class RemoteSandbox{
     };
     const authToken = this.getAuthToken();
 
-    const response = await this.callApi('deleteFile', args, authToken);
+    const response = await this.callRemoteSandbox('deleteFile', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to delete file: ${response.statusText}`);
     }
@@ -109,7 +117,7 @@ export class RemoteSandbox{
     };
     const authToken = this.getAuthToken();
 
-    const response = await this.callApi('executeCommand', args, authToken);
+    const response = await this.callRemoteSandbox('executeCommand', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to execute command: ${response.statusText}`);
     }
@@ -134,7 +142,7 @@ export class RemoteSandbox{
       timeout: timeout,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('uploadFile', args, authToken);
+    const response = await this.callRemoteSandbox('uploadFile', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to upload file: ${response.statusText}`);
     }
@@ -149,7 +157,7 @@ export class RemoteSandbox{
       pattern: pattern,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('searchFiles', args, authToken);
+    const response = await this.callRemoteSandbox('searchFiles', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to search files: ${response.statusText}`);
     }
@@ -171,7 +179,7 @@ export class RemoteSandbox{
       timeout: timeout,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('downloadFile', args, authToken);
+    const response = await this.callRemoteSandbox('downloadFile', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to download file: ${response.statusText}`);
     }
@@ -192,7 +200,7 @@ export class RemoteSandbox{
       path: path,
     }
     const authToken = this.getAuthToken();
-    const response = await this.callApi('listFiles', args, authToken);
+    const response = await this.callRemoteSandbox('listFiles', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to list files: ${response.statusText}`);
     }
@@ -212,7 +220,7 @@ export class RemoteSandbox{
       sessionId: sessionId,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('createSession', args, authToken);
+    const response = await this.callRemoteSandbox('createSession', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to create session: ${response.statusText}`);
     }
@@ -225,7 +233,7 @@ export class RemoteSandbox{
       sessionId: sessionId,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('deleteSession', args, authToken);
+    const response = await this.callRemoteSandbox('deleteSession', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to delete session: ${response.statusText}`);
     }
@@ -242,7 +250,7 @@ export class RemoteSandbox{
       timeout: timeout,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('executeSessionCommand', args, authToken);
+    const response = await this.callRemoteSandbox('executeSessionCommand', args, authToken);
     if(!response.ok){
       const responseText = await response.text();
       throw new Error(`Failed to execute session command. Status: ${response.statusText}. Response: ${responseText}`);
@@ -265,7 +273,7 @@ export class RemoteSandbox{
       commandId: commandId,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('getSessionCommand', args, authToken);
+    const response = await this.callRemoteSandbox('getSessionCommand', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to get session command: ${response.statusText}`);
     }
@@ -287,7 +295,7 @@ export class RemoteSandbox{
       commandId: commandId,
     };
     const authToken = this.getAuthToken();
-    const response = await this.callApi('getSessionCommandLogs', args, authToken);
+    const response = await this.callRemoteSandbox('getSessionCommandLogs', args, authToken);
     if(!response.ok){
       throw new Error(`Failed to get session command logs: ${response.statusText}`);
     }
