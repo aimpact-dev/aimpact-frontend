@@ -32,6 +32,24 @@ export default function Project() {
   const [editDescription, setEditDescription] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const editProjectInfo = async () => {
+    setErrorMsg(null);
+    const trimmedName = editName.trim();
+    if (!trimmedName) {
+      setErrorMsg('Project name cannot be empty');
+      return;
+    }
+    try {
+      await updateProjectMutation.mutateAsync({
+        name: trimmedName,
+        description: editDescription,
+      });
+      setIsEditing(false);
+    } catch (e: any) {
+      setErrorMsg(e?.message || 'Failed to save changes');
+    }
+  };
+
   useEffect(() => {
     if (!params.id) return;
     icpDeploymentUrlQuery(params.id);
@@ -146,23 +164,7 @@ export default function Project() {
                       <button
                         className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg disabled:opacity-60"
                         disabled={updateProjectMutation.isPending}
-                        onClick={async () => {
-                          setErrorMsg(null);
-                          const trimmedName = editName.trim();
-                          if (!trimmedName) {
-                            setErrorMsg('Project name cannot be empty');
-                            return;
-                          }
-                          try {
-                            await updateProjectMutation.mutateAsync({
-                              name: trimmedName,
-                              description: editDescription,
-                            });
-                            setIsEditing(false);
-                          } catch (e: any) {
-                            setErrorMsg(e?.message || 'Failed to save changes');
-                          }
-                        }}
+                        onClick={editProjectInfo}
                       >
                         {updateProjectMutation.isPending ? 'Saving...' : 'Save'}
                       </button>
