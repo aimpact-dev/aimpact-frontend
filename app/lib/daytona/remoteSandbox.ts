@@ -8,12 +8,14 @@ import type {
 } from '@daytonaio/api-client';
 import { Buffer } from 'buffer';
 import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
+import { getAuthToken, useAuth } from '~/lib/hooks/useAuth';
 
 /**
  * Imitates daytona API calls by calling actions from api.daytona.ts.
  */
 export class RemoteSandbox{
   private readonly uuid: string = crypto.randomUUID();
+  private cachedToken: string | null = null;
 
   private async callApi(method: string, args: any, authToken: string): Promise<Response> {
     const response = await fetch('/api/daytona', {
@@ -37,10 +39,11 @@ export class RemoteSandbox{
   }
 
   private getAuthToken(): string{
-    const authToken = Cookies.get('authToken');
+    const authToken = getAuthToken();
     if (!authToken) {
-      throw new Error('No auth token found in cookies');
+      throw new Error('Not authorized');
     }
+    this.cachedToken = authToken;
     return authToken;
   }
 
@@ -291,8 +294,7 @@ export class RemoteSandbox{
     return response.text();
   }
 
-  //This method is called during page unload, so we need to get authToken in a more reliable way than from cookies.
-  dispose(authToken: string){
+  dispose(){
     // We need to call dispose action via keepalive request
     fetch('/api/daytona', {
       method: 'POST',
@@ -301,7 +303,7 @@ export class RemoteSandbox{
       },
       body: JSON.stringify({
         method: 'dispose',
-        authToken: authToken,
+        authToken: this.cachedToken,
         uuid: this.uuid,
       }),
       keepalive: true, // This ensures the request completes even during page unload
