@@ -9,16 +9,16 @@ import type {
 import type { PathWatcherEvent } from './types';
 import type { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl';
 import { WatchPathsCallbacks } from '~/lib/aimpactfs/WatchPathsCallbacks';
-import type { LazySandbox } from '~/lib/daytona/lazySandbox';
+import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 
 export class HybridFs extends AimpactFs {
   private readonly zenfs: ZenfsImpl;
-  private readonly sandboxPromise: Promise<LazySandbox>;
+  private readonly sandboxPromise: Promise<RemoteSandbox>;
   //This map is only for pre_add_file and pre_add_dir events
   //Other events are handled in zenfs implementation.
   private watchCallbacks: WatchPathsCallbacks = new WatchPathsCallbacks();
 
-  constructor(zenfs: ZenfsImpl, sandboxPromise: Promise<LazySandbox>) {
+  constructor(zenfs: ZenfsImpl, sandboxPromise: Promise<RemoteSandbox>) {
     super();
     this.zenfs = zenfs;
     this.sandboxPromise = sandboxPromise;

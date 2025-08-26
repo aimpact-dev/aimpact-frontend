@@ -499,4 +499,14 @@ export class ZenfsImpl extends AimpactFs {
       throw error;
     }
   }
+
+  async mkdirLocal(dirPath: string): Promise<string> {
+    return this.mkdir(dirPath);
+  }
+  async writeFileLocal(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void> {
+    return this.writeFile(filePath, content, encoding);
+  }
+  async rmLocal(filePath: string, options?: { force?: boolean; recursive?: boolean; }): Promise<void> {
+    return this.rm(filePath, options);
+  }
 }

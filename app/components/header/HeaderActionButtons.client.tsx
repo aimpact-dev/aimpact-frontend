@@ -198,7 +198,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
       const buildResult = await buildService.current.runBuildScript('pnpm');
 
-      console.log(buildResult);
       if (buildResult.exitCode !== 0 && buildResult.exitCode !== 143) {
         toast.error(`Failed to build. Status code: ${buildResult.exitCode}.`, { autoClose: false });
         setIsDeploying(false);

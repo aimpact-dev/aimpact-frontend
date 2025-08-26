@@ -1,33 +1,44 @@
 ﻿import { Daytona, type FileInfo, Image, type Sandbox, type SearchFilesResponse } from '@daytonaio/sdk';
 import type { Command, ExecuteResponse, SessionExecuteRequest, SessionExecuteResponse } from '@daytonaio/api-client';
+import { Buffer } from 'buffer';
+import { lookup } from 'mime-types';
 
+const DAYTONA_WORK_DIR = '/home/daytona';
 
-let daytonaApiUrl = import.meta.env.VITE_DAYTONA_API_URL || 'https://app.daytona.io/api';
-let daytonaApiKey = import.meta.env.VITE_DAYTONA_API_KEY || '';
-let daytonaOrgId = import.meta.env.VITE_DAYTONA_ORG_ID || '';
-
-//Lazily initializes daytona sandbox upon the first use
-//We don't want to have a daytona sandbox instance hanging while user doesn't need it.
+/** Lazily initializes daytona sandbox upon the first use
+ * */
 export class LazySandbox{
-  private sandbox: Sandbox | null = null;
+  private readonly apiKey: string;
+  private readonly orgId: string;
+  private readonly apiUrl: string;
+  private sandboxId: string | null = null;
+  private sandboxPromise: Promise<Sandbox> | null = null;
 
-  private async ensureSandboxInitialized(): Promise<Sandbox> {
-    if (!this.sandbox) {
-      this.sandbox = await this.initializeSandbox();
+
+  public constructor(apiUrl: string, apiKey: string, orgId: string) {
+    this.apiUrl = apiUrl;
+    this.apiKey = apiKey;
+    this.orgId = orgId;
+  }
+
+  private getSandboxPromise(): Promise<Sandbox>{
+    if (this.sandboxPromise) {
+      return this.sandboxPromise;
     }
-    return this.sandbox;
+    this.sandboxPromise = this.initializeSandbox();
+    return this.sandboxPromise;
   }
 
   private async initializeSandbox() : Promise<Sandbox>{
     const daytona = new Daytona({
-      apiKey: import.meta.env.VITE_DAYTONA_API_KEY || '',
+      apiKey: this.apiKey,
     });
     const resources = {
       cpu: 1,
       memory: 2,
       disk: 2
     };
-    const image = Image.base('node:20-alpine').workdir('/home/daytona');
+    const image = Image.base('node:20-alpine').workdir(DAYTONA_WORK_DIR);
     const sandbox = await daytona.create({
       language: 'typescript',
       image: image,
@@ -35,6 +46,7 @@ export class LazySandbox{
       autoDeleteInterval: 0,
       public: true,
     });
+    this.sandboxId = sandbox.id;
     console.log('Sandbox created with ID:', sandbox.id);
     const corepackInstallResponse = await sandbox.process.executeCommand("npm install --global corepack@latest");
     if (corepackInstallResponse.exitCode !== 0) {
@@ -50,9 +62,25 @@ export class LazySandbox{
     return sandbox;
   }
 
+  /**
+   * Resolves the path to the user's working directory and returns an absolute path.
+   * @param path
+   * @private
+   */
+  private resolvePath(path: string): string{
+    if (!path.startsWith('/')) {
+      return `${DAYTONA_WORK_DIR}/${path}`;
+    }
+    return path;
+  }
+
+  getSandboxId(): string | null {
+    return this.sandboxId;
+  }
+
 
   async getPreviewLink(port: number){
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
@@ -63,20 +91,22 @@ export class LazySandbox{
     path: string,
     mode: string,
   ): Promise<void>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    path = this.resolvePath(path);
     return sandbox.fs.createFolder(path, mode);
   }
 
   async deleteFile(
     path: string,
   ): Promise<void>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    path = this.resolvePath(path);
     return sandbox.fs.deleteFile(path);
   }
 
@@ -86,61 +116,121 @@ export class LazySandbox{
     env?: Record<string, string>,
     timeout?: number,
   ): Promise<ExecuteResponse>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
     return sandbox.process.executeCommand(command, cwd, env, timeout);
   }
 
+  /**
+   * Needed for the case when mime library cannot resolve the MIME type.
+   * For some reason it can't resolve .tsx and .jsx right now.
+   * @param fileName
+   * @private
+   */
+  private mimeFallback(fileName: string): string | boolean {
+    if (fileName.endsWith('.tsx')) {
+      return 'application/typescript';
+    }
+    if (fileName.endsWith('.jsx')) {
+      return 'application/javascript';
+    }
+    return false;
+  }
+
+  /**
+   * The timeout parameter is ignored.
+   * This methods call Daytona API directly, because SDK method `uploadFile` crashes for an unknown reason.
+   * @param file
+   * @param remotePath
+   */
   async uploadFile(
     file: Buffer,
     remotePath: string,
-    timeout?: number,
   ): Promise<void>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
-    return sandbox.fs.uploadFile(file, remotePath, timeout);
+    const fileName = remotePath.split('/').pop();
+    if (!fileName) {
+      throw new Error('Invalid remote path: file name is missing');
+    }
+    let mime = lookup(fileName);
+    if(!mime){
+      mime = this.mimeFallback(fileName);
+      if (!mime) {
+        throw new Error(`Could not determine MIME type for file: ${fileName}`);
+      }
+    }
+
+    const baseUrl = `${this.apiUrl}/toolbox/${sandbox.id}/toolbox/files/upload`;
+    const url = new URL(baseUrl);
+    remotePath = this.resolvePath(remotePath);
+    url.searchParams.append('path', remotePath);
+
+    const formData = new FormData();
+    const fileBlob = new Blob([file], { type: mime }); // Transform Buffer to Blob
+    formData.append('file', fileBlob, fileName);
+
+    const uploadResponse = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'X-Daytona-Organization-ID': this.orgId,
+      },
+      body: formData
+    });
+
+    if (!uploadResponse.ok) {
+      const status = uploadResponse.status;
+      const statusText = uploadResponse.statusText;
+      const responseBody = await uploadResponse.text();
+
+      throw new Error(`Failed to upload file: ${status} ${statusText}. Response body: ${responseBody}`);
+    }
   }
 
   async searchFiles(
     path: string,
     pattern: string,
   ): Promise<SearchFilesResponse>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    path = this.resolvePath(path);
     return sandbox.fs.searchFiles(path, pattern);
   }
 
   async downloadFile(
-    remotePath: string,
+    path: string,
     timeout?: number,
   ): Promise<Buffer> {
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
-    return sandbox.fs.downloadFile(remotePath, timeout);
+    path = this.resolvePath(path);
+    return sandbox.fs.downloadFile(path, timeout);
   }
 
   async listFiles(
     path: string,
   ): Promise<FileInfo[]>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    path = this.resolvePath(path);
     return sandbox.fs.listFiles(path);
   }
 
   async createSession(
     sessionId: string,
   ): Promise<void>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
@@ -150,7 +240,7 @@ export class LazySandbox{
   async deleteSession(
     sessionId: string,
   ): Promise<void> {
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
@@ -162,10 +252,12 @@ export class LazySandbox{
     req: SessionExecuteRequest,
     timeout?: number,
   ): Promise<SessionExecuteResponse>{
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    //For some reason commands are executed in the /root directory by default instead of /home/daytona (daytona working directory)
+    req.command = 'cd /home/daytona && ' + req.command;
     return sandbox.process.executeSessionCommand(sessionId, req, timeout);
   }
 
@@ -173,7 +265,7 @@ export class LazySandbox{
     sessionId: string,
     commandId: string,
   ): Promise<Command> {
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
@@ -184,27 +276,26 @@ export class LazySandbox{
     sessionId: string,
     commandId: string,
   ): Promise<string> {
-    const sandbox = await this.ensureSandboxInitialized();
+    const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
     return sandbox.process.getSessionCommandLogs(sessionId, commandId);
   }
 
-  /**
-   * Removes daytona instance via keepalive API call, so it can be sent after page unload/reload.
-   */
-  dispose() {
-    const sandboxId = this.sandbox?.id;
-    if (!sandboxId) return;
-    fetch(`${daytonaApiUrl}/sandbox/${sandboxId}/stop`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${daytonaApiKey}`,
-        'X-Daytona-Organization-ID': daytonaOrgId,
-        'Content-Type': 'application/json'
-      },
-      keepalive: true  // This ensures the request completes even during page unload
-    });
+  async dispose() {
+    if (this.sandboxPromise){
+      const sandbox = await this.sandboxPromise;
+      await fetch(`${this.apiUrl}/sandbox/${sandbox.id}/stop`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'X-Daytona-Organization-ID': this.orgId,
+          'Content-Type': 'application/json'
+        },
+        keepalive: true  // This ensures the request completes even during page unload
+      });
+      console.log("Disposed sandbox:", sandbox.id);
+    }
   }
 }

@@ -19,6 +19,7 @@ export default function Home() {
 
   const endTriggerRef = useRef(null);
   const [isFooterFixed, setIsFooterFixed] = useState(true);
+  
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -45,7 +46,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-black">
-      <Navbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      <Navbar />
       <section id="projects" className="py-16 md:py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div

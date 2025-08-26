@@ -47,5 +47,11 @@ export abstract class AimpactFs {
     options?: Partial<TextSearchOptions>,
     onProgress?: TextSearchOnProgressCallback
   ): Promise<Map<string, TextSearchMatch[]>>
+
+  abstract mkdirLocal(dirPath: string): Promise<string>;
+
+  abstract writeFileLocal(filePath: string, content: string | Uint8Array, encoding?: BufferEncoding): Promise<void>;
+
+  abstract rmLocal(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
 }
 

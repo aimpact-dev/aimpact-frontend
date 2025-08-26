@@ -25,7 +25,6 @@ import { Preview } from './Preview';
 import useViewport from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { usePreviewStore } from '~/lib/stores/previews';
 import { Tooltip } from '../chat/Tooltip';
 
 interface WorkspaceProps {
@@ -360,7 +359,7 @@ export const Workbench = memo(
         const actionCommand = 'pnpm run dev';  // for now it's constant. need to change it, but it's complex
         const abortController = new AbortController();
         let runCommand: ActionState | undefined;
-        
+
         if (!waitForInstall) {
           customPreviewState.current = 'Wait for install...';
           const installResult = await waitForInstallCmd(artifact);
@@ -409,9 +408,6 @@ export const Workbench = memo(
       workbenchStore
         .saveCurrentDocument()
         .then(() => {
-          // Explicitly refresh all previews after a file save
-          const previewStore = usePreviewStore();
-          previewStore.refreshAllPreviews();
         })
         .catch(() => {
           toast.error('Failed to update file content');
