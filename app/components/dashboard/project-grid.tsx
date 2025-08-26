@@ -7,6 +7,7 @@ import { useProjectsQuery, type Project } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from '@remix-run/react';
 
 interface ProjectGridProps {
   projects?: Project[];
@@ -21,12 +22,17 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
   const auth = useAuth();
   const queryClient = useQueryClient();
 
-  const projectsQuery = useProjectsQuery(filter, 'createdAt', 'DESC', auth.jwtToken);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') ?? '1'));
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const projectsQuery = useProjectsQuery(currentPage, itemsPerPage, filter, 'createdAt', 'DESC', auth.jwtToken);
 
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    setSearchParams({ page: currentPage.toString() });
+  }, [currentPage, setSearchParams]);
+
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['projects', { currentPage, itemsPerPage }] });
     setCurrentPage(1);
   }, [filter, queryClient]);
 
@@ -84,7 +90,8 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
     );
   }
 
-  let projects = projectsQuery.data;
+  const projects = projectsQuery.data?.data;
+  const pagination = projectsQuery.data?.pagination;
 
   if (!projects || projects.length === 0) {
     return (
@@ -99,13 +106,11 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
     );
   }
 
-  const totalProjects = projects.length;
+  const totalProjects = pagination.total || 0;
   const totalPages = Math.ceil(totalProjects / itemsPerPage);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-
-  const currentProjects = projects.slice(startIndex, endIndex);
 
   const paginationLabel = `Showing ${startIndex + 1} to ${Math.min(endIndex, totalProjects)} of ${totalProjects} projects`;
 
@@ -117,7 +122,7 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {currentProjects.map((project, index) => (
+        {projects.map((project, index) => (
           <ProjectCard key={project.id} project={project} index={startIndex + index} />
         ))}
       </div>

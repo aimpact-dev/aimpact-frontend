@@ -14,8 +14,8 @@ interface ProjectCardProps {
 
 const ProjectCard = ({ project, index }: ProjectCardProps) => {
   const { name, description, category, image, createdAt, appDeployments } = project;
-  const s3Deployment = appDeployments.find((d) => d.provider === 'AWS');
-  const icpDeployment = appDeployments.find((d) => d.provider === 'ICP');
+  const s3Deployment = appDeployments?.find((d) => d.provider === 'AWS');
+  const icpDeployment = appDeployments?.find((d) => d.provider === 'ICP');
   const navigate = useNavigate();
 
   function handleDeployLabelClick(e: React.MouseEvent, url: string) {
