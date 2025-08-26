@@ -2,15 +2,15 @@
 import type {AimpactShell } from '~/lib/aimpactshell/aimpactShell'
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
-import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
+import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 import {workbenchStore} from '~/lib/stores/workbench';
 
 export class BuildService {
   private readonly shellPromise: Promise<AimpactShell>;
-  private readonly sandbox: Promise<RemoteSandbox>;
+  private readonly sandbox: Promise<AimpactSandbox>;
   private readonly hybridFs: Promise<HybridFs>;
 
-  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<RemoteSandbox>, hybridFs: Promise<HybridFs>) {
+  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<AimpactSandbox>, hybridFs: Promise<HybridFs>) {
     this.hybridFs = hybridFs;
     this.sandbox = sandbox;
     this.shellPromise = shellPromise;
@@ -104,7 +104,7 @@ export class BuildService {
     };
   }
 
-  private async listSubPaths(dir: string, sandbox: RemoteSandbox): Promise<{ path: string, isDir: boolean}[]>{
+  private async listSubPaths(dir: string, sandbox: AimpactSandbox): Promise<{ path: string, isDir: boolean}[]>{
     const files = await sandbox.listFiles(dir);
     const subPaths: { path: string, isDir: boolean}[] = [];
 

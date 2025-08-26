@@ -8,11 +8,12 @@ import type {
 import { Buffer } from 'buffer';
 import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
 import { getAuthTokenFromCookies, useAuth } from '~/lib/hooks/useAuth';
+import type { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
 /**
  * Imitates daytona API calls by calling actions from api.daytona.ts.
  */
-export class RemoteSandbox{
+export class RemoteSandbox implements AimpactSandbox {
   private readonly uuid: string = crypto.randomUUID();
   private cachedToken: string | null = null;
   private remoteSandboxCreated: boolean = false;

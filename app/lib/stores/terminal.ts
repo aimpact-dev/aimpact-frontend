@@ -4,17 +4,17 @@ import { coloredText } from '~/utils/terminal';
 import { AimpactShell, newAimpactShellProcess } from '~/lib/aimpactshell/aimpactShell';
 import type { LazySandbox } from '~/lib/daytona/lazySandbox';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
-import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
+import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
 export class TerminalStore {
-  private readonly sandbox: Promise<RemoteSandbox>;
+  private readonly sandbox: Promise<AimpactSandbox>;
   private readonly aimpactFs: Promise<AimpactFs>;
   private aimpactTerminals: Array<AimpactShell> = [];
   private readonly mainShell: AimpactShell;
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
 
-  constructor(sandboxPromise: Promise<RemoteSandbox>, aimpactFsPromise: Promise<AimpactFs>) {
+  constructor(sandboxPromise: Promise<AimpactSandbox>, aimpactFsPromise: Promise<AimpactFs>) {
     this.sandbox = sandboxPromise;
     this.aimpactFs = aimpactFsPromise;
 

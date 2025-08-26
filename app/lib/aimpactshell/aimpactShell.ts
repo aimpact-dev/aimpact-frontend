@@ -2,7 +2,7 @@ import type { ITerminal } from '~/types/terminal';
 import { v4 as uuidv4 } from 'uuid';
 import { coloredText } from '~/utils/terminal';
 import { getPortCatcher } from '~/utils/portCatcher';
-import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
+import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 import type { CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
 import { LogPortCatcher } from '~/lib/aimpactshell/logsProcessors/logPortCatcher';
 import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewCommandPreprocessor';
@@ -13,7 +13,7 @@ export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
 export class AimpactShell {
   private terminal: ITerminal | undefined;
-  private readonly sandboxPromise: Promise<RemoteSandbox>;
+  private readonly sandboxPromise: Promise<AimpactSandbox>;
 
   //Keeping track of the ITerminal onData events. They represent terminal input.
   private commandBuffer: string[] = [];
@@ -35,7 +35,7 @@ export class AimpactShell {
   private readonly commandPreprocessors: CommandPreprocessor[] = [];
 
   constructor(
-    sandboxPromise: Promise<RemoteSandbox>,
+    sandboxPromise: Promise<AimpactSandbox>,
     logsProcessors: LogProcessor[] = [],
     commandPreprocessors: CommandPreprocessor[] = []
   ) {
@@ -178,7 +178,7 @@ export class AimpactShell {
 
 //Using this function for creating a new AimpactShell instance is preferable, because it attaches
 //log processor for capturing preview port from Daytona.io server.
-export function newAimpactShellProcess(sandboxPromise: Promise<RemoteSandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
+export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessors = [new LogPortCatcher(portCatcher)];
   const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor(fsPromise)];

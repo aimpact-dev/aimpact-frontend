@@ -1,9 +1,10 @@
 ﻿import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
 import { useAuth } from '~/lib/hooks/useAuth';
+import type { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
-let sandbox: RemoteSandbox | null = null;
+let sandbox: AimpactSandbox | null = null;
 
-export function getSandbox(): Promise<RemoteSandbox> {
+export function getSandbox(): Promise<AimpactSandbox> {
   if (!sandbox) {
     sandbox = new RemoteSandbox();
   }
