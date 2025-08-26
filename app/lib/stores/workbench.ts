@@ -43,7 +43,7 @@ export class WorkbenchStore {
   #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
   #filesStore = new FilesStore(getAimpactFs());
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(getSandbox());
+  #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
   #reloadedMessages = new Set<string>();
 

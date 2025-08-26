@@ -10,6 +10,8 @@ export abstract class AimpactFs {
 
   abstract workdir(): Promise<string>;
 
+  abstract fileExists(filePath: string): Promise<boolean>;
+
   abstract writeFile(
     filePath: string,
     content: string | Uint8Array,

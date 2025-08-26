@@ -7,6 +7,7 @@ import type { CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessor
 import { LogPortCatcher } from '~/lib/aimpactshell/logsProcessors/logPortCatcher';
 import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewCommandPreprocessor';
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
+import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -180,10 +181,10 @@ export class AimpactShell {
 
 //Using this function for creating a new AimpactShell instance is preferable, because it attaches
 //log processor for capturing preview port from Daytona.io server.
-export function newAimpactShellProcess(sandboxPromise: Promise<LazySandbox>): AimpactShell {
+export function newAimpactShellProcess(sandboxPromise: Promise<LazySandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessors = [new LogPortCatcher(portCatcher)];
-  const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor()];
+  const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor(fsPromise)];
   return new AimpactShell(sandboxPromise, logsProcessors, commandsPreprocessors);
 }
 
