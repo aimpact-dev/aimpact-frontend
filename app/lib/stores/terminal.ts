@@ -1,7 +1,7 @@
 import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
 import { coloredText } from '~/utils/terminal';
-import { AimpactShell, newAimpactShellProcess } from '~/utils/aimpactShell';
+import { AimpactShell, newAimpactShellProcess } from '~/lib/aimpactshell/aimpactShell';
 import type { LazySandbox } from '~/lib/daytona/lazySandbox';
 
 export class TerminalStore {

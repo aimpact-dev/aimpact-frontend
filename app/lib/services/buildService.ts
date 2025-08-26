@@ -1,5 +1,5 @@
 ﻿import type { HybridFs} from '~/lib/aimpactfs/hybridFs';
-import type {AimpactShell } from '~/utils/aimpactShell'
+import type {AimpactShell } from '~/lib/aimpactshell/aimpactShell'
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
 import type { LazySandbox } from '~/lib/daytona/lazySandbox';
