@@ -61,7 +61,15 @@ export class RuntimeErrorProcessor implements LogProcessor {
       console.error('RuntimeErrorProcessor: Failed to parse JSON object', e);
       return;
     }
-    
-  }
 
+    workbenchStore.actionAlert.set (
+      {
+        type: 'preview',
+        title: 'Runtime Error',
+        description: errorInfo.message,
+        content: `At ${errorInfo.source}:${errorInfo.lineno}:${errorInfo.colno}\n\nStack trace:\n${errorInfo.stack}`,
+        source: 'preview'
+      }
+    );
+  }
 }
