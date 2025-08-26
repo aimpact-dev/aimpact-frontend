@@ -13,6 +13,8 @@ export abstract class AimpactSandbox {
 
   abstract getPreviewLink(port: number): Promise<PortPreviewUrl>;
 
+  abstract fileExists(filePath: string): Promise<boolean>;
+
   abstract createFolder(
     path: string,
     mode: string,

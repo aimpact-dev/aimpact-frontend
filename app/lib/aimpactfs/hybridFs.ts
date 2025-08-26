@@ -56,7 +56,8 @@ export class HybridFs extends AimpactFs {
   async fileExists(filePath: string): Promise<boolean> {
     const existsLocally = await this.zenfs.exists(this.zenfs.toLocalPath(filePath));
     const sandbox = await this.sandboxPromise;
-    throw new Error("Not implemented: fileExists in HybridFs");
+    const existsInSandbox = await sandbox.fileExists(await this.toDaytonaPath(filePath));
+    return existsLocally && existsInSandbox;
   }
 
   async mkdir(dirPath: string): Promise<string> {

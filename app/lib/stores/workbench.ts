@@ -340,6 +340,10 @@ export class WorkbenchStore {
     return this.#filesStore.isFolderLocked(folderPath);
   }
 
+  getFile(filePath: string){
+    return this.#filesStore.getFile(filePath);
+  }
+
   async createFile(filePath: string, content: string | Uint8Array = '') {
     try {
       const success = await this.#filesStore.createFile(filePath, content);

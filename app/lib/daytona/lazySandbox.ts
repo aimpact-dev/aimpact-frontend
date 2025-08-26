@@ -88,6 +88,24 @@ export class LazySandbox implements AimpactSandbox {
     return sandbox.getPreviewLink(port);
   }
 
+  async fileExists(filePath: string): Promise<boolean>{
+    const sandbox = await this.getSandboxPromise();
+    if (!sandbox) {
+      throw new Error('Sandbox is not initialized');
+    }
+    filePath = this.resolvePath(filePath);
+    const fileName = filePath.split('/').pop();
+    if(!fileName){
+      return false;
+    }
+    const dirPath = filePath.substring(0, filePath.length - fileName.length);
+    const searchResult = await sandbox.fs.searchFiles(dirPath, fileName);
+    if (!searchResult.files || searchResult.files.length === 0) {
+      return false;
+    }
+    return searchResult.files.length > 0;
+  }
+
   async createFolder(
     path: string,
     mode: string,

@@ -75,6 +75,24 @@ export class RemoteSandbox implements AimpactSandbox {
     };
   }
 
+  async fileExists(file: string): Promise<boolean>{
+    const args = {
+      filePath: file,
+    };
+    const authToken = this.getAuthToken();
+    const response = await this.callRemoteSandbox('fileExists', args, authToken);
+    if(!response.ok){
+      throw new Error(`Failed to check if file exists: ${response.statusText}. Response content: ${await response.text()}`);
+    }
+    let responseParsed: { exists: boolean };
+    try {
+      responseParsed = await response.json();
+    } catch (e) {
+      throw new Error(`Failed to parse file exists response: ${e}`);
+    }
+    return responseParsed.exists;
+  }
+
   async createFolder(
     path: string,
     mode: string,

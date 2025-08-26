@@ -1,10 +1,10 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import type { FileHistory } from '~/types/actions';
-import { diffLines, type Change } from 'diff';
+import { type Change, diffLines } from 'diff';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { toast } from 'react-toastify';
 import { path } from '~/utils/path';
@@ -330,6 +330,13 @@ function FileContextMenu({
     setIsDragging(false);
   }, []);
 
+  const removeFilesFromPath = useCallback((path: string) => {
+    if(workbenchStore.getFile(path) !== undefined){
+      return path.substring(0, path.lastIndexOf('/')) + '/';
+    }
+    return path;
+  }, []);
+
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
@@ -343,12 +350,14 @@ function FileContextMenu({
 
         if (file) {
           try {
-            const filePath = path.join(fullPath, file.name);
+            const pathWithoutFile = removeFilesFromPath(fullPath);
+            const filePath = path.join(pathWithoutFile, file.name);
 
             // Convert file to binary data (Uint8Array)
             const arrayBuffer = await file.arrayBuffer();
             const binaryContent = new Uint8Array(arrayBuffer);
 
+            console.log("File path in drop:", filePath);
             const success = await workbenchStore.createFile(filePath, binaryContent);
 
             if (success) {
