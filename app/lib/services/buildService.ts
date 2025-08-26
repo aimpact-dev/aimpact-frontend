@@ -4,14 +4,15 @@ import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 import {workbenchStore} from '~/lib/stores/workbench';
+import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
 export class BuildService {
   private readonly shellPromise: Promise<AimpactShell>;
   private readonly sandbox: Promise<AimpactSandbox>;
-  private readonly hybridFs: Promise<HybridFs>;
+  private readonly aimpactFs: Promise<AimpactFs>;
 
-  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<AimpactSandbox>, hybridFs: Promise<HybridFs>) {
-    this.hybridFs = hybridFs;
+  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<AimpactSandbox>, hybridFs: Promise<AimpactFs>) {
+    this.aimpactFs = hybridFs;
     this.sandbox = sandbox;
     this.shellPromise = shellPromise;
   }
@@ -19,7 +20,7 @@ export class BuildService {
   async runBuildScript(buildWith: 'npm' | 'pnpm'){
     const shell = await this.shellPromise
     const sandbox = await this.sandbox;
-    const hybridFs = await this.hybridFs;
+    const aimpactFs = await this.aimpactFs;
 
     const onAbort = () =>{
       console.log("Build aborted");
@@ -60,7 +61,7 @@ export class BuildService {
 
     //Delete the local build directory if it exists
     try{
-      await hybridFs.rmLocal(buildDir, { recursive: true, force: true });
+      await aimpactFs.rmLocal(buildDir, { recursive: true, force: true });
     }
     catch(error){
       console.error("Error deleting local build directory:", error);
@@ -69,13 +70,13 @@ export class BuildService {
     //Downloading the build directory content and saving to the local filesystem
     const fileMap: FileMap = {};
     const buildDirContent = await this.listSubPaths(buildDir, sandbox);
-    await hybridFs.mkdirLocal(buildDir); // Create the build directory locally
-    const workDir = await hybridFs.workdir();
+    await aimpactFs.mkdirLocal(buildDir); // Create the build directory locally
+    const workDir = await aimpactFs.workdir();
     console.log("Remote build directory content: ", buildDirContent);
     for (const file of buildDirContent) {
       if(file.isDir){
         console.log("Creating directory for build:", file.path);
-        await hybridFs.mkdirLocal(file.path);
+        await aimpactFs.mkdirLocal(file.path);
         fileMap[workDir + '/' + file.path] = {
           type: 'folder',
           pending: false
@@ -84,7 +85,7 @@ export class BuildService {
       else {
         console.log("Creating file for build:", file.path);
         const fileContent = await sandbox.downloadFile(file.path);
-        await hybridFs.writeFileLocal(file.path, fileContent, 'utf-8');
+        await aimpactFs.writeFileLocal(file.path, fileContent, 'utf-8');
         const stringContent = readContent(fileContent);
         const isBinary = isBinaryFile(fileContent);
         fileMap[workDir + '/' + file.path] = {

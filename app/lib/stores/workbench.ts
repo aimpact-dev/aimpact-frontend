@@ -286,6 +286,15 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
+
+  /**
+   * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
+   * @param filePath
+   */
+  pendLockForFile(filePath: string){
+    this.#filesStore.pendLockForFile(filePath);
+  }
+
   /**
    * Lock a file to prevent edits
    * @param filePath Path to the file to lock
