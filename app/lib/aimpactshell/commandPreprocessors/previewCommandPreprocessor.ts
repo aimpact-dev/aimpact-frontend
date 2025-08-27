@@ -85,7 +85,7 @@ function injectPluginIntoViteConfigBabel(viteConfigContent: string): string {
         if (!hasImport) {
           const importDecl = t.importDeclaration(
             [t.importSpecifier(t.identifier(REPORTER_PLUGIN_NAME), t.identifier(REPORTER_PLUGIN_NAME))],
-            t.stringLiteral(REPORTER_PLUGIN_FILE_NAME)
+            t.stringLiteral("./" + REPORTER_PLUGIN_FILE_NAME)
           );
           path.node.body.unshift(importDecl);
         }
