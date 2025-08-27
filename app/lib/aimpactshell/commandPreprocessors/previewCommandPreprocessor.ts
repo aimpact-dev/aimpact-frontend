@@ -1,7 +1,10 @@
 ﻿import  { type CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { workbenchStore } from '~/lib/stores/workbench';
-
+import { parse } from '@babel/parser';
+import traverse from '@babel/traverse';
+import generate from '@babel/generator';
+import * as t from '@babel/types';
 
 const PREVIEW_COMMANDS = [
   'pnpm run dev',
@@ -24,54 +27,104 @@ export class PreviewCommandPreprocessor implements CommandPreprocessor {
   }
 
   async process(command: string): Promise<string> {
-    if (PREVIEW_COMMANDS.includes(command.trim())) {
-      console.log("Preview command detected: ", command);
-    }
+    if (!PREVIEW_COMMANDS.includes(command.trim())) return Promise.resolve(command);
+
     const fs = await this.aimpactFs;
     const workdir = await fs.workdir();
 
 
     const scriptContent = await loadContentFromScripts(REPORTER_SCRIPT_FILE_NAME);
-    await fs.writeFile(REPORTER_SCRIPT_FILE_NAME, scriptContent);
+    const scriptContentWithOrigin = addOriginToReporterScript(scriptContent);
+    await fs.writeFile(REPORTER_SCRIPT_FILE_NAME, scriptContentWithOrigin);
     workbenchStore.pendLockForFile(workdir + '/' + REPORTER_SCRIPT_FILE_NAME);
 
     const pluginContent = await loadContentFromScripts(REPORTER_PLUGIN_FILE_NAME);
     await fs.writeFile(REPORTER_PLUGIN_FILE_NAME, pluginContent);
     workbenchStore.pendLockForFile(workdir + '/' + REPORTER_PLUGIN_FILE_NAME);
 
-    console.log("Modifying Vite config to include reporter plugin if necessary.");
     try{
       const viteConfigFile = await fs.readFile(workdir + '/' + VITE_CONFIG_FILE, 'utf-8');
-      const modifiedViteConfig = injectPluginIntoViteConfig(viteConfigFile);
-      console.log("Modified Vite config content:\n", modifiedViteConfig);
+      const modifiedViteConfig = injectPluginIntoViteConfigBabel(viteConfigFile);
       await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
     }
     catch (e){
-      console.warn('Vite config file not found, skipping its modification.');
+      console.warn('Could not add error reporter plugin to vite config..');
       return Promise.resolve(command);
     }
     return Promise.resolve(command);
   }
 }
 
-function injectPluginIntoViteConfig(viteConfigContent: string): string {
-  if (viteConfigContent.includes(REPORTER_PLUGIN_METHOD)) {
-    return viteConfigContent; // Already present
-  }
-  const importStatement = `import { ${REPORTER_PLUGIN_NAME} } from './${REPORTER_PLUGIN_NAME}';`;
-  if(!viteConfigContent.includes(importStatement)){
-    viteConfigContent = importStatement + '\n' + viteConfigContent;
-  }
-  return viteConfigContent.replace(
-    /(plugins\s*:\s*\[)([^]*?)(\])/,
-    (match, start, plugins, end) => {
-      // Insert before the closing bracket, after last plugin (handle trailing commas)
-      console.log("Found plugins array in Vite config, injecting reporter plugin.");
-      const trimmed = plugins.trim();
-      const needsComma = trimmed && !trimmed.endsWith(',');
-      return `${start}${plugins}${needsComma ? ',' : ''} ${REPORTER_PLUGIN_METHOD}${end}`;
+function addOriginToReporterScript(scriptContent: string): string{
+  const origin = window.location.origin;
+  return scriptContent.replaceAll('"*"', `"${origin}"`);
+}
+
+function injectPluginIntoViteConfigBabel(viteConfigContent: string): string {
+  const ast = parse(viteConfigContent, {
+    sourceType: 'module',
+    plugins: ['typescript'],
+  });
+
+  let hasImport = false;
+  let pluginAdded = false;
+
+  traverse(ast, {
+    ImportDeclaration(path) {
+      if (
+        path.node.source.value === REPORTER_PLUGIN_FILE_NAME &&
+        path.node.specifiers.some(
+          s => t.isImportSpecifier(s) && s.imported.name === REPORTER_PLUGIN_NAME
+        )
+      ) {
+        hasImport = true;
+      }
+    },
+    Program: {
+      exit(path) {
+        if (!hasImport) {
+          const importDecl = t.importDeclaration(
+            [t.importSpecifier(t.identifier(REPORTER_PLUGIN_NAME), t.identifier(REPORTER_PLUGIN_NAME))],
+            t.stringLiteral(REPORTER_PLUGIN_FILE_NAME)
+          );
+          path.node.body.unshift(importDecl);
+        }
+      }
+    },
+    CallExpression(path) {
+      if (
+        t.isIdentifier(path.node.callee, { name: 'defineConfig' }) &&
+        path.node.arguments.length > 0 &&
+        t.isObjectExpression(path.node.arguments[0])
+      ) {
+        const configObj = path.node.arguments[0] as t.ObjectExpression;
+        const pluginsProp = configObj.properties.find(
+          prop =>
+            t.isObjectProperty(prop) &&
+            t.isIdentifier(prop.key, { name: 'plugins' }) &&
+            t.isArrayExpression(prop.value)
+        ) as t.ObjectProperty | undefined;
+
+        if (pluginsProp && t.isArrayExpression(pluginsProp.value)) {
+          const pluginsArray = pluginsProp.value;
+          const alreadyPresent = pluginsArray.elements.some(
+            el =>
+              t.isCallExpression(el) &&
+              t.isIdentifier(el.callee, { name: REPORTER_PLUGIN_NAME })
+          );
+          if (!alreadyPresent) {
+            pluginsArray.elements.push(
+              t.callExpression(t.identifier(REPORTER_PLUGIN_NAME), [])
+            );
+            pluginAdded = true;
+          }
+        }
+      }
     }
-  );
+  });
+
+  const output = generate(ast, { retainLines: true }).code;
+  return output;
 }
 
 async function loadContentFromScripts(fileName: string): Promise<string>{

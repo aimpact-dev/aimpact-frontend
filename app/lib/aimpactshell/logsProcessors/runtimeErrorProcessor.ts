@@ -1,18 +1,8 @@
 ﻿import  { type LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { ErrorInfo } from '~/utils/errorInfo';
 
 const ERROR_MARKER = '[Runtime Error]';
-
-interface ErrorInfo {
-  type: string;
-  message: string;
-  source: string;
-  lineno: number;
-  colno: number;
-  stack: string;
-  userAgent: string;
-  url: string;
-}
 
 export class RuntimeErrorProcessor implements LogProcessor {
   /**

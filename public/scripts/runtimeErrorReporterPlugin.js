@@ -1,4 +1,5 @@
 ﻿// runtimeErrorReporterPlugin.js
+// DO NOT MODIFY THIS FILE. ANY CHANGES WILL BE OVERWRITTEN.
 import fs from 'fs';
 import path from 'path';
 

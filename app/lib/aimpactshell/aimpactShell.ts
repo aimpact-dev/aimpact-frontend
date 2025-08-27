@@ -181,7 +181,7 @@ export class AimpactShell {
 //log processor for capturing preview port from Daytona.io server.
 export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
   const portCatcher = getPortCatcher();
-  const logsProcessors = [new LogPortCatcher(portCatcher), new RuntimeErrorProcessor()];
+  const logsProcessors = [new LogPortCatcher(portCatcher)];
   const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor(fsPromise)];
   return new AimpactShell(sandboxPromise, logsProcessors, commandsPreprocessors);
 }
