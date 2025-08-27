@@ -9,6 +9,7 @@ import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocess
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtimeErrorProcessor';
+import { CommandBuffer } from '~/lib/aimpactshell/commandBuffer';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -17,7 +18,7 @@ export class AimpactShell {
   private readonly sandboxPromise: Promise<AimpactSandbox>;
 
   //Keeping track of the ITerminal onData events. They represent terminal input.
-  private commandBuffer: string[] = [];
+  private commandBuffer: CommandBuffer;
 
   //State of the currently executing command. undefined if no command is running.
   private executionState: {
@@ -46,43 +47,15 @@ export class AimpactShell {
     if (!sandboxPromise){
       console.log("Sandbox is undefined");
     }
+
+    this.commandBuffer = new CommandBuffer(async (command) => {
+      await this.executeCommand(command);
+    } );
   }
 
   setTerminal(terminal: ITerminal) {
     this.terminal = terminal;
-    terminal.onData(async (data: string) => {
-      console.log('Terminal data received:', data);
-      await this.addToCommandBuffer(data);
-    });
-  }
-
-  private async addToCommandBuffer(data: string){
-    if(!this.terminal) {
-      console.error("Terminal is not set. Cannot add to command buffer.");
-      return;
-    }
-    for (const char of data) {
-      //Checking for backspace (delete) key press.
-      if (char === '\b' || char === '\x7f') {
-        if (this.commandBuffer.length > 0) {
-          this.commandBuffer.pop(); // Remove last character from buffer
-          this.terminal.write('\b \b'); // Move cursor back, clear character, and move back again
-        }
-      } else {
-        this.terminal.write(char); // Write the character to the terminal
-      }
-
-      //Checking for enter key press.
-      if (char === '\n' || char === '\r') {
-        this.terminal.write('\n');
-        if (this.commandBuffer.length === 0) return;
-        const command = this.commandBuffer.join('');
-        this.commandBuffer = []; // Clear the buffer
-        await this.executeCommand(command); // Handle the command
-      } else {
-        this.commandBuffer.push(char); // Add character to buffer
-      }
-    }
+    this.commandBuffer.setTerminal(terminal);
   }
 
   async executeCommand(command: string, abort?: () => void): Promise<ExecutionResult>{
