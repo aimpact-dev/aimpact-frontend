@@ -3,6 +3,7 @@ import type {AimpactShell } from '~/utils/aimpactShell'
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
 import { RemoteSandbox } from '~/lib/daytona/remoteSandbox';
+import {workbenchStore} from '~/lib/stores/workbench';
 
 export class BuildService {
   private readonly shellPromise: Promise<AimpactShell>;
@@ -27,6 +28,14 @@ export class BuildService {
     const executionResult = await shell.executeCommand(command, onAbort);
     if (executionResult?.exitCode !== 0) {
       console.error(`Build failed with exit code ${executionResult?.exitCode}`);
+      workbenchStore.deployAlert.set({
+        type: 'error',
+        title: 'Build Failed',
+        description: 'Build failed with exit code ' + executionResult?.exitCode,
+        content: executionResult?.output || 'No output',
+        stage: 'building',
+        buildStatus: 'failed'
+      });
       return {
         path: '',
         exitCode: executionResult?.exitCode,
