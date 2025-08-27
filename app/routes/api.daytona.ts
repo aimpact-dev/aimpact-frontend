@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
+import { isBinaryFile } from '~/utils/fileContentReader';
 
 /**
  * Parameters required for identifying a user's sandbox.
@@ -247,15 +248,14 @@ async function uploadFile(params: MethodParams){
   if (!fileStr) {
     return new Response('Invalid file for uploadFile method.', { status: 400 });
   }
-  const fileStrDecoded = Buffer.from(fileStr, 'base64').toString();
-
+  const fileBuffer = Buffer.from(fileStr, 'base64');
   if (!remotePath || typeof remotePath !== 'string') {
     return new Response('Invalid remote path for uploadFile method.', { status: 400 });
   }
 
   const sandbox = getSandbox(identification);
   try {
-    await sandbox.uploadFile(Buffer.from(fileStrDecoded), remotePath);
+    await sandbox.uploadFile(fileBuffer, remotePath);
     return new Response('File uploaded successfully', { status: 200 });
   } catch (error) {
     return new Response('Failed to upload file. Error: ' + error, { status: 500 });
