@@ -5,7 +5,7 @@ export class LogPortCatcher implements LogProcessor {
   private portCatcher: PortCatcher;
 
   constructor(portCatcher: PortCatcher) {
-    this.portCatcher = getPortCatcher();
+    this.portCatcher = portCatcher;
   }
 
   process(log: string): void {
