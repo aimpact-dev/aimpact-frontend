@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
-import { isBinaryFile } from '~/utils/fileContentReader';
 
 /**
  * Parameters required for identifying a user's sandbox.
