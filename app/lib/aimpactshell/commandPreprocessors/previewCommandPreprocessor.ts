@@ -5,6 +5,7 @@ import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
+import { path } from '~/utils/path';
 
 const PREVIEW_COMMANDS = [
   'pnpm run dev',
@@ -36,14 +37,14 @@ export class PreviewCommandPreprocessor implements CommandPreprocessor {
     const scriptContent = await loadContentFromScripts(REPORTER_SCRIPT_FILE_NAME);
     const scriptContentWithOrigin = addOriginToReporterScript(scriptContent);
     await fs.writeFile(REPORTER_SCRIPT_FILE_NAME, scriptContentWithOrigin);
-    workbenchStore.pendLockForFile(workdir + '/' + REPORTER_SCRIPT_FILE_NAME);
+    workbenchStore.pendLockForFile(path.join(workdir, REPORTER_SCRIPT_FILE_NAME));
 
     const pluginContent = await loadContentFromScripts(REPORTER_PLUGIN_FILE_NAME);
     await fs.writeFile(REPORTER_PLUGIN_FILE_NAME, pluginContent);
-    workbenchStore.pendLockForFile(workdir + '/' + REPORTER_PLUGIN_FILE_NAME);
+    workbenchStore.pendLockForFile(path.join(workdir, REPORTER_PLUGIN_FILE_NAME));
 
     try{
-      const viteConfigFile = await fs.readFile(workdir + '/' + VITE_CONFIG_FILE, 'utf-8');
+      const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
       const modifiedViteConfig = injectPluginIntoViteConfigBabel(viteConfigFile);
       await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
     }
