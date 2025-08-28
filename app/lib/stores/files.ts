@@ -830,13 +830,11 @@ export class FilesStore {
     try {
       const relativePath = path.relative(await fs.workdir(), filePath);
 
-      console.log("Relative path for new file:", relativePath);
       if (!relativePath) {
         throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
       }
 
       const dirPath = path.dirname(relativePath);
-      console.log("Directory path for new file:", dirPath);
       if (dirPath !== '.') {
         await fs.mkdir(dirPath);
       }
