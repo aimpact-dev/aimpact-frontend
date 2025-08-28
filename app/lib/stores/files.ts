@@ -836,7 +836,7 @@ export class FilesStore {
       }
 
       const dirPath = path.dirname(relativePath);
-      console.log("Directory path for new file:", dirPath);
+      logger.info(`Directory path for new file: ${dirPath}`);
       if (dirPath !== '.') {
         await fs.mkdir(dirPath);
       }
