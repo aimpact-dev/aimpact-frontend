@@ -26,6 +26,7 @@ import useViewport from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
+import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -606,6 +607,7 @@ export const Workbench = memo(
               }
             }}
           />
+          <RuntimeErrorListener/>
         </motion.div>
       )
     );

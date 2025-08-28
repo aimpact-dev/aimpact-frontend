@@ -5,7 +5,7 @@ import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
-import type { AimpactShell } from '~/utils/aimpactShell';
+import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import type { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 

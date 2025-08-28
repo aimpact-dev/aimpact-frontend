@@ -231,6 +231,11 @@ export class ZenfsImpl extends AimpactFs {
     });
   }
 
+  async fileExists(path: string): Promise<boolean> {
+    await this.ensureInitialized();
+    path = this.toLocalPath(path);
+    return this.exists(path);
+  }
 
   /**
    * Reads a file from the specified path

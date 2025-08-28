@@ -2,12 +2,13 @@
 import type { Command, ExecuteResponse, SessionExecuteRequest, SessionExecuteResponse } from '@daytonaio/api-client';
 import { Buffer } from 'buffer';
 import { lookup } from 'mime-types';
+import type { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
 const DAYTONA_WORK_DIR = '/home/daytona';
 
 /** Lazily initializes daytona sandbox upon the first use
  * */
-export class LazySandbox{
+export class LazySandbox implements AimpactSandbox {
   private readonly apiKey: string;
   private readonly orgId: string;
   private readonly apiUrl: string;
@@ -85,6 +86,24 @@ export class LazySandbox{
       throw new Error('Sandbox is not initialized');
     }
     return sandbox.getPreviewLink(port);
+  }
+
+  async fileExists(filePath: string): Promise<boolean>{
+    const sandbox = await this.getSandboxPromise();
+    if (!sandbox) {
+      throw new Error('Sandbox is not initialized');
+    }
+    filePath = this.resolvePath(filePath);
+    const fileName = filePath.split('/').pop();
+    if(!fileName){
+      return false;
+    }
+    const dirPath = filePath.substring(0, filePath.length - fileName.length);
+    const searchResult = await sandbox.fs.searchFiles(dirPath, fileName);
+    if (!searchResult.files || searchResult.files.length === 0) {
+      return false;
+    }
+    return searchResult.files.length > 0;
   }
 
   async createFolder(

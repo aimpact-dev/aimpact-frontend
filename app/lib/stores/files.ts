@@ -70,6 +70,13 @@ export class FilesStore {
   #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
 
   /**
+   * Keep track of files that have to be locked right after they are added to the files tree.
+   * The problem is that we cannot call lockFile right away, because files can be added after a delay.
+   * @private
+   */
+  #pendingLocks: Set<string> = new Set();
+
+  /**
    * Map of files that matches the state of internal file system.
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
@@ -229,6 +236,14 @@ export class FilesStore {
         }
       }
     });
+  }
+
+  /**
+   * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
+   * @param filePath
+   */
+  pendLockForFile(filePath: string){
+    this.#pendingLocks.add(filePath);
   }
 
   /**
@@ -789,6 +804,10 @@ export class FilesStore {
             isLocked,
             pending: false
           });
+          if(this.#pendingLocks.has(sanitizedPath)) {
+            this.lockFile(sanitizedPath);
+            this.#pendingLocks.delete(sanitizedPath);
+          }
           break;
         }
         case 'remove_file': {
@@ -816,7 +835,6 @@ export class FilesStore {
       }
 
       const dirPath = path.dirname(relativePath);
-
       if (dirPath !== '.') {
         await fs.mkdir(dirPath);
       }

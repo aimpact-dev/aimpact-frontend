@@ -8,11 +8,12 @@ import type {
 import { Buffer } from 'buffer';
 import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
 import { getAuthTokenFromCookies, useAuth } from '~/lib/hooks/useAuth';
+import type { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
 /**
  * Imitates daytona API calls by calling actions from api.daytona.ts.
  */
-export class RemoteSandbox{
+export class RemoteSandbox implements AimpactSandbox {
   private readonly uuid: string = crypto.randomUUID();
   private cachedToken: string | null = null;
   private remoteSandboxCreated: boolean = false;
@@ -72,6 +73,24 @@ export class RemoteSandbox{
       token: data.token,
       url: data.url,
     };
+  }
+
+  async fileExists(file: string): Promise<boolean>{
+    const args = {
+      filePath: file,
+    };
+    const authToken = this.getAuthToken();
+    const response = await this.callRemoteSandbox('fileExists', args, authToken);
+    if(!response.ok){
+      throw new Error(`Failed to check if file exists: ${response.statusText}. Response content: ${await response.text()}`);
+    }
+    let responseParsed: { exists: boolean };
+    try {
+      responseParsed = await response.json();
+    } catch (e) {
+      throw new Error(`Failed to parse file exists response: ${e}`);
+    }
+    return responseParsed.exists;
   }
 
   async createFolder(

@@ -20,6 +20,7 @@ const allowedMethods = [
   'createSandbox',
   'getPreviewLink',
   'createFolder',
+  'fileExists',
   'deleteFile',
   'executeCommand',
   'uploadFile',
@@ -115,6 +116,8 @@ export async function action({context, request}: ActionFunctionArgs) {
       return getPreviewLink(params);
     case 'createFolder':
       return createFolder(params);
+    case 'fileExists':
+      return fileExists(params);
     case 'deleteFile':
       return deleteFile(params);
     case 'executeCommand':
@@ -196,6 +199,24 @@ async function createFolder(params: MethodParams){
     return new Response('Folder created successfully', { status: 200 });
   } catch (error) {
     return new Response('Failed to create folder', { status: 500 });
+  }
+}
+
+async function fileExists(params: MethodParams){
+  const { args, identification } = params;
+  const filePath = args?.filePath;
+  if (!filePath || typeof filePath !== 'string') {
+    return new Response('Invalid file path for fileExists method.', { status: 400 });
+  }
+  const sandbox = getSandbox(identification);
+  try {
+    const exists = await sandbox.fileExists(filePath);
+    return new Response(JSON.stringify({ exists }),{
+      status: 200, headers: { 'Content-Type': 'application/json' }});
+  }
+  catch (error) {
+    console.log("Error in fileExists:", error);
+    return new Response('Failed to check if file exists', { status: 500 });
   }
 }
 

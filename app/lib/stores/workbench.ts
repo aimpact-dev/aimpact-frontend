@@ -42,7 +42,7 @@ export class WorkbenchStore {
   #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
   #filesStore = new FilesStore(getAimpactFs());
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(getSandbox());
+  #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
   #reloadedMessages = new Set<string>();
 
@@ -286,6 +286,15 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
+
+  /**
+   * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
+   * @param filePath
+   */
+  pendLockForFile(filePath: string){
+    this.#filesStore.pendLockForFile(filePath);
+  }
+
   /**
    * Lock a file to prevent edits
    * @param filePath Path to the file to lock
@@ -338,6 +347,10 @@ export class WorkbenchStore {
    */
   isFolderLocked(folderPath: string) {
     return this.#filesStore.isFolderLocked(folderPath);
+  }
+
+  getFile(filePath: string){
+    return this.#filesStore.getFile(filePath);
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
