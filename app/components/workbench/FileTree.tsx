@@ -357,7 +357,7 @@ function FileContextMenu({
             const arrayBuffer = await file.arrayBuffer();
             const binaryContent = new Uint8Array(arrayBuffer);
 
-            console.log("File path in drop:", filePath);
+            logger.debug("File path in drop:", filePath);
             const success = await workbenchStore.createFile(filePath, binaryContent);
 
             if (success) {
