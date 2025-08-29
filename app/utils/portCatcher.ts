@@ -1,24 +1,49 @@
 ﻿export class PortCatcher{
   private port: number | undefined; // Default port for Vite
   //Collection of functions to be called when we receive a new port
-  private portChangeCallbacks: Array<(port: number) => void> = [];
-
+  private portCaughtCallbacks: Array<(port: number) => void> = [];
+  private portRemovedCallbacks: Array<(port: number) => void> = [];
 
   putNewPort(port: number): void {
+    if(this.port !== undefined){
+      // If there was a previous port, notify its removal
+      const oldPort = this.port;
+      this.portRemovedCallbacks.forEach(callback => callback(oldPort));
+    }
     this.port = port;
     // Notify all registered callbacks about the new port
-    this.portChangeCallbacks.forEach(callback => callback(port));
-    console.log(`New port set: ${this.port}`);
+    this.portCaughtCallbacks.forEach(callback => callback(port));
+  }
+
+  removePort(){
+    if(this.port !== undefined){
+      const oldPort = this.port;
+      this.port = undefined;
+      // Notify all registered callbacks about the removed port
+      this.portRemovedCallbacks.forEach(callback => callback(oldPort));
+    }
   }
 
   getPort(): number | undefined {
-    console.log(`Current port: ${this.port}`);
     return this.port;
   }
 
-  addCallback(callback: (port: number) => void): void {
-    this.portChangeCallbacks.push(callback);
-    console.log(`Callback added. Total callbacks: ${this.portChangeCallbacks.length}`);
+  /**
+   * Callbacks registered here will be called every time a port is removed.
+   * Calls also happen when a new port is caught, so the previous one is removed.
+   * If there was no previous port, callbacks will not be called.
+   * @param callback
+   */
+  addPortRemovedCallback(callback: ((port: number) => void)): void {
+    this.portRemovedCallbacks.push(callback);
+  }
+
+  /**
+   * Callbacks registered here will be called every time a new port is caught.
+   * @param callback
+   */
+  addPortCaughtCallback(callback: (port: number) => void): void {
+    this.portCaughtCallbacks.push(callback);
   }
 }
 
