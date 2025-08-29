@@ -20,7 +20,7 @@ export abstract class AimpactSandbox {
     mode: string,
   ): Promise<void>;
 
-  abstract async deleteFile(
+  abstract deleteFile(
     path: string,
   ): Promise<void>;
 

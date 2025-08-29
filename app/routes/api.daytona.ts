@@ -233,6 +233,7 @@ async function deleteFile(params: MethodParams){
     await sandbox.deleteFile(path);
     return new Response('File deleted successfully', { status: 200 });
   } catch (error) {
+    console.error('Error in deleteFile:', error);
     return new Response('Failed to delete file', { status: 500 });
   }
 }
