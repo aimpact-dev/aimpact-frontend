@@ -25,8 +25,7 @@ export class PreviewKillPreprocessor implements CommandPreprocessor  {
       const sandbox = await this.sandboxPromise;
       const port = this.portCatcher.getPort();
       if(port){
-        try {
-          console.log("Killing preview on port " + port);
+        try {;
           const killSessionName = 'kill-session';
           await sandbox.createSession(killSessionName);
           const killCommand: SessionExecuteRequest = {
@@ -35,7 +34,6 @@ export class PreviewKillPreprocessor implements CommandPreprocessor  {
             runAsync: false
           }
           const killResult = await sandbox.executeSessionCommand(killSessionName, killCommand);
-          console.log("Kill result:", killResult);
           await sandbox.deleteSession(killSessionName);
           this.portCatcher.removePort();
         }
