@@ -74,7 +74,7 @@ export class CommandBuffer {
         const command = this.commandBuffer.join('');
         this.commandBuffer = []; // Clear the buffer
         await this.executeCallback(command); // Handle the command
-      } else if(char !== '\b' && char !== '\x7f'){
+      } else if(char !== '\b' && char !== '\x7f' && char !== '\n' && char !== '\r'){
         this.commandBuffer.push(char); // Add character to buffer
       }
     }
