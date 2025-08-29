@@ -1,4 +1,4 @@
-﻿import type { PortCatcher } from '~/utils/portCatcher';
+﻿import type { PreviewPortCatcher } from '~/utils/previewPortCatcher';
 import { atom } from 'nanostores';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
@@ -10,11 +10,11 @@ export interface PreviewInfo {
 
 export class AimpactPreviewStore {
   private sandbox: Promise<AimpactSandbox>;
-  private portCatcher: PortCatcher;
+  private portCatcher: PreviewPortCatcher;
 
   previews = atom<PreviewInfo[]>([]);
 
-  constructor(sandbox: Promise<AimpactSandbox>, portCatcher: PortCatcher) {
+  constructor(sandbox: Promise<AimpactSandbox>, portCatcher: PreviewPortCatcher) {
     this.sandbox = sandbox;
     this.portCatcher = portCatcher;
     this.previews.set([]);

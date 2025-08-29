@@ -1,4 +1,8 @@
-﻿export class PortCatcher{
+﻿/**
+ * This class is responsible for storing the port on which the preview process is running.
+ * It notifies registered callbacks when a new port is caught or when a port is removed.
+ */
+export class PreviewPortCatcher {
   private port: number | undefined; // Default port for Vite
   //Collection of functions to be called when we receive a new port
   private portCaughtCallbacks: Array<(port: number) => void> = [];
@@ -48,11 +52,11 @@
 }
 
 // Singleton instance of PortCatcher
-let portCatcherInstance: PortCatcher | null = null;
+let portCatcherInstance: PreviewPortCatcher | null = null;
 
-export function getPortCatcher(): PortCatcher {
+export function getPortCatcher(): PreviewPortCatcher {
   if (!portCatcherInstance) {
-    portCatcherInstance = new PortCatcher();
+    portCatcherInstance = new PreviewPortCatcher();
     console.log('PortCatcher instance created');
   } else {
     console.log('Using existing PortCatcher instance');

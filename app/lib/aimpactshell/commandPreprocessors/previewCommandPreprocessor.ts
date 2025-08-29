@@ -6,13 +6,8 @@ import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
 import { path } from '~/utils/path';
+import { PREVIEW_COMMANDS } from '~/lib/aimpactshell/commandPreprocessors/commandsLists';
 
-const PREVIEW_COMMANDS = [
-  'pnpm run dev',
-  'npm run dev',
-  'pnpm run vite',
-  'npm run vite',
-];
 
 const REPORTER_SCRIPT_FILE_NAME = 'runtimeErrorReporterScript.js';
 const REPORTER_PLUGIN_FILE_NAME = 'runtimeErrorReporterPlugin.js';
