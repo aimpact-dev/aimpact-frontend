@@ -13,40 +13,49 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
                                                         iframeRef,
                                                         iframeUrl,
                                                         onLoad,
-                                                      }) => (
-  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-    {isPreviewLoading && (
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0,0,0,1)',
-          zIndex: 2,
+                                                      }) =>{
+
+
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {isPreviewLoading && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,1)',
+            zIndex: 2,
+          }}
+        >
+          <ClipLoader
+            color="#6D28D9"
+            loading={isPreviewLoading}
+            size={150}
+            aria-label="Loading Spinner"
+            data-testid="loader"
+          />
+          <span style={{ marginTop: 24 }}>Loading preview…</span>
+          <span style={{ fontSize: 13 }}>Hold on, it may take a while.</span>
+        </div>
+      )}
+      <iframe
+        ref={iframeRef}
+        title="preview"
+        className="border-none w-full h-full bg-bolt-elements-background-depth-1"
+        src={iframeUrl}
+        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
+        allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+        onLoad={onLoad}
+        onError={(e) => {
+          console.log("Preview error.");
+          console.log(e);
         }}
-      >
-        <ClipLoader
-          color="#6D28D9"
-          loading={isPreviewLoading}
-          size={150}
-          aria-label="Loading Spinner"
-          data-testid="loader"
-        />
-        <span style={{ marginTop: 24 }}>Loading preview…</span>
-        <span style={{ fontSize: 13 }}>Hold on, it may take a while.</span>
-      </div>
-    )}
-    <iframe
-      ref={iframeRef}
-      title="preview"
-      className="border-none w-full h-full bg-bolt-elements-background-depth-1"
-      src={iframeUrl}
-      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-      allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
-      onLoad={onLoad}
-    />
-  </div>
-);
+      />
+    </div>
+  );
+}
