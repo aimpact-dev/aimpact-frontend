@@ -17,7 +17,7 @@ export class AimpactShell {
   private terminal: ITerminal | undefined;
   private readonly sandboxPromise: Promise<AimpactSandbox>;
 
-  //Keeping track of the ITerminal onData events. They represent terminal input.
+  // Handles terminal input processing, including tracking ITerminal onData events and managing command input.
   private commandBuffer: CommandBuffer;
 
   //State of the currently executing command. undefined if no command is running.
