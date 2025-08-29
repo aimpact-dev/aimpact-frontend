@@ -215,7 +215,6 @@ async function fileExists(params: MethodParams){
       status: 200, headers: { 'Content-Type': 'application/json' }});
   }
   catch (error) {
-    console.log("Error in fileExists:", error);
     return new Response('Failed to check if file exists', { status: 500 });
   }
 }

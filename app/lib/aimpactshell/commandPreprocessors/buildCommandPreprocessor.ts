@@ -16,7 +16,7 @@ export const BUILD_COMMANDS: string[] = [
 ]
 
 /**
- * This class is responsible for deleting error reporting related files, created by PreviewCommandPreprocessor.
+ * This class checks for build commands and delete runtime error reporting related files, created by PreviewCommandPreprocessor.
  * It also removes the reporting plugin from the vite config.
  */
 export class BuildCommandPreprocessor implements CommandPreprocessor {
@@ -27,7 +27,6 @@ export class BuildCommandPreprocessor implements CommandPreprocessor {
   }
 
   async process(command: string): Promise<string> {
-    console.log(`Processing ${command}`);
     if(!BUILD_COMMANDS.includes(command.trim())) return Promise.resolve(command);
 
     const fs = await this.aimpactFs;
@@ -57,6 +56,17 @@ export class BuildCommandPreprocessor implements CommandPreprocessor {
     });
 
     traverse(ast, {
+      ImportDeclaration(path) {
+        // Remove import if it matches REPORTER_PLUGIN_NAME (either default or named)
+        const source = path.node.source.value;
+        const hasPluginImport = path.node.specifiers.some(spec =>
+          (t.isImportDefaultSpecifier(spec) || t.isImportSpecifier(spec)) &&
+          spec.local.name === REPORTER_PLUGIN_NAME
+        );
+        if (hasPluginImport) {
+          path.remove();
+        }
+      },
       CallExpression(path) {
         if (
           t.isIdentifier(path.node.callee, { name: 'defineConfig' }) &&

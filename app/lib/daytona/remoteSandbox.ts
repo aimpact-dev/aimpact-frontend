@@ -118,7 +118,7 @@ export class RemoteSandbox implements AimpactSandbox {
 
     const response = await this.callRemoteSandbox('deleteFile', args, authToken);
     if(!response.ok){
-      throw new Error(`Failed to delete file: ${response.statusText}. Response content: ${await response.text()}`);
+      throw new Error(`Failed to delete file: ${response.statusText}`);
     }
   }
 
