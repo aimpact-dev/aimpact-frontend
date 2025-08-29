@@ -88,11 +88,6 @@ export class AimpactShell {
 
   async executeCommand(command: string, abort?: () => void): Promise<ExecutionResult>{
     const sandbox = await this.sandboxPromise;
-    //Before executing the command, we pass it through all preprocessors.
-    for (const preprocessor of this.commandPreprocessors) {
-      command = await preprocessor.process(command);
-    }
-
     if (this.executionState){
       console.log("Execution state is already set, aborting previous command.");
       //Some command is currently running, we need to abort it first.
@@ -115,6 +110,10 @@ export class AimpactShell {
       command: command,
       runAsync: true, //If you run something like 'npm run dev' in sync mode you will wait for it forever.
     };
+    //Before executing the command, we pass it through all preprocessors.
+    for (const preprocessor of this.commandPreprocessors) {
+      commandRequest.command = await preprocessor.process(commandRequest.command);
+    }
 
     console.log("Executing command: ", commandRequest.command, "in session:", sessionId);
     const response =

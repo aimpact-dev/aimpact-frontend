@@ -25,7 +25,7 @@ export class PreviewKillPreprocessor implements CommandPreprocessor  {
       const sandbox = await this.sandboxPromise;
       const port = this.portCatcher.getPort();
       if(port){
-        try {;
+        try {
           const killSessionName = 'kill-session';
           await sandbox.createSession(killSessionName);
           const killCommand: SessionExecuteRequest = {
