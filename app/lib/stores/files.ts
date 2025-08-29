@@ -65,11 +65,6 @@ export class FilesStore {
   #modifiedFiles: Map<string, string> = import.meta.hot?.data.modifiedFiles ?? new Map();
 
   /**
-   * Keeps track of deleted files and folders to prevent them from reappearing on reload
-   */
-  #deletedPaths: Set<string> = import.meta.hot?.data.deletedPaths ?? new Set();
-
-  /**
    * Keep track of files that have to be locked right after they are added to the files tree.
    * The problem is that we cannot call lockFile right away, because files can be added after a delay.
    * @private
@@ -88,23 +83,6 @@ export class FilesStore {
   constructor(aimpactFsPromise: Promise<AimpactFs>) {
     this.#aimpactFs = aimpactFsPromise;
 
-    // Load deleted paths from localStorage if available
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const deletedPathsJson = localStorage.getItem('bolt-deleted-paths');
-
-        if (deletedPathsJson) {
-          const deletedPaths = JSON.parse(deletedPathsJson);
-
-          if (Array.isArray(deletedPaths)) {
-            deletedPaths.forEach((path) => this.#deletedPaths.add(path));
-          }
-        }
-      }
-    } catch (error) {
-      logger.error('Failed to load deleted paths from localStorage', error);
-    }
-
     // Load locked files from localStorage
     this.#loadLockedFiles();
 
@@ -112,7 +90,6 @@ export class FilesStore {
       // Persist our state across hot reloads
       import.meta.hot.data.files = this.files;
       import.meta.hot.data.modifiedFiles = this.#modifiedFiles;
-      import.meta.hot.data.deletedPaths = this.#deletedPaths;
     }
 
     // Listen for URL changes to detect chat ID changes
@@ -611,8 +588,6 @@ export class FilesStore {
 
   async #init() {
     const fs = await this.#aimpactFs;
-    // Clean up any files that were previously deleted
-    this.#cleanupDeletedFiles();
 
     // Set up file watcher
     await fs.watchPaths(
@@ -662,88 +637,12 @@ export class FilesStore {
     }, 30000); // Reduced from 10s to 30s
   }
 
-  /**
-   * Removes any deleted files/folders from the store
-   */
-  #cleanupDeletedFiles() {
-    if (this.#deletedPaths.size === 0) {
-      return;
-    }
-
-    const currentFiles = this.files.get();
-    const pathsToDelete = new Set<string>();
-
-    // Precompute prefixes for efficient checking
-    const deletedPrefixes = [...this.#deletedPaths].map((p) => p + '/');
-
-    // Iterate through all current files/folders once
-    for (const [path, dirent] of Object.entries(currentFiles)) {
-      // Skip if dirent is already undefined (shouldn't happen often but good practice)
-      if (!dirent) {
-        continue;
-      }
-
-      // Check for exact match in deleted paths
-      if (this.#deletedPaths.has(path)) {
-        pathsToDelete.add(path);
-        continue; // No need to check prefixes if it's an exact match
-      }
-
-      // Check if the path starts with any of the deleted folder prefixes
-      for (const prefix of deletedPrefixes) {
-        if (path.startsWith(prefix)) {
-          pathsToDelete.add(path);
-          break; // Found a match, no need to check other prefixes for this path
-        }
-      }
-    }
-
-    // Perform the deletions and updates based on the collected paths
-    if (pathsToDelete.size > 0) {
-      const updates: FileMap = {};
-
-      for (const pathToDelete of pathsToDelete) {
-        const dirent = currentFiles[pathToDelete];
-        updates[pathToDelete] = undefined; // Mark for deletion in the map update
-
-        if (dirent?.type === 'file') {
-          this.#size--;
-
-          if (this.#modifiedFiles.has(pathToDelete)) {
-            this.#modifiedFiles.delete(pathToDelete);
-          }
-        }
-      }
-
-      // Apply all deletions to the store at once for potential efficiency
-      this.files.set({ ...currentFiles, ...updates });
-    }
-  }
-
   #processEventBuffer(events: Array<[events: PathWatcherEvent[]]>) {
     const watchEvents = events.flat(2);
 
     for (const { type, path: eventPath, buffer } of watchEvents) {
       // remove any trailing slashes
       const sanitizedPath = eventPath.replace(/\/+$/g, '');
-
-      // Skip processing if this file/folder was explicitly deleted
-      if (this.#deletedPaths.has(sanitizedPath)) {
-        continue;
-      }
-
-      let isInDeletedFolder = false;
-
-      for (const deletedPath of this.#deletedPaths) {
-        if (sanitizedPath.startsWith(deletedPath + '/')) {
-          isInDeletedFolder = true;
-          break;
-        }
-      }
-
-      if (isInDeletedFolder) {
-        continue;
-      }
 
       switch (type) {
         case 'pre_add_dir': {
@@ -911,16 +810,12 @@ export class FilesStore {
 
       await fs.rm(relativePath);
 
-      this.#deletedPaths.add(filePath);
-
       this.files.setKey(filePath, undefined);
       this.#size--;
 
       if (this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.delete(filePath);
       }
-
-      this.#persistDeletedPaths();
 
       logger.info(`File deleted: ${filePath}`);
 
@@ -943,7 +838,6 @@ export class FilesStore {
 
       await fs.rm(relativePath, { recursive: true });
 
-      this.#deletedPaths.add(folderPath);
 
       this.files.setKey(folderPath, undefined);
 
@@ -953,7 +847,6 @@ export class FilesStore {
         if (path.startsWith(folderPath + '/')) {
           this.files.setKey(path, undefined);
 
-          this.#deletedPaths.add(path);
 
           if (dirent?.type === 'file') {
             this.#size--;
@@ -965,7 +858,6 @@ export class FilesStore {
         }
       }
 
-      this.#persistDeletedPaths();
 
       logger.info(`Folder deleted: ${folderPath}`);
 
@@ -973,17 +865,6 @@ export class FilesStore {
     } catch (error) {
       logger.error('Failed to delete folder\n\n', error);
       throw error;
-    }
-  }
-
-  // method to persist deleted paths to localStorage
-  #persistDeletedPaths() {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('bolt-deleted-paths', JSON.stringify([...this.#deletedPaths]));
-      }
-    } catch (error) {
-      logger.error('Failed to persist deleted paths to localStorage', error);
     }
   }
 }
