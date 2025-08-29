@@ -9,7 +9,7 @@ import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocess
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtimeErrorProcessor';
-import { BuildCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/buildCommandPreprocessor';
+import { EditorScriptsRemover } from '~/lib/aimpactshell/commandPreprocessors/editorScriptsRemover';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -185,7 +185,7 @@ export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, 
   const logsProcessors = [new LogPortCatcher(portCatcher)];
   const commandsPreprocessors: CommandPreprocessor[] = [
     new PreviewCommandPreprocessor(fsPromise),
-    new BuildCommandPreprocessor(fsPromise),
+    new EditorScriptsRemover(fsPromise),
   ];
   return new AimpactShell(sandboxPromise, logsProcessors, commandsPreprocessors);
 }

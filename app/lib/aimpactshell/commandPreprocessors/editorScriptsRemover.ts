@@ -16,10 +16,10 @@ export const BUILD_COMMANDS: string[] = [
 ]
 
 /**
- * This class checks for build commands and delete runtime error reporting related files, created by PreviewCommandPreprocessor.
- * It also removes the reporting plugin from the vite config.
+ * This class checks for build commands and deletes scripts that are only needed for editor functions (like previews).
+ * It also removes injection of those scripts from user's production code (like Vite config).
  */
-export class BuildCommandPreprocessor implements CommandPreprocessor {
+export class EditorScriptsRemover implements CommandPreprocessor {
   private aimpactFs: Promise<AimpactFs>;
 
   constructor(aimpactFs: Promise<AimpactFs>) {
