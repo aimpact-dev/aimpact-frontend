@@ -31,7 +31,7 @@ const IGNORE_SEQUENCES = [
 
 export class CommandBuffer {
   private terminal: ITerminal | null = null;
-  //Keeping track of the ITerminal onData events. They represent terminal input.
+  // Character buffer for building commands from terminal input.
   private commandBuffer: string[] = [];
 
   private executeCallback: (command: string) => Promise<void>;
