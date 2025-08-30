@@ -57,9 +57,7 @@ let portCatcherInstance: PreviewPortCatcher | null = null;
 export function getPortCatcher(): PreviewPortCatcher {
   if (!portCatcherInstance) {
     portCatcherInstance = new PreviewPortCatcher();
-    console.log('PortCatcher instance created');
-  } else {
-    console.log('Using existing PortCatcher instance');
   }
+
   return portCatcherInstance;
 }

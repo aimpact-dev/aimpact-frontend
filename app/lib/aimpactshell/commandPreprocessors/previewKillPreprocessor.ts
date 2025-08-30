@@ -30,6 +30,7 @@ export class PreviewKillPreprocessor implements CommandPreprocessor  {
           await sandbox.createSession(killSessionName);
           const killCommand: SessionExecuteRequest = {
             //This command finds the process running on the given port, retrieves its PID, and kills it.
+            //It tries to gracefully terminate the process first, and if that fails, it forcefully kills it.
             command: `for pid in $(netstat -tulpn | grep :${port} | awk '{print $7}' | cut -d'/' -f1); do kill $pid; sleep 2; if kill -0 $pid 2>/dev/null; then kill -9 $pid; fi; done`,
             runAsync: false
           }
