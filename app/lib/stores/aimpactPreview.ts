@@ -39,7 +39,7 @@ export class AimpactPreviewStore {
     const previewInfo: PreviewInfo = {
       port: port,
       ready: true,
-      baseUrl: url.url
+      baseUrl: "https://5173-a63c8af4-a237-4b0d-84b8-bb330b0b70c0.proxy.dayona.works/fafafaf"
     };
     this.previews.set([previewInfo]);
   }

@@ -53,6 +53,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewIframeRef = useRef<PreviewIframeHandle>(null);
 
   // Indicates whether the iframe loaded content from preview url
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -122,10 +123,11 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
     }
   }, [previews, findMinPortIndex]);
 
+  //Only called when user clicks reload button
   const reloadPreview = () => {
-    if (iframeRef.current) {
-      iframeRef.current.src = iframeRef.current.src;
-      setIsPreviewLoading(true);
+    if (previewIframeRef.current) {
+      console.log("Reloading iframe.");
+      previewIframeRef.current.reload();
     }
   };
 
@@ -931,6 +933,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                       }}
                     />
                     <PreviewIframe
+                      ref={previewIframeRef}
                       isPreviewLoading={isPreviewLoading}
                       setIsPreviewLoading={setIsPreviewLoading}
                       iframeRef={iframeRef}

@@ -1,4 +1,4 @@
-﻿import { FC, useEffect, useRef, useState } from 'react';
+﻿import { forwardRef, useImperativeHandle, useEffect, useRef, useState } from 'react';
 import { ClipLoader } from 'react-spinners';
 
 interface PreviewIframeProps {
@@ -9,25 +9,45 @@ interface PreviewIframeProps {
   onLoad: () => void;
 }
 
-const RELOAD_TIMEOUT = 1000; // 1 second
+export interface PreviewIframeHandle {
+  reload: () => void;
+}
 
-export const PreviewIframe: FC<PreviewIframeProps> = ({
+const RELOAD_TIMEOUT = 1000; // 1 second
+const MAX_RELOADS = 3;
+
+export const PreviewIframe = forwardRef<PreviewIframeHandle, PreviewIframeProps>(({
                                                         isPreviewLoading,
                                                         setIsPreviewLoading,
                                                         iframeRef,
                                                         iframeUrl,
                                                         onLoad,
-                                                      }) =>{
+                                                      }, ref) =>{
 
   const loadedSuccessfullyRef = useRef(false);
   const loadCheckRef = useRef<NodeJS.Timeout | null>(null);
+  const reloadCountRef = useRef(0);
+
+  useImperativeHandle(ref, () => ({
+    reload: () => {
+      console.log("Reloading iframe.");
+      if (iframeRef.current && iframeUrl) {
+        cancelLoadCheck();
+        iframeRef.current.src = iframeUrl;
+        setIsPreviewLoading(true);
+        reloadCountRef.current = 0;
+        loadedSuccessfullyRef.current = false;
+      }
+    }
+  }));
 
   const scheduleLoadCheck = () => {
     if (loadCheckRef.current){
       clearTimeout(loadCheckRef.current);
     }
     loadCheckRef.current = setTimeout(() => {
-      if (!loadedSuccessfullyRef.current){
+      if (!loadedSuccessfullyRef.current && reloadCountRef.current < MAX_RELOADS){
+        reloadCountRef.current += 1;
         console.log("Iframe did not load successfully within timeout, reloading iframe.");
         if (iframeRef.current && iframeUrl) {
           iframeRef.current.src = iframeUrl;
@@ -49,7 +69,8 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
       if (event.data &&
         event.data.type === 'AIMPACT_PREVIEW_LOADED'
       ) {
-        console.log("Preview loaded message received.");
+        reloadCountRef.current = 0;
+        cancelLoadCheck();
         loadedSuccessfullyRef.current = true;
       }
     }
@@ -117,4 +138,4 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
       />
     </div>
   );
-}
+});
