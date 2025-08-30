@@ -6,8 +6,9 @@ import type { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
 const DAYTONA_WORK_DIR = '/home/daytona';
 
-/** Lazily initializes daytona sandbox upon the first use
- * */
+/**
+ * Lazily initializes daytona sandbox upon the first use
+ */
 export class LazySandbox implements AimpactSandbox {
   private readonly apiKey: string;
   private readonly orgId: string;

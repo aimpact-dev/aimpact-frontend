@@ -1,10 +1,10 @@
 ﻿import  { type LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
-import { getPortCatcher, type PortCatcher } from '~/utils/portCatcher';
+import { getPortCatcher, type PreviewPortCatcher } from '~/utils/previewPortCatcher';
 
 export class LogPortCatcher implements LogProcessor {
-  private portCatcher: PortCatcher;
+  private portCatcher: PreviewPortCatcher;
 
-  constructor(portCatcher: PortCatcher) {
+  constructor(portCatcher: PreviewPortCatcher) {
     this.portCatcher = portCatcher;
   }
 

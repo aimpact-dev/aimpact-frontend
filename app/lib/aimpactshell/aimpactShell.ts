@@ -1,7 +1,7 @@
 import type { ITerminal } from '~/types/terminal';
 import { v4 as uuidv4 } from 'uuid';
 import { coloredText } from '~/utils/terminal';
-import { getPortCatcher } from '~/utils/portCatcher';
+import { getPortCatcher } from '~/utils/previewPortCatcher';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 import type { CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
 import { LogPortCatcher } from '~/lib/aimpactshell/logsProcessors/logPortCatcher';
@@ -9,6 +9,7 @@ import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocess
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtimeErrorProcessor';
+import { PreviewKillPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewKillPreprocessor';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -113,6 +114,7 @@ export class AimpactShell {
     for (const preprocessor of this.commandPreprocessors) {
       commandRequest.command = await preprocessor.process(commandRequest.command);
     }
+
     console.log("Executing command: ", commandRequest.command, "in session:", sessionId);
     const response =
       await sandbox.executeSessionCommand(sessionId, commandRequest);
@@ -182,7 +184,7 @@ export class AimpactShell {
 export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessors = [new LogPortCatcher(portCatcher)];
-  const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor(fsPromise)];
+  const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor(fsPromise), new PreviewKillPreprocessor(sandboxPromise, portCatcher)];
   return new AimpactShell(sandboxPromise, logsProcessors, commandsPreprocessors);
 }
 

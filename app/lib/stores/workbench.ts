@@ -20,7 +20,7 @@ import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import { BuildService } from '~/lib/services/buildService';
 import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
-import { getPortCatcher } from '~/utils/portCatcher';
+import { getPortCatcher } from '~/utils/previewPortCatcher';
 
 const { saveAs } = fileSaver;
 

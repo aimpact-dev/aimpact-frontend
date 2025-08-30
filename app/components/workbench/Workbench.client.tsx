@@ -384,8 +384,11 @@ export const Workbench = memo(
         }
       };
 
-      if (!hasPreview && selectedView === 'preview') {
-        func();
+      // if (!hasPreview && selectedView === 'preview') {
+      //   func();
+      // }
+      if(!hasPreview){
+        customPreviewState.current = 'No preview available.';
       }
     }, [selectedView])
 
