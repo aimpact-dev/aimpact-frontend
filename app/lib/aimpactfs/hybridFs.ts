@@ -28,7 +28,7 @@ export class HybridFs extends AimpactFs {
 
   private async toDaytonaPath(path: string): Promise<string> {
     const zenfsWorkdir = await this.zenfs.workdir();
-    if (path.startsWith(zenfsWorkdir)) {
+    if (zenfsWorkdir && path.startsWith(zenfsWorkdir)) {
       // Replace zenfs workdir with Daytona's home directory
       return DAYTONA_WORK_DIR + path.slice(zenfsWorkdir.length);
     }
