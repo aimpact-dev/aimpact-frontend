@@ -30,7 +30,7 @@ export class PreviewKillPreprocessor implements CommandPreprocessor  {
           await sandbox.createSession(killSessionName);
           const killCommand: SessionExecuteRequest = {
             //This command finds the process running on the given port, retrieves its PID, and kills it.
-            command: `netstat -tulpn | grep :${port} | awk '{print $7}' | cut -d'/' -f1 | xargs kill -9`,
+            command: `for pid in $(netstat -tulpn | grep :${port} | awk '{print $7}' | cut -d'/' -f1); do kill $pid; sleep 2; if kill -0 $pid 2>/dev/null; then kill -9 $pid; fi; done`,
             runAsync: false
           }
           const killResult = await sandbox.executeSessionCommand(killSessionName, killCommand);
