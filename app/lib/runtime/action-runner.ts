@@ -320,9 +320,6 @@ export class ActionRunner {
     const relativePath = nodePath.relative(await fs.workdir(), actionPath);
 
     let folder = nodePath.dirname(relativePath);
-    console.log("Relative path: ", relativePath);
-    console.log("Action path: ", actionPath);
-    console.log("File action with folder: ", folder);
 
     // remove trailing slashes
     folder = folder.replace(/\/+$/g, '');
