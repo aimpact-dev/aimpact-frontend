@@ -42,7 +42,7 @@ export class EditorScriptsRemover implements CommandPreprocessor {
       await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
     }
     catch (e){
-      console.warn('Could not add error reporter plugin to vite config..');
+      console.warn('Could not remove error reporter plugin from vite config..');
       return Promise.resolve(command);
     }
 
