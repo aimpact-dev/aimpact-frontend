@@ -276,7 +276,6 @@ export function useChatHistory() {
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
-      console.log("Trying to store messages history. Messages count: ", messages.length);
       if (messages.length === 0) {
         return;
       }

@@ -7,7 +7,6 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { Tooltip } from '../chat/Tooltip';
-import { ClipLoader } from 'react-spinners';
 import { PreviewIframe } from '~/components/workbench/PreviewIframe';
 
 type ResizeSide = 'left' | 'right' | null;
@@ -933,6 +932,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                     />
                     <PreviewIframe
                       isPreviewLoading={isPreviewLoading}
+                      setIsPreviewLoading={setIsPreviewLoading}
                       iframeRef={iframeRef}
                       iframeUrl={iframeUrl}
                       onLoad={() => setIsPreviewLoading(false)}
@@ -942,6 +942,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
               ) : (
                 <PreviewIframe
                   isPreviewLoading={isPreviewLoading}
+                  setIsPreviewLoading={setIsPreviewLoading}
                   iframeRef={iframeRef}
                   iframeUrl={iframeUrl}
                   onLoad={() => setIsPreviewLoading(false)}

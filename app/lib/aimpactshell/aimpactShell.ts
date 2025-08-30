@@ -5,7 +5,7 @@ import { getPortCatcher } from '~/utils/previewPortCatcher';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 import type { CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
 import { LogPortCatcher } from '~/lib/aimpactshell/logsProcessors/logPortCatcher';
-import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewCommandPreprocessor';
+import { EditorScriptsInjector } from '~/lib/aimpactshell/commandPreprocessors/editorScriptsInjector';
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { PreviewKillPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewKillPreprocessor';
@@ -186,7 +186,7 @@ export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, 
   const logsProcessors = [new LogPortCatcher(portCatcher)];
   const commandsPreprocessors: CommandPreprocessor[] = [
     new PreviewKillPreprocessor(sandboxPromise, portCatcher),
-    new PreviewCommandPreprocessor(fsPromise),
+    new EditorScriptsInjector(fsPromise),
     new EditorScriptsRemover(fsPromise),
   ];
   return new AimpactShell(sandboxPromise, logsProcessors, commandsPreprocessors);

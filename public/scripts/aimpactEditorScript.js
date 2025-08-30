@@ -1,4 +1,6 @@
-﻿// This script is responsible for capturing runtime errors on the client side, so they can be reported to the server.
+﻿// This script is responsible for notifying the Aimpact editor about important events such as runtime errors
+// or preview loading.
+// This file will be automatically excluded from the production build.
 // DO NOT MODIFY THIS FILE. ANY CHANGES WILL BE OVERWRITTEN.
 (function() {
 
@@ -13,6 +15,13 @@
       body: JSON.stringify(data),
     });
   }
+
+  function notifyPreviewLoaded() {
+    window.parent?.postMessage({ type: 'AIMPACT_PREVIEW_LOADED' }, "*");
+    window.opener?.postMessage({ type: 'AIMPACT_PREVIEW_LOADED' }, "*");
+  }
+
+  window.addEventListener('load', notifyPreviewLoaded);
 
   window.onerror = function(message, source, lineno, colno, error) {
     reportError({
