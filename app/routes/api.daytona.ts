@@ -215,7 +215,6 @@ async function fileExists(params: MethodParams){
       status: 200, headers: { 'Content-Type': 'application/json' }});
   }
   catch (error) {
-    console.log("Error in fileExists:", error);
     return new Response('Failed to check if file exists', { status: 500 });
   }
 }
@@ -233,6 +232,7 @@ async function deleteFile(params: MethodParams){
     await sandbox.deleteFile(path);
     return new Response('File deleted successfully', { status: 200 });
   } catch (error) {
+    console.error('Error in deleteFile:', error);
     return new Response('Failed to delete file', { status: 500 });
   }
 }

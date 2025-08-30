@@ -11,6 +11,8 @@ import type { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl';
 import { WatchPathsCallbacks } from '~/lib/aimpactfs/WatchPathsCallbacks';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
+const DAYTONA_WORK_DIR = '/home/daytona';
+
 export class HybridFs extends AimpactFs {
   private readonly zenfs: ZenfsImpl;
   private readonly sandboxPromise: Promise<AimpactSandbox>;
@@ -25,11 +27,10 @@ export class HybridFs extends AimpactFs {
   }
 
   private async toDaytonaPath(path: string): Promise<string> {
-    console.log("Converting path to Daytona format:", path);
     const zenfsWorkdir = await this.zenfs.workdir();
-    if (path.startsWith('/') && zenfsWorkdir) {
+    if (zenfsWorkdir && path.startsWith(zenfsWorkdir)) {
       // Replace zenfs workdir with Daytona's home directory
-      return "/home/daytona" + path.slice(zenfsWorkdir.length);
+      return DAYTONA_WORK_DIR + path.slice(zenfsWorkdir.length);
     }
     return path;
   }
@@ -79,13 +80,13 @@ export class HybridFs extends AimpactFs {
 
   async rm(filePath: string, options?: { force?: boolean; recursive?: boolean }): Promise<void> {
     const sandbox = await this.sandboxPromise;
+    const daytonaPath = await this.toDaytonaPath(filePath);
     if(options && options.recursive) {
-      const daytonaPath = await this.toDaytonaPath(filePath);
       const rmCommand = "rm -rf " + daytonaPath;
-      await sandbox.executeCommand(rmCommand, "/home/daytona/");
+      await sandbox.executeCommand(rmCommand, DAYTONA_WORK_DIR);
     }
     else {
-      await sandbox.deleteFile(filePath);
+      await sandbox.deleteFile(daytonaPath);
     }
 
     return this.zenfs.rm(filePath, options);

@@ -8,8 +8,8 @@ import { LogPortCatcher } from '~/lib/aimpactshell/logsProcessors/logPortCatcher
 import { PreviewCommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewCommandPreprocessor';
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
-import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtimeErrorProcessor';
 import { PreviewKillPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/previewKillPreprocessor';
+import { EditorScriptsRemover } from '~/lib/aimpactshell/commandPreprocessors/editorScriptsRemover';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -184,7 +184,11 @@ export class AimpactShell {
 export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
   const portCatcher = getPortCatcher();
   const logsProcessors = [new LogPortCatcher(portCatcher)];
-  const commandsPreprocessors: CommandPreprocessor[] = [new PreviewCommandPreprocessor(fsPromise), new PreviewKillPreprocessor(sandboxPromise, portCatcher)];
+  const commandsPreprocessors: CommandPreprocessor[] = [
+    new PreviewKillPreprocessor(sandboxPromise, portCatcher),
+    new PreviewCommandPreprocessor(fsPromise),
+    new EditorScriptsRemover(fsPromise),
+  ];
   return new AimpactShell(sandboxPromise, logsProcessors, commandsPreprocessors);
 }
 

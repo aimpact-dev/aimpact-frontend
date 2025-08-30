@@ -7,13 +7,13 @@ import generate from '@babel/generator';
 import * as t from '@babel/types';
 import { path } from '~/utils/path';
 import { PREVIEW_COMMANDS } from '~/lib/aimpactshell/commandPreprocessors/commandsLists';
+import {
+  REPORTER_PLUGIN_FILE_NAME,
+  REPORTER_PLUGIN_NAME,
+  REPORTER_SCRIPT_FILE_NAME,
+  VITE_CONFIG_FILE
+} from './constants';
 
-
-const REPORTER_SCRIPT_FILE_NAME = 'runtimeErrorReporterScript.js';
-const REPORTER_PLUGIN_FILE_NAME = 'runtimeErrorReporterPlugin.js';
-const REPORTER_PLUGIN_METHOD = 'runtimeErrorReporterPlugin()';
-const REPORTER_PLUGIN_NAME = 'runtimeErrorReporterPlugin';
-const VITE_CONFIG_FILE = 'vite.config.ts';
 
 export class PreviewCommandPreprocessor implements CommandPreprocessor {
   private aimpactFs: Promise<AimpactFs>;
