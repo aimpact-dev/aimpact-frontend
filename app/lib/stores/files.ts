@@ -555,12 +555,13 @@ export class FilesStore {
       }
 
       const oldContent = this.getFile(filePath)?.content;
+      const isBinary = isBinaryFile(Buffer.from(content));
 
       if (!oldContent && oldContent !== '') {
         unreachable('Expected content to be defined');
       }
 
-      await fs.writeFile(relativePath, content);
+      await fs.writeFile(relativePath, content, isBinary ? 'base64' : 'utf-8');
 
       if (!this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, oldContent);
@@ -574,8 +575,9 @@ export class FilesStore {
       this.files.setKey(filePath, {
         type: 'file',
         content,
-        isBinary: false,
+        isBinary: isBinary,
         isLocked,
+        pending: false,
       });
 
       logger.info('File updated');
@@ -695,12 +697,14 @@ export class FilesStore {
           // Preserve lock state if the file already exists
           const isLocked = existingFile?.type === 'file' ? existingFile.isLocked : false;
 
+          console.log("Adding file with path", sanitizedPath, "isBinary:", isBinary, "isLocked:", isLocked);
+          console.log("Content preview:", isBinary ? content.slice(0, 30) + '...' : content);
 
           this.files.setKey(sanitizedPath, {
             type: 'file',
-            content,
-            isBinary,
-            isLocked,
+            content: content,
+            isBinary: isBinary,
+            isLocked: isLocked,
             pending: false
           });
           if(this.#pendingLocks.has(sanitizedPath)) {
@@ -741,7 +745,7 @@ export class FilesStore {
       const isBinary = content instanceof Uint8Array;
 
       if (isBinary) {
-        await fs.writeFile(relativePath, Buffer.from(content));
+        await fs.writeFile(relativePath, Buffer.from(content), 'base64');
 
         const base64Content = Buffer.from(content).toString('base64');
         this.files.setKey(filePath, {
@@ -749,18 +753,20 @@ export class FilesStore {
           content: base64Content,
           isBinary: true,
           isLocked: false,
+          pending: false
         });
 
         this.#modifiedFiles.set(filePath, base64Content);
       } else {
         const contentToWrite = (content as string).length === 0 ? ' ' : content;
-        await fs.writeFile(relativePath, contentToWrite);
+        await fs.writeFile(relativePath, contentToWrite, 'utf-8');
 
         this.files.setKey(filePath, {
           type: 'file',
           content: content as string,
           isBinary: false,
           isLocked: false,
+          pending: false
         });
 
         this.#modifiedFiles.set(filePath, content as string);

@@ -193,7 +193,6 @@ export const CodeMirrorEditor = memo(
               selection: { anchor: linePos },
               scrollIntoView: true,
             });
-            viewRef.current.focus();
           } else {
             logger.warn(`Invalid line number ${line + 1} in ${totalLines}-line document`);
           }
@@ -273,6 +272,7 @@ export const CodeMirrorEditor = memo(
 
         return;
       }
+
 
       if (doc.isBinary) {
         return;
@@ -497,7 +497,6 @@ function setEditorDocument(
               selection: { anchor: linePos },
               scrollIntoView: true,
             });
-            view.focus();
           } else {
             logger.warn(`Invalid line number ${line + 1} in ${totalLines}-line document`);
           }
@@ -515,12 +514,9 @@ function setEditorDocument(
           view.scrollDOM.addEventListener(
             'scroll',
             () => {
-              view.focus();
             },
             { once: true },
           );
-        } else {
-          view.focus();
         }
       }
 
