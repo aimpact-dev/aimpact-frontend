@@ -90,11 +90,11 @@ function Providers({ children }: { children: React.ReactNode }) {
       {() => (
         <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
-            <CivicAuthProvider
-              autoCreateWallet
-              autoConnectEmbeddedWallet
-              clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}
-            >
+            {/*<CivicAuthProvider*/}
+            {/*  autoCreateWallet*/}
+            {/*  autoConnectEmbeddedWallet*/}
+            {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
+            {/*>*/}
             <RefCodeProvider>
               <AuthProvider>
                 <DndProvider backend={HTML5Backend}>
@@ -102,7 +102,7 @@ function Providers({ children }: { children: React.ReactNode }) {
                 </DndProvider>
               </AuthProvider>
             </RefCodeProvider>
-            </CivicAuthProvider>
+            {/*</CivicAuthProvider>*/}
           </SolanaProvider>
           <DaytonaCleanup/>
         </Suspense>
