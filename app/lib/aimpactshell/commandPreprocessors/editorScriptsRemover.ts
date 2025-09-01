@@ -2,8 +2,8 @@
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { path } from '~/utils/path';
 import {
-  REPORTER_PLUGIN_FILE_NAME, REPORTER_PLUGIN_NAME,
-  REPORTER_SCRIPT_FILE_NAME, VITE_CONFIG_FILE
+  EVENTS_PLUGIN_FILE_NAME, EVENTS_PLUGIN_NAME,
+  EVENTS_SCRIPT_FILE_NAME, VITE_CONFIG_FILE
 } from '~/lib/aimpactshell/commandPreprocessors/constants';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
@@ -33,40 +33,58 @@ export class EditorScriptsRemover implements CommandPreprocessor {
     const workdir = await fs.workdir();
 
     //Removing script and plugin files
-    await this.removeFile(path.join(workdir, REPORTER_SCRIPT_FILE_NAME));
-    await this.removeFile(path.join(workdir, REPORTER_PLUGIN_FILE_NAME));
+    await this.removeFile(path.join(workdir, EVENTS_SCRIPT_FILE_NAME));
+    await this.removeFile(path.join(workdir, EVENTS_PLUGIN_FILE_NAME));
 
+    const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
+    let modifiedViteConfig = viteConfigFile;
+    //Try to remove using Babel first, if it fails, try a simple string replacement
     try{
-      const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
-      const modifiedViteConfig = this.removePluginFromViteConfig(viteConfigFile);
-      await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
+      modifiedViteConfig = this.removePluginFromViteConfig(viteConfigFile);
     }
     catch (e){
-      console.warn('Could not remove error reporter plugin from vite config..');
-      return Promise.resolve(command);
+      console.warn('Could not remove editor plugin from vite config, trying fallback method..', e);
+      try{
+        modifiedViteConfig = this.removePluginFromViteConfigFallback(viteConfigFile);
+      }
+      catch (e){
+        console.warn('Could not remove editor plugin from vite config using fallback method..');
+      }
     }
+    await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
 
     return Promise.resolve(command);
+  }
+
+  private removePluginFromViteConfigFallback(viteConfigContent: string): string{
+    const importStatementDoubleQuotes = `import ${EVENTS_PLUGIN_NAME} from "./${EVENTS_PLUGIN_FILE_NAME}";`;
+    const importStatementSingleQuotes = `import ${EVENTS_PLUGIN_NAME} from './${EVENTS_PLUGIN_FILE_NAME}';`;
+    const pluginUsage = `${EVENTS_PLUGIN_NAME}()`;
+    viteConfigContent = viteConfigContent.replace(pluginUsage, '');
+    viteConfigContent = viteConfigContent.replace(importStatementDoubleQuotes,  '');
+    viteConfigContent = viteConfigContent.replace(importStatementSingleQuotes,  '');
+    return viteConfigContent;
   }
 
   private removePluginFromViteConfig(viteConfigContent: string): string{
     const ast = parse(viteConfigContent, {
       sourceType: 'module',
       plugins: ['typescript'],
+      strictMode: false,
     });
 
     traverse(ast, {
       ImportDeclaration(path) {
-        // Remove import if it matches REPORTER_PLUGIN_NAME (either default or named)
-        const source = path.node.source.value;
+        // Remove plugin import
         const hasPluginImport = path.node.specifiers.some(spec =>
           (t.isImportDefaultSpecifier(spec) || t.isImportSpecifier(spec)) &&
-          spec.local.name === REPORTER_PLUGIN_NAME
+          spec.local.name === EVENTS_PLUGIN_NAME
         );
         if (hasPluginImport) {
           path.remove();
         }
       },
+      // Remove plugin usage in defineConfig
       CallExpression(path) {
         if (
           t.isIdentifier(path.node.callee, { name: 'defineConfig' }) &&
@@ -87,7 +105,7 @@ export class EditorScriptsRemover implements CommandPreprocessor {
               el =>
                 !(
                   t.isCallExpression(el) &&
-                  t.isIdentifier(el.callee, { name: REPORTER_PLUGIN_NAME })
+                  t.isIdentifier(el.callee, { name: EVENTS_PLUGIN_NAME })
                 )
             );
           }

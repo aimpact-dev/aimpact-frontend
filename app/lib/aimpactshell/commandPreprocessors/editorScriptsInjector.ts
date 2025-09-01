@@ -8,14 +8,14 @@ import * as t from '@babel/types';
 import { path } from '~/utils/path';
 import { PREVIEW_COMMANDS } from '~/lib/aimpactshell/commandPreprocessors/commandsLists';
 import {
-  REPORTER_PLUGIN_FILE_NAME,
-  REPORTER_PLUGIN_NAME,
-  REPORTER_SCRIPT_FILE_NAME,
+  EVENTS_PLUGIN_FILE_NAME,
+  EVENTS_PLUGIN_NAME,
+  EVENTS_SCRIPT_FILE_NAME,
   VITE_CONFIG_FILE
 } from './constants';
 
 
-export class PreviewCommandPreprocessor implements CommandPreprocessor {
+export class EditorScriptsInjector implements CommandPreprocessor {
   private aimpactFs: Promise<AimpactFs>;
 
   constructor(aimpactFs: Promise<AimpactFs>) {
@@ -29,14 +29,14 @@ export class PreviewCommandPreprocessor implements CommandPreprocessor {
     const workdir = await fs.workdir();
 
 
-    const scriptContent = await loadContentFromScripts(REPORTER_SCRIPT_FILE_NAME);
+    const scriptContent = await loadContentFromScripts(EVENTS_SCRIPT_FILE_NAME);
     const scriptContentWithOrigin = addOriginToReporterScript(scriptContent);
-    await fs.writeFile(REPORTER_SCRIPT_FILE_NAME, scriptContentWithOrigin);
-    workbenchStore.pendLockForFile(path.join(workdir, REPORTER_SCRIPT_FILE_NAME));
+    await fs.writeFile(EVENTS_SCRIPT_FILE_NAME, scriptContentWithOrigin);
+    workbenchStore.pendLockForFile(path.join(workdir, EVENTS_SCRIPT_FILE_NAME));
 
-    const pluginContent = await loadContentFromScripts(REPORTER_PLUGIN_FILE_NAME);
-    await fs.writeFile(REPORTER_PLUGIN_FILE_NAME, pluginContent);
-    workbenchStore.pendLockForFile(path.join(workdir, REPORTER_PLUGIN_FILE_NAME));
+    const pluginContent = await loadContentFromScripts(EVENTS_PLUGIN_FILE_NAME);
+    await fs.writeFile(EVENTS_PLUGIN_FILE_NAME, pluginContent);
+    workbenchStore.pendLockForFile(path.join(workdir, EVENTS_PLUGIN_FILE_NAME));
 
     try{
       const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
@@ -44,7 +44,7 @@ export class PreviewCommandPreprocessor implements CommandPreprocessor {
       await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
     }
     catch (e){
-      console.warn('Could not add error reporter plugin to vite config..');
+      console.warn('Could not add error reporter plugin to vite config..', e);
       return Promise.resolve(command);
     }
     return Promise.resolve(command);
@@ -57,36 +57,26 @@ function addOriginToReporterScript(scriptContent: string): string{
 }
 
 function injectPluginIntoViteConfigBabel(viteConfigContent: string): string {
+  //Remove plugin import via string replacement to avoid duplicates
+  viteConfigContent = removePluginImports(viteConfigContent);
   const ast = parse(viteConfigContent, {
     sourceType: 'module',
     plugins: ['typescript'],
+    strictMode: false,
   });
 
-  let hasImport = false;
-  let pluginAdded = false;
-
   traverse(ast, {
-    ImportDeclaration(path) {
-      if (
-        path.node.source.value === REPORTER_PLUGIN_FILE_NAME &&
-        path.node.specifiers.some(
-          s => t.isImportSpecifier(s) && s.imported.name === REPORTER_PLUGIN_NAME
-        )
-      ) {
-        hasImport = true;
-      }
-    },
     Program: {
+      //Add plugin import at the top of the file
       exit(path) {
-        if (!hasImport) {
-          const importDecl = t.importDeclaration(
-            [t.importSpecifier(t.identifier(REPORTER_PLUGIN_NAME), t.identifier(REPORTER_PLUGIN_NAME))],
-            t.stringLiteral("./" + REPORTER_PLUGIN_FILE_NAME)
-          );
-          path.node.body.unshift(importDecl);
-        }
+        const importDecl = t.importDeclaration(
+          [t.importSpecifier(t.identifier(EVENTS_PLUGIN_NAME), t.identifier(EVENTS_PLUGIN_NAME))],
+          t.stringLiteral("./" + EVENTS_PLUGIN_FILE_NAME)
+        );
+        path.node.body.unshift(importDecl);
       }
     },
+    //Add plugin to defineConfig call if not already present
     CallExpression(path) {
       if (
         t.isIdentifier(path.node.callee, { name: 'defineConfig' }) &&
@@ -106,21 +96,27 @@ function injectPluginIntoViteConfigBabel(viteConfigContent: string): string {
           const alreadyPresent = pluginsArray.elements.some(
             el =>
               t.isCallExpression(el) &&
-              t.isIdentifier(el.callee, { name: REPORTER_PLUGIN_NAME })
+              t.isIdentifier(el.callee, { name: EVENTS_PLUGIN_NAME })
           );
           if (!alreadyPresent) {
             pluginsArray.elements.push(
-              t.callExpression(t.identifier(REPORTER_PLUGIN_NAME), [])
+              t.callExpression(t.identifier(EVENTS_PLUGIN_NAME), [])
             );
-            pluginAdded = true;
           }
         }
       }
     }
   });
 
-  const output = generate(ast, { retainLines: true }).code;
-  return output;
+  return generate(ast).code;
+}
+
+function removePluginImports(viteConfigContent: string): string{
+  const importStatementDoubleQuotes = `import ${EVENTS_PLUGIN_NAME} from "./${EVENTS_PLUGIN_FILE_NAME}";`;
+  const importStatementSingleQuotes = `import ${EVENTS_PLUGIN_NAME} from './${EVENTS_PLUGIN_FILE_NAME}';`;
+  viteConfigContent = viteConfigContent.replace(importStatementDoubleQuotes,  '');
+  viteConfigContent = viteConfigContent.replace(importStatementSingleQuotes,  '');
+  return viteConfigContent;
 }
 
 async function loadContentFromScripts(fileName: string): Promise<string>{
