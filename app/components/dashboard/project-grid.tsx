@@ -1,12 +1,13 @@
 'use client';
 
-import type { Project } from '@/types/project';
 import ProjectCard from '@/components/dashboard/project-card';
+import DataPagination from '@/components/common/DataPagination';
 import { motion } from 'framer-motion';
-import { useProjectsQuery } from 'query/use-project-query';
+import { useProjectsQuery, type Project } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from '@remix-run/react';
 
 interface ProjectGridProps {
   projects?: Project[];
@@ -15,44 +16,57 @@ interface ProjectGridProps {
   filter?: 'all' | 'owned';
 }
 
+const itemsPerPage = 9;
+
 const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
   const auth = useAuth();
-  const queryClient = useQueryClient()
-  const projectsQuery = useProjectsQuery(filter, 'createdAt', 'DESC', auth.jwtToken);
+  const queryClient = useQueryClient();
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') ?? '1'));
+
+  const projectsQuery = useProjectsQuery(currentPage, itemsPerPage, filter, 'createdAt', 'DESC', auth.jwtToken);
 
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['projects'] })
-  }, [filter]);
+    setSearchParams({ page: currentPage.toString() });
+  }, [currentPage, setSearchParams]);
+
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['projects', { currentPage, itemsPerPage }] });
+    setCurrentPage(1);
+  }, [filter, queryClient]);
 
   if (projectsQuery.isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="bg-card rounded-xl shadow-lg animate-pulse h-64">
-            <div className="p-6 h-full">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-muted"></div>
-                  <div>
-                    <div className="h-6 w-24 bg-muted rounded"></div>
-                    <div className="h-4 w-16 bg-muted rounded mt-2"></div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: itemsPerPage }).map((_, index) => (
+            <div key={index} className="bg-card rounded-xl shadow-lg animate-pulse h-64">
+              <div className="p-6 h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-full bg-muted"></div>
+                    <div>
+                      <div className="h-6 w-24 bg-muted rounded"></div>
+                      <div className="h-4 w-16 bg-muted rounded mt-2"></div>
+                    </div>
                   </div>
+                  <div className="h-8 w-16 bg-muted rounded"></div>
                 </div>
-                <div className="h-8 w-16 bg-muted rounded"></div>
-              </div>
-              <div className="h-4 w-full bg-muted rounded mb-4"></div>
-              <div className="h-4 w-3/4 bg-muted rounded mb-4"></div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="h-14 bg-muted rounded-lg"></div>
-                <div className="h-14 bg-muted rounded-lg"></div>
-              </div>
-              <div className="flex justify-between">
-                <div className="h-6 w-20 bg-muted rounded"></div>
-                <div className="h-6 w-20 bg-muted rounded"></div>
+                <div className="h-4 w-full bg-muted rounded mb-4"></div>
+                <div className="h-4 w-3/4 bg-muted rounded mb-4"></div>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="h-14 bg-muted rounded-lg"></div>
+                  <div className="h-14 bg-muted rounded-lg"></div>
+                </div>
+                <div className="flex justify-between">
+                  <div className="h-6 w-20 bg-muted rounded"></div>
+                  <div className="h-6 w-20 bg-muted rounded"></div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   }
@@ -76,8 +90,8 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
     );
   }
 
-
-  const projects = projectsQuery.data;
+  const projects = projectsQuery.data?.data;
+  const pagination = projectsQuery.data?.pagination;
 
   if (!projects || projects.length === 0) {
     return (
@@ -91,11 +105,34 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
       </motion.div>
     );
   }
+
+  const totalProjects = pagination.total || 0;
+  const totalPages = Math.ceil(totalProjects / itemsPerPage);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+
+  const paginationLabel = `Showing ${startIndex + 1} to ${Math.min(endIndex, totalProjects)} of ${totalProjects} projects`;
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {projects.map((project, index) => (
-        <ProjectCard key={project.id} project={project} index={index} />
-      ))}
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.map((project, index) => (
+          <ProjectCard key={project.id} project={project} index={startIndex + index} />
+        ))}
+      </div>
+
+      <DataPagination
+        totalPages={totalPages}
+        currentPage={currentPage}
+        label={paginationLabel}
+        onChange={handlePageChange}
+      />
     </div>
   );
 };
