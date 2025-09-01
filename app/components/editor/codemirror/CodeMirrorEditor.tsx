@@ -212,6 +212,13 @@ export const CodeMirrorEditor = memo(
       const view = new EditorView({
         parent: containerRef.current!,
         dispatchTransactions(transactions) {
+          if(docRef.current && docRef.current.isBinary) {
+            onUpdate({
+              selection: EditorSelection.create([]),
+              content: '',
+            });
+            return;
+          }
           const previousSelection = view.state.selection;
 
           view.update(transactions);

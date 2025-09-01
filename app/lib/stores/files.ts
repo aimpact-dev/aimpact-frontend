@@ -697,8 +697,6 @@ export class FilesStore {
           // Preserve lock state if the file already exists
           const isLocked = existingFile?.type === 'file' ? existingFile.isLocked : false;
 
-          console.log("Adding file with path", sanitizedPath, "isBinary:", isBinary, "isLocked:", isLocked);
-          console.log("Content preview:", isBinary ? content.slice(0, 30) + '...' : content);
 
           this.files.setKey(sanitizedPath, {
             type: 'file',

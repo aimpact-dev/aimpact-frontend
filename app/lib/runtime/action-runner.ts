@@ -8,6 +8,7 @@ import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import type { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
+import { isBinaryFile } from '~/utils/fileExtensionUtils';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -337,7 +338,10 @@ export class ActionRunner {
     }
 
     try {
-      await fs.writeFile(relativePath, action.content);
+      const isBinary  = isBinaryFile(action.filePath);
+      const encoding = isBinary ? 'base64' : 'utf-8';
+      const buffer = Buffer.from(action.content, isBinary ? 'base64' : 'utf-8');
+      await fs.writeFile(relativePath, buffer, encoding);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);

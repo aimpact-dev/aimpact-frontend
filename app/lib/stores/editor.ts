@@ -51,6 +51,7 @@ export class EditorStore {
               {
                 value: dirent.content,
                 filePath,
+                isBinary: dirent.isBinary,
                 scroll: previousDocument?.scroll,
               },
             ] as [string, EditorDocument];
