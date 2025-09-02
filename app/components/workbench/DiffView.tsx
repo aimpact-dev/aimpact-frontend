@@ -634,7 +634,6 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
     if (selectedFile && currentDocument) {
       const file = files[selectedFile];
       if(file && file.type === 'file' && file.isBinary){
-        console.log("Selected file is binary, skipping diff history update.");
         return;
       }
 
