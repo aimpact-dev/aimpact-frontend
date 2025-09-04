@@ -23,9 +23,13 @@ interface Snapshot {
   summary?: string;
 }
 
+function getTemplatesDir(): string {
+  return path.dirname(__filename);
+}
+
 // We treat the names of the folders where templates are located as names of those templates.
 async function getTemplatesNames(): Promise<string[]>{
-  const templatesDir = path.dirname(__dirname); // Go up one level from dist to template
+  const templatesDir = getTemplatesDir();
   const entries = await fs.promises.readdir(templatesDir, { withFileTypes: true });
   return entries
     .filter((entry: fs.Dirent) => entry.isDirectory() && entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist')
@@ -33,7 +37,7 @@ async function getTemplatesNames(): Promise<string[]>{
 }
 
 function getTemplateFolderPath(templateName: string): string {
-  const templatePath = path.join(path.dirname(__dirname), templateName);
+  const templatePath = path.join(getTemplatesDir(), templateName);
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Template folder does not exist: ${templatePath}`);
   }
@@ -73,7 +77,7 @@ async function walk(template: string, dirPath: string, result: Record<string, Fi
 //Remember: template name == its folder name
 async function generateSnapshotForTemplate(templateName: string):Promise<Snapshot>{
   const files: Record<string, File | Folder> = {};
-  await walk(templateName, path.join(path.dirname(__dirname), templateName), files);
+  await walk(templateName, path.join(getTemplatesDir(), templateName), files);
 
   return {
     files,
@@ -93,7 +97,7 @@ export async function generateSnapshots(): Promise<Record<string, Snapshot>> {
 async function main() {
   try {
     const snapshot = await generateSnapshots();
-    const snapshotOutputPath = path.join(path.dirname(__dirname), 'snapshot.json');
+    const snapshotOutputPath = path.join(getTemplatesDir(), 'snapshot.json');
     const snapshotData = JSON.stringify(snapshot, null, 2);
 
     fs.writeFile(snapshotOutputPath, snapshotData, 'utf-8', (error: NodeJS.ErrnoException | null) => {
