@@ -49,12 +49,14 @@ export class ViteConfigSyntaxChecker implements CommandPreprocessor {
         strictMode: false,
       });
     } catch(err){
+      // Extract a user-friendly error message
+      const errorMessage = (err && typeof err === 'object' && 'message' in err) ? (err as Error).message : String(err);
       workbenchStore.actionAlert.set (
         {
           type: 'error',
           title: 'Syntax Error in vite.config.ts',
-          description: 'An error was detected when parsing vite.config.ts: ' + err,
-          content: `When running "${command}", we encountered an error during vite.config.ts parsing: ${err}.`,
+          description: 'An error was detected when parsing vite.config.ts: ' + errorMessage,
+          content: `When running "${command}", we encountered an error during vite.config.ts parsing: ${errorMessage}.`,
           source: 'terminal'
         }
       );
