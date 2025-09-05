@@ -9,11 +9,9 @@ import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
+import { BUILD_COMMANDS } from './commandsLists';
 
-export const BUILD_COMMANDS: string[] = [
-  'pnpm run build',
-  'npm run build',
-]
+
 
 /**
  * This class checks for build commands and deletes scripts that are only needed for editor functions (like previews).
