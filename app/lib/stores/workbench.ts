@@ -226,6 +226,10 @@ export class WorkbenchStore {
     if (document === undefined) {
       return;
     }
+    if(document.isBinary){
+      console.warn("Attempt to save changes in a binary file:", filePath, " Binary files should not be editable.");
+      return;
+    }
 
     /*
      * For scoped locks, we would need to implement diff checking here

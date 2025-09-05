@@ -83,33 +83,35 @@ export class ZenfsImpl extends AimpactFs {
     return this.watchCallbacks.getCallbacksForPath(path);
   }
 
-  private async fireEventsForPath(path: string, eventType: 'change' | 'add_file' | 'pre_add_file' | 'remove_file' | 'add_dir' | 'pre_add_dir' | 'remove_dir' | 'update_directory'){
-    //Check callbacks
+  private async fireFolderEventsForPath(path: string, eventType: 'pre_add_dir' | 'add_dir' | 'update_directory' | 'remove_dir') {
     const callbacks = this.getWatchPathCallbacks(path);
-    if (callbacks.length > 0) {
-      let buffer = '';
-      const contentRequired = eventType === 'change' || eventType === 'add_file' || eventType === 'remove_file';
-      if (contentRequired) {
-        // Read the file content to include in the event
-        try {
-          buffer = await this.readFile(path, 'utf-8');
-        } catch (error) {
-          console.warn(`ZenFS readFile error for ${path}:`, error);
-          // If we can't read the file, just log the error and continue
-          buffer = '';
-        }
+    if (callbacks.length === 0) return;
+    const event: PathWatcherEvent = {
+      type: eventType,
+      path: path,
+    }
+    for (const cb of callbacks) {
+      try {
+        cb([event]);
+      } catch (error) {
+        console.error(`Error in watch callback for ${path}:`, error);
       }
-      const event: PathWatcherEvent = {
-        type: eventType,
-        path: path,
-        buffer: contentRequired ? Buffer.from(buffer, 'utf-8') : undefined,
-      }
-      for (const cb of callbacks) {
-        try {
-          cb([event]);
-        } catch (error) {
-          console.error(`Error in watch callback for ${path}:`, error);
-        }
+    }
+  }
+
+  private async fireFileEventsForPath(path: string, eventType: 'pre_add_file'| 'add_file' | 'change' | 'remove_file', content?: Buffer) {
+    const callbacks = this.getWatchPathCallbacks(path);
+    if (callbacks.length === 0) return;
+    const event: PathWatcherEvent = {
+      type: eventType,
+      path: path,
+      buffer: content
+    }
+    for (const cb of callbacks) {
+      try {
+        cb([event]);
+      } catch (error) {
+        console.error(`Error in watch callback for ${path}:`, error);
       }
     }
   }
@@ -138,7 +140,7 @@ export class ZenfsImpl extends AimpactFs {
     }
 
     //Imitating file watcher event.
-    await this.fireEventsForPath(dirPath, 'add_dir');
+    await this.fireFolderEventsForPath(dirPath, 'add_dir');
 
     if(dirPath === '/') {
       return undefined; //Matching the webcontainer behavior
@@ -332,8 +334,12 @@ export class ZenfsImpl extends AimpactFs {
       await rmPromise;
       //Imitating file watcher events for each removed entry
       for (const entry of removedContent) {
-        const eventType = entry.isDirectory() ? 'remove_dir' : 'remove_file';
-        await this.fireEventsForPath(entry.name, eventType);
+        if(entry.isDirectory()){
+          await this.fireFolderEventsForPath(entry.name, 'remove_dir');
+        }
+        else {
+          await this.fireFileEventsForPath(entry.name, 'remove_file');
+        }
       }
     } catch (error) {
       throw error;
@@ -487,11 +493,12 @@ export class ZenfsImpl extends AimpactFs {
     try {
       const fileExists = await this.exists(filePath);
       await this.writeFileZen(filePath, content, encoding);
+      const buffer = typeof content === 'string' ? Buffer.from(content, encoding || 'utf-8') : Buffer.from(content);
       if (fileExists) {
-        await this.fireEventsForPath(filePath, 'change');
+        await this.fireFileEventsForPath(filePath, 'change', buffer);
       }
       else {
-        await this.fireEventsForPath(filePath, 'add_file');
+        await this.fireFileEventsForPath(filePath, 'add_file', buffer);
       }
     }
     catch (error) {

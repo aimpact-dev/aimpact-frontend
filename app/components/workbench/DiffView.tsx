@@ -633,6 +633,9 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
   useEffect(() => {
     if (selectedFile && currentDocument) {
       const file = files[selectedFile];
+      if(file && file.type === 'file' && file.isBinary){
+        return;
+      }
 
       if (!file || !('content' in file)) {
         return;
@@ -711,6 +714,14 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
       }
     }
   }, [selectedFile, currentDocument?.value, files, setFileHistory, unsavedFiles]);
+
+  if(currentDocument && currentDocument.isBinary){
+    return (
+      <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
+        Diff view is not available for binary files
+      </div>
+    );
+  }
 
   if (!selectedFile || !currentDocument) {
     return (

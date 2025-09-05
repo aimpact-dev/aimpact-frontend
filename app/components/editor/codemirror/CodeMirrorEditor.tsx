@@ -193,7 +193,6 @@ export const CodeMirrorEditor = memo(
               selection: { anchor: linePos },
               scrollIntoView: true,
             });
-            viewRef.current.focus();
           } else {
             logger.warn(`Invalid line number ${line + 1} in ${totalLines}-line document`);
           }
@@ -213,6 +212,13 @@ export const CodeMirrorEditor = memo(
       const view = new EditorView({
         parent: containerRef.current!,
         dispatchTransactions(transactions) {
+          if(docRef.current && docRef.current.isBinary) {
+            onUpdate({
+              selection: EditorSelection.create([]),
+              content: '',
+            });
+            return;
+          }
           const previousSelection = view.state.selection;
 
           view.update(transactions);
@@ -274,6 +280,7 @@ export const CodeMirrorEditor = memo(
         return;
       }
 
+
       if (doc.isBinary) {
         return;
       }
@@ -317,8 +324,11 @@ export const CodeMirrorEditor = memo(
 
     return (
       <div className={classNames('relative h-full', className)}>
-        {doc?.isBinary && <BinaryContent />}
-        <div className="h-full overflow-hidden" ref={containerRef} />
+        {doc?.isBinary && (<BinaryContent />)}
+        <div className={classNames(
+          'h-full overflow-hidden',
+          doc?.isBinary ? 'hidden' : ''
+        )} ref={containerRef}  />
       </div>
     );
   },
@@ -497,7 +507,6 @@ function setEditorDocument(
               selection: { anchor: linePos },
               scrollIntoView: true,
             });
-            view.focus();
           } else {
             logger.warn(`Invalid line number ${line + 1} in ${totalLines}-line document`);
           }
@@ -515,12 +524,9 @@ function setEditorDocument(
           view.scrollDOM.addEventListener(
             'scroll',
             () => {
-              view.focus();
             },
             { once: true },
           );
-        } else {
-          view.focus();
         }
       }
 
