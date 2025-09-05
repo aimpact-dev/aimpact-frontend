@@ -544,7 +544,7 @@ export class FilesStore {
     this.#modifiedFiles.clear();
   }
 
-  async saveFile(filePath: string, content: string) {
+  async saveFile(filePath: string, content: string, isBinary: boolean = false) {
     const fs = await this.#aimpactFs;
 
     try {
@@ -555,7 +555,6 @@ export class FilesStore {
       }
 
       const oldContent = this.getFile(filePath)?.content;
-      const isBinary = isBinaryFile(Buffer.from(content));
 
       if (!oldContent && oldContent !== '') {
         unreachable('Expected content to be defined');
