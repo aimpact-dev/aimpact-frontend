@@ -20,7 +20,27 @@ export class ViteConfigSyntaxChecker implements CommandPreprocessor {
 
     const fs = await this.aimpactFs;
     const workdir = await fs.workdir();
-    const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
+    let viteConfigFile: string;
+    try {
+      viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
+    } catch (err: any) {
+      // If the file does not exist, skip the syntax check and return the command
+      if (err && (err.code === 'ENOENT' || err.message?.includes('no such file'))) {
+        return Promise.resolve(command);
+      } else {
+        // For other errors, alert the user
+        workbenchStore.actionAlert.set (
+          {
+            type: 'error',
+            title: 'Error reading vite.config.ts',
+            description: 'An error occurred while reading vite.config.ts: ' + err,
+            content: `When running "${command}", we encountered an error reading vite.config.ts: ${err}.`,
+            source: 'terminal'
+          }
+        );
+        return Promise.resolve('');
+      }
+    }
 
     try{
       parse(viteConfigFile, {
