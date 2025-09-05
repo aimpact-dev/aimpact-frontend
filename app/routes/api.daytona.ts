@@ -63,10 +63,11 @@ function createSandboxIfNotExists(identification: Identification): LazySandbox{
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
-    if (!apiKey || !apiUrl || !orgId) {
+    const proxyDomain = getEnvVar(context, 'DAYTONA_PROXY_URL');
+    if (!apiKey || !apiUrl || !orgId || !proxyDomain) {
       throw new Error('Missing Daytona API configuration');
     }
-    const sandbox = new LazySandbox(apiUrl, apiKey, orgId);
+    const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyDomain);
     usersSandboxes.set(compositeId, sandbox);
   }
   return usersSandboxes.get(compositeId)!;

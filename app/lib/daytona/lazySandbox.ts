@@ -13,14 +13,16 @@ export class LazySandbox implements AimpactSandbox {
   private readonly apiKey: string;
   private readonly orgId: string;
   private readonly apiUrl: string;
+  private readonly previewProxyUrl: string;
   private sandboxId: string | null = null;
   private sandboxPromise: Promise<Sandbox> | null = null;
 
 
-  public constructor(apiUrl: string, apiKey: string, orgId: string) {
+  public constructor(apiUrl: string, apiKey: string, orgId: string, previewProxyUrl: string) {
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
     this.orgId = orgId;
+    this.previewProxyUrl = previewProxyUrl;
   }
 
   private getSandboxPromise(): Promise<Sandbox>{
@@ -86,7 +88,26 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
-    return sandbox.getPreviewLink(port);
+    const previewLink = await sandbox.getPreviewLink(port);
+
+    const previewUrl = new URL(previewLink.url);
+    const proxyUrl = new URL(this.previewProxyUrl);
+    const proxyProtocol = proxyUrl.protocol;
+    const proxyPort = proxyUrl.port;
+    const proxyHost = proxyUrl.hostname;
+    const previewDomainParts = previewUrl.hostname.split('.');
+    const leftDomainPart = previewDomainParts[0];
+    const customHost = `${leftDomainPart}.${proxyHost}`;
+    const customPreviewUrl = new URL(previewUrl.toString());
+    customPreviewUrl.protocol = proxyProtocol;
+    customPreviewUrl.hostname = customHost;
+    if (proxyPort) {
+      customPreviewUrl.port = proxyPort;
+    } else {
+      customPreviewUrl.port = '';
+    }
+    previewLink.url = customPreviewUrl.toString();
+    return previewLink;
   }
 
   async fileExists(filePath: string): Promise<boolean>{
