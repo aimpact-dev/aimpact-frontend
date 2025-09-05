@@ -57,12 +57,13 @@ export class EditorScriptsRemover implements CommandPreprocessor {
   }
 
   private removePluginFromViteConfigFallback(viteConfigContent: string): string{
-    const importStatementDoubleQuotes = `import ${EVENTS_PLUGIN_NAME} from "./${EVENTS_PLUGIN_FILE_NAME}";`;
-    const importStatementSingleQuotes = `import ${EVENTS_PLUGIN_NAME} from './${EVENTS_PLUGIN_FILE_NAME}';`;
+    const importRegex = new RegExp(
+      `import\\s+(?:\\{\\s*${EVENTS_PLUGIN_NAME}\\s*\\}|${EVENTS_PLUGIN_NAME})\\s+from\\s+['"]\\./${EVENTS_PLUGIN_FILE_NAME}(?:\\.js)?['"];?\\s*`,
+      'g'
+    );
     const pluginUsage = `${EVENTS_PLUGIN_NAME}()`;
     viteConfigContent = viteConfigContent.replace(pluginUsage, '');
-    viteConfigContent = viteConfigContent.replace(importStatementDoubleQuotes,  '');
-    viteConfigContent = viteConfigContent.replace(importStatementSingleQuotes,  '');
+    viteConfigContent = viteConfigContent.replace(importRegex, '');
     return viteConfigContent;
   }
 
