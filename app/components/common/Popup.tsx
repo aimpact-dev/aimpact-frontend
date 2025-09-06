@@ -7,9 +7,10 @@ interface CustDevPopupProps extends PropsWithChildren {
   backgroundElement?: boolean;
   positionClasses?: string;
   closeByTouch?: boolean;
+  childrenClasses?: string;
 }
 
-export default function Popup({ isShow, backgroundElement=true, positionClasses, handleToggle, children, closeByTouch=true }: CustDevPopupProps) {
+export default function Popup({ isShow, backgroundElement=true, positionClasses, childrenClasses, handleToggle, children, closeByTouch=true }: CustDevPopupProps) {
   if (!isShow) {
     return null;
   }
@@ -25,12 +26,12 @@ export default function Popup({ isShow, backgroundElement=true, positionClasses,
         )}>
           <button
             onClick={handleToggle}
-            className="flex absolute right-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
+            className="flex absolute m-0.5 right-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
           >
             <div className="i-ph:x md:w-4 md:h-4 w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
           </button>
 
-          <div className="px-4 py-5 sm:p-6 bg-bolt-elements-background bg-bolt-elements-background-depth-3 text-center">
+          <div className={classNames(childrenClasses, "px-4 py-5 sm:p-6 bg-bolt-elements-background bg-bolt-elements-background-depth-3 text-center")}>
             {children}
           </div>
         </div>

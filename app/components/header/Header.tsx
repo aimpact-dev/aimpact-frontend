@@ -20,6 +20,7 @@ import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
 import { Tooltip } from '../chat/Tooltip';
+import GalxeQuestButton from '../chat/GalxeQuestsButton';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -95,6 +96,7 @@ export function Header() {
             </ClientOnly>
 
             <GetMessagesButton />
+            <GalxeQuestButton />
           </>
         )}
 
