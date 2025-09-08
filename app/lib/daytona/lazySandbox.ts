@@ -103,8 +103,6 @@ export class LazySandbox implements AimpactSandbox {
     customPreviewUrl.hostname = customHost;
     if (proxyPort) {
       customPreviewUrl.port = proxyPort;
-    } else {
-      customPreviewUrl.port = '';
     }
     previewLink.url = customPreviewUrl.toString();
     return previewLink;
