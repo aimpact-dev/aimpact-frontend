@@ -159,8 +159,10 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
               <div className={classNames('flex gap-2')}>
                 {type === 'error' && (
                   <button
-                    onClick={() =>
-                      postMessage(`*Fix this deployment error*\n\`\`\`\n${content || description}\n\`\`\`\n`)
+                    onClick={() => {
+                        postMessage(`*Fix this deployment error*\n\`\`\`\n${content || description}\n\`\`\`\n`)
+                        clearAlert()
+                      }
                     }
                     className={classNames(
                       `px-2 py-1.5 rounded-md text-sm font-medium`,

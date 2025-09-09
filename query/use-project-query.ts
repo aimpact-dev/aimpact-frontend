@@ -2,6 +2,20 @@ import { useQuery } from '@tanstack/react-query';
 import { ky } from 'query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+interface AppDeployments {
+  provider: string;
+  url: string | null;
+}
+
+interface ProjectsResponse {
+  data: Project[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -10,6 +24,7 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  appDeployments?: AppDeployments[],
 };
 
 export type ProjectWithOwner = Project & {
@@ -23,10 +38,10 @@ export type UpdateProjectInfoPayload = {
   featured?: string;
 };
 
-export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
-  return useQuery<Project[]>({
-    initialData: [],
-    queryKey: ['projects'],
+export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+  return useQuery<ProjectsResponse>({
+    initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
+    queryKey: ['projects', {page, pageSize}],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -34,13 +49,15 @@ export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt'
       }
       const res = await ky.get('projects', {
         searchParams: {
+          page,
+          pageSize,
           ownership,
           sortBy,
           sortOrder: sortDirection,
         },
         headers: requestHeaders
       })
-      const data = await res.json<Project[]>();
+      const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
         throw new Error('Not found projects');

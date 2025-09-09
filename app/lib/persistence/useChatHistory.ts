@@ -8,7 +8,7 @@ import { logStore } from '~/lib/stores/logs'; // Import logStore
 import { openDatabase, duplicateChat, createChatFromMessages, type IChatMetadata } from './db';
 import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
-import { webcontainer } from '~/lib/webcontainer';
+import { getAimpactFs } from '~/lib/aimpactfs';
 import { detectProjectCommands, createCommandActionsString } from '~/utils/projectCommands';
 import type { ContextAnnotation } from '~/types/context';
 import { useHttpDb } from './http-db';
@@ -201,18 +201,18 @@ export function useChatHistory() {
     handleMixedId();
   }, [mixedId, navigate, searchParams]);
 
-  const takeSnapshot = async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string, disableIngore = false) => {
+  const takeSnapshot = async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
     const id = _chatId || chatId.get();
 
     if (!id) {
       return;
     }
 
-    const filteredFiles = disableIngore ? files : filterIgnoreFiles(files);
+    const filteredFiles = filterIgnoreFiles('/home/project/', files);
 
     const snapshot: Snapshot = {
       chatIndex: chatIdx,
-      files,
+      files: filteredFiles,
       summary: chatSummary,
     };
 
@@ -226,8 +226,8 @@ export function useChatHistory() {
 
   const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
     // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const container = await webcontainer;
-
+    const fs = await getAimpactFs();
+    const workdir = await fs.workdir();
     const validSnapshot = snapshot || { chatIndex: '', files: {} };
 
     if (!validSnapshot?.files) {
@@ -235,26 +235,24 @@ export function useChatHistory() {
     }
 
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(container.workdir)) {
-        key = key.replace(container.workdir, '');
+      if (key.startsWith(workdir)) {
+        key = key.replace(workdir, '');
       }
 
       if (value?.type === 'folder') {
-        await container.fs.mkdir(key, { recursive: true });
+        await fs.mkdir(key);
       }
     });
     Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
       if (value?.type === 'file') {
-        if (key.startsWith(container.workdir)) {
-          key = key.replace(container.workdir, '');
+        if (key.startsWith(workdir)) {
+          key = key.replace(workdir, '');
         }
 
-        await container.fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
+        await fs.writeFile(key, value.content, { encoding: value.isBinary ? undefined : 'utf8' });
       } else {
       }
     });
-
-    // workbenchStore.files.setKey(snapshot?.files)
   }, []);
 
   return {
@@ -278,7 +276,6 @@ export function useChatHistory() {
       }
     },
     storeMessageHistory: async (messages: Message[]) => {
-      console.log("Trying to store messages history. Messages count: ", messages.length);
       if (messages.length === 0) {
         return;
       }

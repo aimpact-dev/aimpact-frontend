@@ -18,6 +18,7 @@ export default function Home() {
 
   const endTriggerRef = useRef(null);
   const [isFooterFixed, setIsFooterFixed] = useState(true);
+  
 
   useEffect(() => {
     const observer = new IntersectionObserver(

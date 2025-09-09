@@ -1,10 +1,10 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import type { FileHistory } from '~/types/actions';
-import { diffLines, type Change } from 'diff';
+import { type Change, diffLines } from 'diff';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { toast } from 'react-toastify';
 import { path } from '~/utils/path';
@@ -57,6 +57,7 @@ export const FileTree = memo(
     const fileList = useMemo(() => {
       return buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);
     }, [files, rootFolder, hideRoot, computedHiddenFiles]);
+
 
     const [collapsedFolders, setCollapsedFolders] = useState(() => {
       return collapsed
@@ -126,7 +127,7 @@ export const FileTree = memo(
       });
     };
 
-    const onCopyPath = (fileOrFolder: FileNode | FolderNode) => {
+    const onCopyPath = (fileOrFolder: FileNode | FolderNode | PendingNode) => {
       try {
         navigator.clipboard.writeText(fileOrFolder.fullPath);
       } catch (error) {
@@ -134,7 +135,7 @@ export const FileTree = memo(
       }
     };
 
-    const onCopyRelativePath = (fileOrFolder: FileNode | FolderNode) => {
+    const onCopyRelativePath = (fileOrFolder: FileNode | FolderNode | PendingNode) => {
       try {
         navigator.clipboard.writeText(fileOrFolder.fullPath.substring((rootFolder || '').length));
       } catch (error) {
@@ -182,6 +183,22 @@ export const FileTree = memo(
                   onClick={() => {
                     toggleCollapseState(fileOrFolder.fullPath);
                   }}
+                />
+              );
+            }
+            case 'pending' : {
+              return (
+                <Pending
+                  key={fileOrFolder.id}
+                  node={fileOrFolder}
+                  selected={allowFolderSelection && selectedFile === fileOrFolder.fullPath}
+                  onCopyPath={() => {
+                    onCopyPath(fileOrFolder);
+                  }}
+                  onCopyRelativePath={() => {
+                    onCopyRelativePath(fileOrFolder);
+                  }}
+                  onClick={() => {}}
                 />
               );
             }
@@ -313,6 +330,13 @@ function FileContextMenu({
     setIsDragging(false);
   }, []);
 
+  const removeFilesFromPath = useCallback((path: string) => {
+    if(workbenchStore.getFile(path) !== undefined){
+      return path.substring(0, path.lastIndexOf('/')) + '/';
+    }
+    return path;
+  }, []);
+
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
@@ -326,12 +350,14 @@ function FileContextMenu({
 
         if (file) {
           try {
-            const filePath = path.join(fullPath, file.name);
+            const pathWithoutFile = removeFilesFromPath(fullPath);
+            const filePath = path.join(pathWithoutFile, file.name);
 
             // Convert file to binary data (Uint8Array)
             const arrayBuffer = await file.arrayBuffer();
             const binaryContent = new Uint8Array(arrayBuffer);
 
+            logger.debug("File path in drop:", filePath);
             const success = await workbenchStore.createFile(filePath, binaryContent);
 
             if (success) {
@@ -620,6 +646,44 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
   );
 }
 
+interface PendingNodeProps {
+  node: PendingNode;
+  selected: boolean;
+  onCopyPath: () => void;
+  onCopyRelativePath: () => void;
+  onClick: () => void;
+}
+
+
+function Pending({
+  node,
+  onClick,
+  onCopyPath,
+  onCopyRelativePath,
+  selected,
+}: PendingNodeProps){
+  return (
+    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={node.fullPath}>
+      <NodeButton
+        className={classNames('group', {
+          'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
+            !selected,
+          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
+        })}
+        depth={node.depth}
+        onClick={onClick}
+        iconClasses={
+          'i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault'
+        }
+      >
+        <div className="flex items-center w-full">
+          <div className="flex-1 truncate pr-2">{node.name}</div>
+        </div>
+      </NodeButton>
+    </FileContextMenu>
+  );
+}
+
 interface FileProps {
   file: FileNode;
   selected: boolean;
@@ -748,7 +812,7 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
   );
 }
 
-type Node = FileNode | FolderNode;
+type Node = FileNode | FolderNode | PendingNode;
 
 interface BaseNode {
   id: number;
@@ -763,6 +827,11 @@ interface FileNode extends BaseNode {
 
 interface FolderNode extends BaseNode {
   kind: 'folder';
+}
+
+//Represents a file or folder that is in the process of being loaded.
+interface PendingNode extends BaseNode{
+  kind: 'pending';
 }
 
 function buildFileList(
@@ -805,7 +874,7 @@ function buildFileList(
 
       if (i === segments.length - 1 && dirent?.type === 'file') {
         fileList.push({
-          kind: 'file',
+          kind: dirent?.pending ? 'pending' : 'file',
           id: fileList.length,
           name,
           fullPath,
@@ -815,7 +884,7 @@ function buildFileList(
         folderPaths.add(fullPath);
 
         fileList.push({
-          kind: 'folder',
+          kind: dirent?.pending ? 'pending' : 'folder',
           id: fileList.length,
           name,
           fullPath,
