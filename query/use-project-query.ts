@@ -33,7 +33,7 @@ export type ProjectWithOwner = Project & {
 export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
   return useQuery<ProjectsResponse>({
     initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
-    queryKey: ['projects', {page, pageSize}],
+    queryKey: ['projects', {page, pageSize, ownership, sortBy, sortDirection}],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
