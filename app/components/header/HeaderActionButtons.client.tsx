@@ -207,7 +207,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       const buildResult = await buildService.current.runBuildScript('pnpm');
 
       if (buildResult.exitCode !== 0 && buildResult.exitCode !== 143) {
-        toast.error(`Failed to build. Status code: ${buildResult.exitCode}.`, { autoClose: false })
+        toast.error(`Failed to build. Status code: ${buildResult.exitCode}.`, { autoClose: false });
+        setIsDeploying(false);
       }
       if(!buildResult.fileMap) {
         toast.error(`Failed to build. No files found in the build directory.`);

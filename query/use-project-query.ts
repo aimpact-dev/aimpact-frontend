@@ -8,6 +8,15 @@ interface AppDeployments {
   url: string | null;
 }
 
+interface ProjectsResponse {
+  data: Project[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -16,17 +25,17 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  appDeployments: AppDeployments[],
+  appDeployments?: AppDeployments[],
 };
 
 export type ProjectWithOwner = Project & {
   projectOwnerAddress: string;
 };
 
-export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
-  return useQuery<Project[]>({
-    initialData: [],
-    queryKey: ['projects'],
+export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+  return useQuery<ProjectsResponse>({
+    initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
+    queryKey: ['projects', {page, pageSize, ownership, sortBy, sortDirection}],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -34,13 +43,15 @@ export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt'
       }
       const res = await ky.get('projects', {
         searchParams: {
+          page,
+          pageSize,
           ownership,
           sortBy,
           sortOrder: sortDirection,
         },
         headers: requestHeaders
       })
-      const data = await res.json<Project[]>();
+      const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
         throw new Error('Not found projects');

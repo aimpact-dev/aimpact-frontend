@@ -2,12 +2,10 @@ import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from '
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { webcontainer } from '~/lib/webcontainer';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
-import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import fileSaver from 'file-saver';
@@ -22,7 +20,7 @@ import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import { BuildService } from '~/lib/services/buildService';
 import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
-import { getPortCatcher } from '~/utils/portCatcher';
+import { getPortCatcher } from '~/utils/previewPortCatcher';
 
 const { saveAs } = fileSaver;
 
@@ -44,7 +42,7 @@ export class WorkbenchStore {
   #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
   #filesStore = new FilesStore(getAimpactFs());
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(getSandbox());
+  #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
   #reloadedMessages = new Set<string>();
 
@@ -288,6 +286,15 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
+
+  /**
+   * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
+   * @param filePath
+   */
+  pendLockForFile(filePath: string){
+    this.#filesStore.pendLockForFile(filePath);
+  }
+
   /**
    * Lock a file to prevent edits
    * @param filePath Path to the file to lock
@@ -340,6 +347,10 @@ export class WorkbenchStore {
    */
   isFolderLocked(folderPath: string) {
     return this.#filesStore.isFolderLocked(folderPath);
+  }
+
+  getFile(filePath: string){
+    return this.#filesStore.getFile(filePath);
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {

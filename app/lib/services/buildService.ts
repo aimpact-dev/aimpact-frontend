@@ -1,18 +1,17 @@
-﻿import type { HybridFs} from '~/lib/aimpactfs/hybridFs';
-import type {AimpactShell } from '~/utils/aimpactShell'
-import type { FileInfo, Sandbox } from '@daytonaio/sdk';
-import { getEncoding } from 'istextorbinary';
-import { Buffer } from 'node:buffer';
+﻿import type {AimpactShell } from '~/lib/aimpactshell/aimpactShell'
 import {readContent, isBinaryFile} from '~/utils/fileContentReader'
 import type { FileMap } from '~/lib/stores/files';
+import {workbenchStore} from '~/lib/stores/workbench';
+import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
+import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
 export class BuildService {
-  private shellPromise: Promise<AimpactShell>;
-  private sandbox: Promise<Sandbox>;
-  private hybridFs: Promise<HybridFs>;
+  private readonly shellPromise: Promise<AimpactShell>;
+  private readonly sandbox: Promise<AimpactSandbox>;
+  private readonly aimpactFs: Promise<AimpactFs>;
 
-  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<Sandbox>, hybridFs: Promise<HybridFs>) {
-    this.hybridFs = hybridFs;
+  constructor(shellPromise: Promise<AimpactShell>, sandbox: Promise<AimpactSandbox>, hybridFs: Promise<AimpactFs>) {
+    this.aimpactFs = hybridFs;
     this.sandbox = sandbox;
     this.shellPromise = shellPromise;
   }
@@ -20,7 +19,7 @@ export class BuildService {
   async runBuildScript(buildWith: 'npm' | 'pnpm'){
     const shell = await this.shellPromise
     const sandbox = await this.sandbox;
-    const hybridFs = await this.hybridFs;
+    const aimpactFs = await this.aimpactFs;
 
     const onAbort = () =>{
       console.log("Build aborted");
@@ -29,6 +28,14 @@ export class BuildService {
     const executionResult = await shell.executeCommand(command, onAbort);
     if (executionResult?.exitCode !== 0) {
       console.error(`Build failed with exit code ${executionResult?.exitCode}`);
+      workbenchStore.deployAlert.set({
+        type: 'error',
+        title: 'Build Failed',
+        description: 'Build failed with exit code ' + executionResult?.exitCode,
+        content: executionResult?.output || 'No output',
+        stage: 'building',
+        buildStatus: 'failed'
+      });
       return {
         path: '',
         exitCode: executionResult?.exitCode,
@@ -41,7 +48,7 @@ export class BuildService {
     let buildDir = '';
     for (const dir of commonBuildDirs) {
       console.log(`Checking build directory: ${dir}`);
-      const fileSearchResult = await sandbox.fs.searchFiles(dir, '*.*');
+      const fileSearchResult = await sandbox.searchFiles(dir, '*.*');
       if(!fileSearchResult || !fileSearchResult.files) continue;
       if(fileSearchResult.files.length > 0){
         buildDir = dir;
@@ -53,7 +60,7 @@ export class BuildService {
 
     //Delete the local build directory if it exists
     try{
-      await hybridFs.rmLocal(buildDir, { recursive: true, force: true });
+      await aimpactFs.rmLocal(buildDir, { recursive: true, force: true });
     }
     catch(error){
       console.error("Error deleting local build directory:", error);
@@ -62,27 +69,29 @@ export class BuildService {
     //Downloading the build directory content and saving to the local filesystem
     const fileMap: FileMap = {};
     const buildDirContent = await this.listSubPaths(buildDir, sandbox);
-    await hybridFs.mkdirLocal(buildDir); // Create the build directory locally
-    const workDir = await hybridFs.workdir();
+    await aimpactFs.mkdirLocal(buildDir); // Create the build directory locally
+    const workDir = await aimpactFs.workdir();
     console.log("Remote build directory content: ", buildDirContent);
     for (const file of buildDirContent) {
       if(file.isDir){
         console.log("Creating directory for build:", file.path);
-        await hybridFs.mkdirLocal(file.path);
+        await aimpactFs.mkdirLocal(file.path);
         fileMap[workDir + '/' + file.path] = {
-          type: 'folder'
+          type: 'folder',
+          pending: false
         }
       }
       else {
         console.log("Creating file for build:", file.path);
-        const fileContent = await sandbox.fs.downloadFile(file.path);
-        await hybridFs.writeFileLocal(file.path, fileContent, 'utf-8');
+        const fileContent = await sandbox.downloadFile(file.path);
+        await aimpactFs.writeFileLocal(file.path, fileContent, 'utf-8');
         const stringContent = readContent(fileContent);
         const isBinary = isBinaryFile(fileContent);
         fileMap[workDir + '/' + file.path] = {
           type: 'file',
           content: stringContent,
           isBinary: isBinary,
+          pending: false
         }
       }
     }
@@ -95,8 +104,8 @@ export class BuildService {
     };
   }
 
-  private async listSubPaths(dir: string, sandbox: Sandbox): Promise<{ path: string, isDir: boolean}[]>{
-    const files = await sandbox.fs.listFiles(dir);
+  private async listSubPaths(dir: string, sandbox: AimpactSandbox): Promise<{ path: string, isDir: boolean}[]>{
+    const files = await sandbox.listFiles(dir);
     const subPaths: { path: string, isDir: boolean}[] = [];
 
     for (const file of files) {
