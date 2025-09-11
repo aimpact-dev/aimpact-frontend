@@ -84,7 +84,7 @@ export default function GalxeQuestButton() {
         </Button>
       </Tooltip>
 
-      <Popup handleToggle={handleToggle} isShow={open} positionClasses="sm:max-w-xl sm:w-full">
+      <Popup handleToggle={handleToggle} isShow={open} positionClasses="sm:max-w-xl sm:w-full mt-12">
         <div className="flex flex-col gap-4 items-center">
           <h1 className="text-3xl mb-2">Quests</h1>
           <p className="text-amber-300 text-left text-xs mb-2">
