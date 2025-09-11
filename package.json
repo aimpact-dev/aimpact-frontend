@@ -108,6 +108,7 @@
     "ai": "4.2.6",
     "axios": "^1.9.0",
     "babel-plugin-react-compiler": "19.1.0-rc.2",
+    "binary-extensions": "^3.1.0",
     "bs58": "^6.0.0",
     "buffer": "^6.0.3",
     "chalk": "^5.4.1",

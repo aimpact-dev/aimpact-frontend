@@ -9,11 +9,9 @@ import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
+import { BUILD_COMMANDS } from './commandsLists';
 
-export const BUILD_COMMANDS: string[] = [
-  'pnpm run build',
-  'npm run build',
-]
+
 
 /**
  * This class checks for build commands and deletes scripts that are only needed for editor functions (like previews).
@@ -57,12 +55,13 @@ export class EditorScriptsRemover implements CommandPreprocessor {
   }
 
   private removePluginFromViteConfigFallback(viteConfigContent: string): string{
-    const importStatementDoubleQuotes = `import ${EVENTS_PLUGIN_NAME} from "./${EVENTS_PLUGIN_FILE_NAME}";`;
-    const importStatementSingleQuotes = `import ${EVENTS_PLUGIN_NAME} from './${EVENTS_PLUGIN_FILE_NAME}';`;
+    const importRegex = new RegExp(
+      `import\\s+(?:\\{\\s*${EVENTS_PLUGIN_NAME}\\s*\\}|${EVENTS_PLUGIN_NAME})\\s+from\\s+['"]\\./${EVENTS_PLUGIN_FILE_NAME}(?:\\.js)?['"];?\\s*`,
+      'g'
+    );
     const pluginUsage = `${EVENTS_PLUGIN_NAME}()`;
     viteConfigContent = viteConfigContent.replace(pluginUsage, '');
-    viteConfigContent = viteConfigContent.replace(importStatementDoubleQuotes,  '');
-    viteConfigContent = viteConfigContent.replace(importStatementSingleQuotes,  '');
+    viteConfigContent = viteConfigContent.replace(importRegex, '');
     return viteConfigContent;
   }
 

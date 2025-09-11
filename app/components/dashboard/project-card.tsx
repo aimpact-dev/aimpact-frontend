@@ -12,10 +12,11 @@ interface ProjectCardProps {
   index: number;
 }
 
-const ProjectCard = ({ project, index }: ProjectCardProps) => {
+const ProjectCard = ({ project }: ProjectCardProps) => {
   const { name, description, category, image, createdAt, appDeployments } = project;
   const s3Deployment = appDeployments?.find((d) => d.provider === 'AWS');
   const icpDeployment = appDeployments?.find((d) => d.provider === 'ICP');
+  const akashDeployment = appDeployments?.find((d) => d.provider === 'Akash');
   const navigate = useNavigate();
 
   function handleDeployLabelClick(e: React.MouseEvent, url: string) {
@@ -58,18 +59,23 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
           <div className="flex space-x-2">
             <BadgeCustom variant="secondary">{formatDistanceToNow(createdAt, { addSuffix: true })}</BadgeCustom>
           </div>
+
           <div className="flex space-x-1">
             {s3Deployment?.url && (
-              <BadgeCustom
-                variant="secondary"
-                onClick={(e) => handleDeployLabelClick(e, s3Deployment.url!)}
-                className="hover:bg-gray-600 bg-gray-700"
-              >
-                AWS
-              </BadgeCustom>
+              <Tooltip content="Deployed on AWS">
+                <>
+                  <BadgeCustom
+                    variant="secondary"
+                    onClick={(e) => handleDeployLabelClick(e, s3Deployment.url!)}
+                    className="hover:bg-gray-600 bg-gray-700"
+                  >
+                    AWS
+                  </BadgeCustom>
+                </>
+              </Tooltip>
             )}
             {icpDeployment?.url && (
-              <Tooltip content="ICP Deployment">
+              <Tooltip content="Deployed on ICP">
                 <>
                   {/* <a href='test'> */}
                   <BadgeCustom
@@ -79,14 +85,19 @@ const ProjectCard = ({ project, index }: ProjectCardProps) => {
                   >
                     ICP
                   </BadgeCustom>
-                  {/*TODO: Add Akash*/}
-                  {/* <BadgeCustom
+                </>
+              </Tooltip>
+            )}
+            {akashDeployment?.url && (
+              <Tooltip content="Deployed on Akash">
+                <>
+                  <BadgeCustom
                     variant="secondary"
-                    onClick={(e) => handleDeployLabelClick(e, icpDeployment.url!)}
+                    onClick={(e) => handleDeployLabelClick(e, akashDeployment.url!)}
                     className="hover:bg-gray-600 bg-gray-700"
                   >
-                    ICP
-                  </BadgeCustom> */}
+                    Akash
+                  </BadgeCustom>
                 </>
               </Tooltip>
             )}

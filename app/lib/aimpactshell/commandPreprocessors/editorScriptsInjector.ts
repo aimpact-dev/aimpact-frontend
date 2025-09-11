@@ -112,11 +112,11 @@ function injectPluginIntoViteConfigBabel(viteConfigContent: string): string {
 }
 
 function removePluginImports(viteConfigContent: string): string{
-  const importStatementDoubleQuotes = `import ${EVENTS_PLUGIN_NAME} from "./${EVENTS_PLUGIN_FILE_NAME}";`;
-  const importStatementSingleQuotes = `import ${EVENTS_PLUGIN_NAME} from './${EVENTS_PLUGIN_FILE_NAME}';`;
-  viteConfigContent = viteConfigContent.replace(importStatementDoubleQuotes,  '');
-  viteConfigContent = viteConfigContent.replace(importStatementSingleQuotes,  '');
-  return viteConfigContent;
+  const importRegex = new RegExp(
+    `import\\s+(?:\\{\\s*${EVENTS_PLUGIN_NAME}\\s*\\}|${EVENTS_PLUGIN_NAME})\\s+from\\s+['"]\\./${EVENTS_PLUGIN_FILE_NAME}(?:\\.js)?['"];?\\s*`,
+    'g'
+  );
+  return viteConfigContent.replace(importRegex, '');
 }
 
 async function loadContentFromScripts(fileName: string): Promise<string>{

@@ -12,6 +12,7 @@ import { PreviewKillPreprocessor } from '~/lib/aimpactshell/commandPreprocessors
 import { EditorScriptsRemover } from '~/lib/aimpactshell/commandPreprocessors/editorScriptsRemover';
 import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtimeErrorProcessor';
 import { CommandBuffer } from '~/lib/aimpactshell/commandBuffer';
+import { ViteConfigSyntaxChecker } from '~/lib/aimpactshell/commandPreprocessors/viteConfigSyntaxChecker';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -159,6 +160,7 @@ export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, 
   const portCatcher = getPortCatcher();
   const logsProcessors = [new LogPortCatcher(portCatcher)];
   const commandsPreprocessors: CommandPreprocessor[] = [
+    new ViteConfigSyntaxChecker(fsPromise),
     new PreviewKillPreprocessor(sandboxPromise, portCatcher),
     new EditorScriptsInjector(fsPromise),
     new EditorScriptsRemover(fsPromise),
