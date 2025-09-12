@@ -33,9 +33,7 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
     ? Math.floor(baseMessageCount / (1 - discountPercent / 100))
     : baseMessageCount;
 
-  const multiplier = hasDiscount
-    ? parseFloat((discountedMessageCount / baseMessageCount).toFixed(2)).toString()
-    : null;
+  const multiplier = hasDiscount ? parseFloat((discountedMessageCount / baseMessageCount).toFixed(2)).toString() : null;
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -79,26 +77,27 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
     const serializedTransaction = signedTransaction.serialize();
     const base64 = Buffer.from(serializedTransaction).toString('base64');
 
-
     // 3. Send transaction with wallet
     try {
       await sendTransaction(base64);
-      (window as any).plausible('purchase_messages', { props: {
+      (window as any).plausible('purchase_messages', {
+        props: {
           message_count: baseMessageCount,
           purchase_messages_success: true,
           error: null,
-        }
+        },
       });
 
       setIsOpen(false);
       toast.success('Purchase completed!');
     } catch (err) {
       if (err instanceof Error && err.message.includes('User rejected the request')) {
-        (window as any).plausible('purchase_messages', { props: {
+        (window as any).plausible('purchase_messages', {
+          props: {
             message_count: baseMessageCount,
             purchase_messages_success: false,
             error: 'Sign transaction failed',
-          }
+          },
         });
         return;
       }
@@ -110,7 +109,11 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
   return (
     <div className="max-w-md mx-auto">
       <Tooltip content="Buy some messages for SOL">
-        <Button onClick={handleToggle} variant="default" className="flex py-2.5 items-center gap-2 border border-bolt-elements-borderColor font-medium">
+        <Button
+          onClick={handleToggle}
+          variant="default"
+          className="flex items-center gap-2 border border-bolt-elements-borderColor font-medium"
+        >
           Buy Messages
         </Button>
       </Tooltip>
@@ -131,23 +134,18 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
                 <div className="text-center">
                   <h3 className="text-2xl font-bold mb-4">Purchase Messages</h3>
                   <p className="text-xl mb-6">
-                    Get{" "}
+                    Get{' '}
                     {hasDiscount ? (
                       <>
                         <span className="font-semibold line-through text-gray-400">{baseMessageCount}</span>
                         <span className="mx-1" />
                         <span className="font-semibold text-white">{discountedMessageCount}</span>
-                        {multiplier && (
-                          <span className="text-green-400 font-semibold ml-1">
-                            (x{multiplier})
-                          </span>
-                        )}
+                        {multiplier && <span className="text-green-400 font-semibold ml-1">(x{multiplier})</span>}
                       </>
                     ) : (
                       <span className="font-semibold">{baseMessageCount}</span>
-                    )}{" "}
-                    messages for{" "}
-                    <span className="font-semibold">{MESSAGE_PRICE_IN_SOL * baseMessageCount} SOL</span>
+                    )}{' '}
+                    messages for <span className="font-semibold">{MESSAGE_PRICE_IN_SOL * baseMessageCount} SOL</span>
                   </p>
 
                   <div className="flex flex-col gap-2">
@@ -167,9 +165,7 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
                         <div className={waterStyles.waterDroplets}></div>
                         <div className={waterStyles.waterSurface}></div>
                       </div>
-                      <div className={waterStyles.buttonContent}>
-                        {isSubmitting ? 'Processing...' : 'Purchase Now'}
-                      </div>
+                      <div className={waterStyles.buttonContent}>{isSubmitting ? 'Processing...' : 'Purchase Now'}</div>
                     </button>
                   </div>
                 </div>

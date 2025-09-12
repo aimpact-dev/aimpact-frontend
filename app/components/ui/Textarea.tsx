@@ -1,23 +1,18 @@
-import { forwardRef } from 'react';
-import { classNames } from '~/utils/classNames';
+import * as React from 'react';
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+import { cn } from '~/lib/utils';
 
-const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(({ className, ...props }, ref) => {
+function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
   return (
     <textarea
-      ref={ref}
-      className={classNames(
-        'w-full min-h-[6rem] rounded-md border border-bolt-elements-border bg-bolt-elements-background px-3 py-2 text-sm leading-5',
-        'ring-offset-bolt-elements-background placeholder:text-bolt-elements-textSecondary focus-visible:outline-none focus-visible:ring-2',
-        'focus-visible:ring-bolt-elements-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-95 resize-vertical text-black',
+      data-slot="textarea"
+      className={cn(
+        'border-border-light placeholder:text-bolt-elements-textTertiary focus-visible:border-border-light focus-visible:border-2 focus-visible:ring-ring/50 aria-invalid:border-destructive-light aria-invalid:focus-visible:border-destructive-light dark:bg-input flex field-sizing-content min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 text-sm',
         className,
       )}
       {...props}
     />
   );
-});
-
-Textarea.displayName = 'Textarea';
+}
 
 export { Textarea };

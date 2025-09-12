@@ -7,12 +7,7 @@ import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import DepositButton from '../chat/DepositButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
-import {
-  type CSSProperties,
-  type PropsWithChildren,
-  type ReactElement,
-  type MouseEvent,
-} from 'react';
+import { type CSSProperties, type PropsWithChildren, type ReactElement, type MouseEvent } from 'react';
 import { Button } from '~/components/ui/Button';
 import { userInfo } from '~/lib/hooks/useAuth';
 import GetMessagesButton from '../chat/GetMessagesButton';
@@ -46,12 +41,9 @@ export function Header() {
         'border-bolt-elements-borderColor': chat.started,
       })}
     >
-      <div className='flex gap-2.5'>
+      <div className="flex gap-2.5">
         <a className="flex items-center gap-2 cursor-pointer" href="/projects">
-          <Button
-            variant="default"
-            className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
-          >
+          <Button variant="default" className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]">
             View all projects
           </Button>
         </a>
@@ -63,37 +55,28 @@ export function Header() {
             <LeaderbaordNavButton />
           </>
         )}
-        {(chat.started && params.id) && (
-          <div className='h-full ml-2'>
+        {chat.started && params.id && (
+          <div className="h-full">
             <DeployTokenNavButton projectId={params.id} />
           </div>
         )}
       </div>
 
-
       {chat.started ? ( // Display ChatDescription and HeaderActionButtons only when the chat has started.
         <>
-          <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
-            <ClientOnly>{() => <ChatDescription />}</ClientOnly>
-          </span>
-          <ClientOnly>
-            {() => (
-              <div className="mr-1">
-                <HeaderActionButtons />
-              </div>
-            )}
-          </ClientOnly>
+          {/* Are we sure chat description should be here? */}
+          <ClientOnly>{() => <ChatDescription />}</ClientOnly>
+          <ClientOnly>{() => <HeaderActionButtons />}</ClientOnly>
         </>
       ) : (
-        <div className='flex items-center justify-center'>
-
-        </div>
+        <div className="flex items-center justify-center"></div>
       )}
       <div className="flex justify-center items-center gap-2.5">
         {connected && user && (
           <>
-            <div className="whitespace-nowrap text-base font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
-              {user.messagesLeft - user.pendingMessages} message{(user.messagesLeft - user.pendingMessages) === 1 ? '' : 's'} left
+            <div className="text-sm whitespace-nowrap font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
+              {user.messagesLeft - user.pendingMessages} message
+              {user.messagesLeft - user.pendingMessages === 1 ? '' : 's'} left
             </div>
 
             <ClientOnly>

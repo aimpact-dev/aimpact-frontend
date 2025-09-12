@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { classNames } from '~/utils/classNames';
+import { classNames } from 'app/utils/classNames';
 import waterStyles from './WaterButton.module.scss';
 
 const buttonVariants = cva(
@@ -43,7 +43,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     if (!isWaterEffect) {
       return (
-        <button className={classNames(buttonVariants({ variant, size }), className)} ref={ref} disabled={disabled} {...props}>
+        <button
+          className={classNames(buttonVariants({ variant, size }), className)}
+          ref={ref}
+          disabled={disabled}
+          {...props}
+        >
           {children}
         </button>
       );
@@ -67,21 +72,21 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'bg-bolt-elements-background-depth-1 bg-opacity-10  ': variant === 'secondary',
           },
           size === 'sm' ? 'text-xs py-1 px-3' : size === 'lg' ? 'text-base py-3 px-6' : 'text-sm py-2 px-4',
-          disabled ? "" : waterStyles.waterButton,
-          disabled ? "" : waterStyles[waterVariant],
+          disabled ? '' : waterStyles.waterButton,
+          disabled ? '' : waterStyles[waterVariant],
           className,
         )}
         disabled={disabled}
         {...props}
       >
-        {!disabled && 
+        {!disabled && (
           <div className={waterStyles.effectLayer}>
             {/* ::before and ::after for flow/ripple are on .effectLayer */}
             <div className={waterStyles.waterDroplets}></div>
             <div className={waterStyles.waterSurface}></div>
           </div>
-        }
-        <div className={disabled ? "" : waterStyles.buttonContent}>{children}</div>
+        )}
+        <div className={disabled ? '' : waterStyles.buttonContent}>{children}</div>
       </button>
     );
   },

@@ -1,8 +1,7 @@
-import { captureRemixErrorBoundaryError } from "@sentry/remix";
+import { captureRemixErrorBoundaryError } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
-import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
@@ -19,17 +18,19 @@ import { RefCodeProvider } from './lib/hooks/useRefCode';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
+import '@unocss/reset/tailwind.css';
+import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 
 import 'virtual:uno.css';
-import { workbenchStore } from "./lib/stores/workbench";
-import LoadingScreen from "./components/common/LoadingScreen";
-import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
+import { workbenchStore } from './lib/stores/workbench';
+import LoadingScreen from './components/common/LoadingScreen';
+import { useMemoryMonitor } from './lib/hooks/useMemoryMonitor';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 
 const SolanaProvider = React.lazy(() =>
-  import('./components/providers/SolanaProvider').then(mod => ({
-    default: mod.default
-  }))
+  import('./components/providers/SolanaProvider').then((mod) => ({
+    default: mod.default,
+  })),
 );
 
 export const links: LinksFunction = () => [
@@ -97,14 +98,12 @@ function Providers({ children }: { children: React.ReactNode }) {
             {/*>*/}
             <RefCodeProvider>
               <AuthProvider>
-                <DndProvider backend={HTML5Backend}>
-                  {children}
-                </DndProvider>
+                <DndProvider backend={HTML5Backend}>{children}</DndProvider>
               </AuthProvider>
             </RefCodeProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
-          <DaytonaCleanup/>
+          <DaytonaCleanup />
         </Suspense>
       )}
     </ClientOnly>
