@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useQuery } from '@tanstack/react-query';
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { fromLamports } from '~/utils/solana';
 import { VersionedTransaction, Transaction, SystemProgram, PublicKey } from '@solana/web3.js';
-import { useCreateBonkToken } from '~/lib/hooks/tanstack/useBonk';
-import { useSetProjectToken } from 'query/use-project-query';
 import {
   Form,
   FormControl,
@@ -42,12 +40,12 @@ const createSchema = (walletBalance: number | null) =>
       })
       .optional(),
     twitter: z.union([
-      z.url().startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...'),
       z.undefined(),
+      z.string().url().startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...'),
     ]),
     telegram: z.union([
-      z.url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...'),
       z.undefined(),
+      z.string().url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...'),
     ]),
     image: z.instanceof(File, { message: 'Image is required' }),
     link: z.string(),
@@ -109,7 +107,6 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
   const prebuy = useWatch({ control, name: 'prebuy' });
 
   const isBalanceValid = useMemo(() => {
-    console.log('testest');
     const constFee = 0.005; // yep, i harded code it for optimization
     if (!walletBalance || !prebuy) return true;
 
@@ -119,12 +116,12 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    console.log('test');
     if (!publicKey || !signTransaction) return;
 
     try {
       const formData = new FormData();
       Object.entries(values).map(([key, val]) => {
+        if (typeof val === 'undefined') return;
         let value: Blob | string;
         if (typeof val === 'number') {
           value = val.toString();
@@ -148,8 +145,6 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
       }
 
       const userTxRes = await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
-      console.log('Transaction sent with signature:', userTxRes.txHash);
-
       await setProjectTokenAsync({
         tokenAddress: mintPublicKey,
         description: values.description,

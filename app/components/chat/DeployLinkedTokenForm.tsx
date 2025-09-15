@@ -10,7 +10,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, Require
 import { toast } from 'react-toastify';
 import { useGetHeavenToken, useSetTokenForProject } from '~/lib/hooks/tanstack/useHeaven';
 import { Textarea } from '../ui/Textarea';
-import { useGetTokenData } from '~/lib/hooks/tanstack/useBonk';
 
 const createSchema = () =>
   z.object({
@@ -23,7 +22,7 @@ const createSchema = () =>
     ]),
     telegram: z.union([
       z.undefined(),
-      z.string().url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...').optional(),
+      z.string().url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...'),
     ]),
   });
 
