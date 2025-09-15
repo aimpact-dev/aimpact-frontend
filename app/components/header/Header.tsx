@@ -3,7 +3,6 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
-import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import DepositButton from '../chat/DepositButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
@@ -14,9 +13,10 @@ import GetMessagesButton from '../chat/GetMessagesButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
-import { Tooltip } from '../chat/Tooltip';
 import DeployTokenNavButton from '../chat/DeployTokenNavButton';
 import { useParams } from '@remix-run/react';
+import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
+import TokenInfoNavButton from '../chat/TokenInfoButton';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -33,6 +33,7 @@ export function Header() {
   const { connected } = useWallet();
   const user = useStore(userInfo);
   const params = useParams();
+  const tokenInfoQuery = params.id ? useGetHeavenToken(params.id) : null;
 
   return (
     <header
@@ -55,17 +56,25 @@ export function Header() {
             <LeaderbaordNavButton />
           </>
         )}
-        {chat.started && params.id && (
+        {chat.started && params.id && !tokenInfoQuery?.data && (
           <div className="h-full">
-            <DeployTokenNavButton projectId={params.id} />
+            {/* <Tooltip
+              content={tokenInfoQuery?.isLoading ? 'Token is loading' : 'Create new or link existing Solana token'}
+              side="bottom"
+            > */}
+              <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
+            {/* </Tooltip> */}
+          </div>
+        )}
+        {chat.started && params.id && tokenInfoQuery?.data && (
+          <div className="h-full">
+            <TokenInfoNavButton tokenData={tokenInfoQuery.data} />
           </div>
         )}
       </div>
 
-      {chat.started ? ( // Display ChatDescription and HeaderActionButtons only when the chat has started.
+      {chat.started ? ( // Display HeaderActionButtons only when the chat has started.
         <>
-          {/* Are we sure chat description should be here? */}
-          <ClientOnly>{() => <ChatDescription />}</ClientOnly>
           <ClientOnly>{() => <HeaderActionButtons />}</ClientOnly>
         </>
       ) : (

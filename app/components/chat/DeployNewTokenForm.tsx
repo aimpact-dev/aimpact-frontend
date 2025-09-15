@@ -1,7 +1,7 @@
 'use client';
 
 import { z } from 'zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/Button';
@@ -25,41 +25,49 @@ import {
   RequiredFieldMark,
 } from '../ui/Form';
 import { base64ToUint8Array } from '~/lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useCreateHeavenToken, useGetHeavenToken, useSetTokenForProject } from '~/lib/hooks/tanstack/useHeaven';
 
 const createSchema = (walletBalance: number | null) =>
   z.object({
     name: z.string().min(1, 'Name is required'),
     symbol: z.string().min(1, 'Symbol is required'),
     description: z.string().optional(),
-    prebuy: z
+    prebuy: z.coerce
       .number({ error: 'Prebuy must be a number' })
       .nonnegative('Prebuy must be greater or equal to 0')
       .refine((val) => walletBalance === null || val <= walletBalance, {
         message: 'Prebuy cannot be larger than your wallet balance',
       })
       .optional(),
-    telegram: z.string().optional(),
-    twitter: z.string().optional(),
-    image: z.instanceof(File, { error: 'Image is required' }),
+    twitter: z.union([
+      z.url().startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...'),
+      z.undefined(),
+    ]),
+    telegram: z.union([
+      z.url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...'),
+      z.undefined(),
+    ]),
+    image: z.instanceof(File, { message: 'Image is required' }),
     link: z.string(),
   });
 
 interface DeployNewTokenFormProps {
   projectId: string;
   projectUrl: string;
+  setShowTokenWindow: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewTokenFormProps) {
-  const { publicKey, signTransaction, sendTransaction } = useWallet();
-  const { fetchBalance } = useSolanaProxy();
-  const { connection } = useConnection();
-  const { mutateAsync: createBonkTokenAsync } = useCreateBonkToken();
-  const { mutateAsync: setProjectTokenAsync } = useSetProjectToken(projectId);
+export default function DeployNewTokenForm({ projectId, projectUrl, setShowTokenWindow }: DeployNewTokenFormProps) {
+  const { publicKey, signTransaction } = useWallet();
+  const { fetchBalance, sendTransaction: sendTransactionProxy } = useSolanaProxy();
+  const { mutateAsync: createHeavenTokenAsync } = useCreateHeavenToken();
+  const { mutateAsync: setProjectTokenAsync } = useSetTokenForProject(projectId);
+  const { refetch: refetchTokenData, isSuccess: isTokenDataSuccess } = useGetHeavenToken(projectId);
 
   const {
-    data: walletBalance = 0,
+    data: walletBalance = null,
     error: balanceError,
     isLoading: isBalanceLoading,
   } = useQuery({
@@ -81,8 +89,10 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
 
   const schema = createSchema(walletBalance);
 
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
+  type FormValues = z.infer<typeof schema>;
+  const resolver = zodResolver(schema) as unknown as Resolver<FormValues, any>;
+  const form = useForm({
+    resolver,
     defaultValues: {
       name: '',
       symbol: '',
@@ -96,36 +106,63 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
 
   const { control, handleSubmit, formState } = form;
   const { isSubmitting } = formState;
+  const prebuy = useWatch({ control, name: 'prebuy' });
+
+  const isBalanceValid = useMemo(() => {
+    console.log('testest');
+    const constFee = 0.005; // yep, i harded code it for optimization
+    if (!walletBalance || !prebuy) return true;
+
+    return !isNaN(walletBalance) && !isNaN(prebuy) && walletBalance - constFee >= prebuy;
+  }, [walletBalance, prebuy]);
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
+    console.log('test');
     if (!publicKey || !signTransaction) return;
 
     try {
-      const { rawTx, mintPublicKey } = await createBonkTokenAsync({
-        description: values.description ?? '',
-        name: values.name,
-        symbol: values.symbol,
-        wallet: publicKey.toBase58(),
+      const formData = new FormData();
+      Object.entries(values).map(([key, val]) => {
+        let value: Blob | string;
+        if (typeof val === 'number') {
+          value = val.toString();
+        } else if (val instanceof File) {
+          value = new Blob([val]);
+        } else {
+          value = val;
+        }
+        formData.append(key, value);
       });
+      const { tx, mintPublicKey } = await createHeavenTokenAsync(formData);
 
-      const txObj = VersionedTransaction.deserialize(base64ToUint8Array(rawTx));
-      const signedTx = await signTransaction(txObj);
+      const txObj = VersionedTransaction.deserialize(base64ToUint8Array(tx));
+      let signedTx: VersionedTransaction;
+      try {
+        signedTx = await signTransaction(txObj);
+      } catch (err) {
+        console.error(err);
+        toast.error('Transaction failed. Please try again.');
+        return;
+      }
 
-      const recipientPublicKey = new PublicKey('2jkEJqs8BrnVM8ZPgRDUcyKKznEXiJuZ51S6Pfxx31by');
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: recipientPublicKey,
-          lamports: 1,
-        }),
-      );
+      const userTxRes = await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
+      console.log('Transaction sent with signature:', userTxRes.txHash);
 
-      const signature = await sendTransaction(transaction, connection);
-      console.log('Transaction sent with signature:', signature);
-
-      await setProjectTokenAsync({ tokenAddress: mintPublicKey });
+      await setProjectTokenAsync({
+        tokenAddress: mintPublicKey,
+        description: values.description,
+        telegram: values.telegram,
+        twitter: values.twitter,
+      });
+      toast.success('Sucessfully launched token');
+      await refetchTokenData();
+      if (!isTokenDataSuccess) {
+        toast.error('Successfuly launched token, but failed to load token info. Try to reaload page');
+      } else {
+        setShowTokenWindow(false);
+      }
     } catch (err: any) {
       if (err.message?.includes('User rejected')) return;
       console.error(err);
@@ -229,6 +266,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
         <FormField
           control={control}
           name="prebuy"
+          rules={{ min: { value: 0, message: 'Minimum quantity is 1' } }}
           render={({ field }) => (
             <FormItem>
               <div className="flex justify-between">
@@ -239,12 +277,23 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
                     <div className="inline-block i-ph:spinner-gap animate-spin"></div>
                   ) : (
                     walletBalance
-                  )}{' '}
+                  )}
                   SOL
                 </FormDescription>
               </div>
               <FormControl>
-                <Input placeholder="0 SOL" disabled={isSubmitting || !!balanceError || isBalanceLoading} {...field} />
+                <Input
+                  placeholder="0 SOL"
+                  disabled={isSubmitting || !!balanceError || isBalanceLoading}
+                  {...field}
+                  type="text"
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  inputMode="decimal"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(',', '.');
+                    field.onChange(value === '' ? undefined : value);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -259,7 +308,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
               <FormItem>
                 <FormLabel>Telegram</FormLabel>
                 <FormControl>
-                  <Input placeholder="Your Telegram profile" disabled={isSubmitting} {...field} />
+                  <Input placeholder="Token's Telegram channel link" disabled={isSubmitting} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -273,7 +322,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
               <FormItem>
                 <FormLabel>𝕏</FormLabel>
                 <FormControl>
-                  <Input placeholder="Your X profile" disabled={isSubmitting} {...field} />
+                  <Input placeholder="Token's X profile link" disabled={isSubmitting} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -287,7 +336,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                {<div className="i-ph:link  color-accent-300"></div>} Link to your current{' '}
+                {<div className="i-ph:link color-accent-300"></div>} Link to your current
                 {<span className="color-accent-300">Aimpact</span>} project
               </FormLabel>
               <FormControl>
@@ -298,7 +347,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl }: DeployNewT
                     navigator.clipboard.writeText(field.value);
                     toast.success('Link copied!');
                   }}
-                  className="cursor-pointer"
+                  className="cursor-not-allowed text-gray-400"
                 />
               </FormControl>
               <FormMessage />

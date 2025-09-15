@@ -14,12 +14,10 @@ import { useAuth } from '~/lib/hooks/useAuth';
 export default function Home() {
   const navigate = useNavigate();
   const auth = useAuth();
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [filter, setFilter] = useState<'all' | 'owned'>(auth && auth.isAuthorized ? 'owned' : 'all');
 
   const endTriggerRef = useRef(null);
   const [isFooterFixed, setIsFooterFixed] = useState(true);
-  
 
   useEffect(() => {
     const observer = new IntersectionObserver(

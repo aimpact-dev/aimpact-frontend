@@ -7,9 +7,10 @@ import DeployLinkedTokenForm from './DeployLinkedTokenForm';
 
 export interface DeployTokenNavButtonProps {
   projectId: string;
+  disabled: boolean;
 }
 
-export default function DeployTokenNavButton({ projectId }: DeployTokenNavButtonProps) {
+export default function DeployTokenNavButton({ projectId, disabled = false }: DeployTokenNavButtonProps) {
   const [showTokenWindow, setShowTokenWindow] = useState(false);
 
   const currentUrl = new URL(window.location.href);
@@ -18,8 +19,8 @@ export default function DeployTokenNavButton({ projectId }: DeployTokenNavButton
 
   return (
     <>
-      <Button onClick={() => setShowTokenWindow(true)} className="border border-[#5c5c5c40]">
-        Launch Coin
+      <Button onClick={() => setShowTokenWindow(true)} disabled={disabled} className="border border-[#5c5c5c40] space-x-0">
+        Launch Token<span className='color-green-300 -ml-0.5 text-xs'>new!</span>
       </Button>
 
       <Popup
@@ -39,10 +40,10 @@ export default function DeployTokenNavButton({ projectId }: DeployTokenNavButton
             <TabsTrigger value="link">By link</TabsTrigger>
           </TabsList>
           <TabsContent value="new">
-            <DeployNewTokenForm projectId={projectId} projectUrl={projectUrl} />
+            <DeployNewTokenForm projectId={projectId} projectUrl={projectUrl} setShowTokenWindow={setShowTokenWindow} />
           </TabsContent>
           <TabsContent value="link">
-            <DeployLinkedTokenForm projectId={projectId} projectUrl={projectUrl} />
+            <DeployLinkedTokenForm projectId={projectId} projectUrl={projectUrl} setShowTokenWindow={setShowTokenWindow} />
           </TabsContent>
         </Tabs>
       </Popup>
