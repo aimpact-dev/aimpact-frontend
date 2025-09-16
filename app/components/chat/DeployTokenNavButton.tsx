@@ -3,7 +3,7 @@ import { Button } from '../ui';
 import Popup from '../common/Popup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/Tabs';
 import DeployNewTokenForm from './DeployNewTokenForm';
-import DeployLinkedTokenForm from './DeployLinkedTokenForm';
+import DeployLinkedTokenForm from './LinkTokenForm';
 
 export interface DeployTokenNavButtonProps {
   projectId: string;

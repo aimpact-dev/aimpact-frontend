@@ -3,7 +3,7 @@ import { Button } from '../ui';
 import Popup from '../common/Popup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/Tabs';
 import DeployNewTokenForm from './DeployNewTokenForm';
-import DeployLinkedTokenForm from './DeployLinkedTokenForm';
+import DeployLinkedTokenForm from './LinkTokenForm';
 import TokenInfoForm from './TokenInfoForm';
 import type { TokenDataResponse } from '~/lib/hooks/tanstack/useHeaven';
 

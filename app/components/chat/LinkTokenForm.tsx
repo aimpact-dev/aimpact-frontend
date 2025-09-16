@@ -71,11 +71,12 @@ export default function DeployLinkedTokenForm({
         },
       },
     );
-    toast.success('Token linked to project');
-    await GetTokenDataQuery.refetch();
-    if (!GetTokenDataQuery.data) {
-      toast.error('Successfuly launched token, but failed to load token info. Try to reloaad page');
+    const referchResponse = await GetTokenDataQuery.refetch();
+    console.log(referchResponse.isSuccess, referchResponse.data, referchResponse.dataUpdatedAt);
+    if (!referchResponse.isSuccess) {
+      toast.error('Successfuly linked token, but failed to load token info. Try to reloaad page');
     } else {
+      toast.success('Token linked to project');
       setShowTokenWindow(false);
     }
   };

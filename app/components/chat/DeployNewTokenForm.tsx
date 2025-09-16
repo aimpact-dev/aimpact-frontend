@@ -62,7 +62,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
   const { fetchBalance, sendTransaction: sendTransactionProxy } = useSolanaProxy();
   const { mutateAsync: createHeavenTokenAsync } = useCreateHeavenToken();
   const { mutateAsync: setProjectTokenAsync } = useSetTokenForProject(projectId);
-  const { refetch: refetchTokenData, isSuccess: isTokenDataSuccess } = useGetHeavenToken(projectId);
+  const { refetch: refetchTokenData } = useGetHeavenToken(projectId);
 
   const {
     data: walletBalance = null,
@@ -151,13 +151,13 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
         telegram: values.telegram,
         twitter: values.twitter,
       });
-      toast.success('Sucessfully launched token');
-      await refetchTokenData();
-      if (!isTokenDataSuccess) {
+      const referchResponse = await refetchTokenData();
+      if (!referchResponse.isSuccess) {
         toast.error('Successfuly launched token, but failed to load token info. Try to reaload page');
       } else {
-        setShowTokenWindow(false);
+        toast.success('Sucessfully launched token');
       }
+      setShowTokenWindow(false);
     } catch (err: any) {
       if (err.message?.includes('User rejected')) return;
       console.error(err);
@@ -178,7 +178,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                   <FormItem>
                     <FormLabel>Name {<RequiredFieldMark />}</FormLabel>
                     <FormControl>
-                      <Input placeholder="My Token" disabled={isSubmitting} {...field} />
+                      <Input autoComplete='off' placeholder="My Token" disabled={isSubmitting} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,7 +192,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                   <FormItem>
                     <FormLabel>Symbol {<RequiredFieldMark />}</FormLabel>
                     <FormControl>
-                      <Input placeholder="MTK" disabled={isSubmitting} {...field} />
+                      <Input autoComplete='off' placeholder="MTK" disabled={isSubmitting} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -210,6 +210,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                     <Textarea
                       placeholder="Short description of your token"
                       className="resize-none h-full"
+                      autoComplete='off'
                       disabled={isSubmitting}
                       {...field}
                     />
@@ -283,6 +284,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                   {...field}
                   type="text"
                   pattern="[0-9]*[.,]?[0-9]*"
+                  autoComplete='off'
                   inputMode="decimal"
                   onChange={(e) => {
                     const value = e.target.value.replace(',', '.');
@@ -303,7 +305,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
               <FormItem>
                 <FormLabel>Telegram</FormLabel>
                 <FormControl>
-                  <Input placeholder="Token's Telegram channel link" disabled={isSubmitting} {...field} />
+                  <Input placeholder="Token's Telegram channel link" autoComplete='off' disabled={isSubmitting} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -317,7 +319,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
               <FormItem>
                 <FormLabel>𝕏</FormLabel>
                 <FormControl>
-                  <Input placeholder="Token's X profile link" disabled={isSubmitting} {...field} />
+                  <Input placeholder="Token's X profile link" autoComplete='off' disabled={isSubmitting} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
