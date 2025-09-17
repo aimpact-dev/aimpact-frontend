@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from '@remix-run/react';
-import { useProjectQuery, useS3DeployemntQuery } from 'query/use-project-query';
+import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useGetIcpDeploy } from '~/lib/hooks/tanstack/useDeploy';
@@ -21,6 +21,7 @@ export default function Project() {
   const auth = useAuth();
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
+
   const deploymentUrlQuery = useS3DeployemntQuery(params.id);
   const { mutate: icpDeploymentUrlQuery, data: icpDeploymentData } = useGetIcpDeploy();  // TODO: Replace it with query? Right now I need to change some code so I'd like to leave it like this
   const updateProjectMutation = useUpdateProjectInfoMutation(params.id, auth?.jwtToken);
@@ -51,10 +52,9 @@ export default function Project() {
     }
   };
 
-  useEffect(() => {
-    if (!params.id) return;
-    icpDeploymentUrlQuery(params.id);
-  }, [icpDeploymentUrlQuery, params.id]);
+  const s3Url = useDeploymentQuery(params.id, 's3').data;
+  const icpUrl = useDeploymentQuery(params.id, 'icp').data;
+  const akashUrl = useDeploymentQuery(params.id, 'akash').data;
 
   // Initialize form fields when project data arrives or when entering edit mode
   useEffect(() => {
@@ -124,6 +124,7 @@ export default function Project() {
         <div className="max-w-7xl mx-auto">
           <section className="mb-12">
             <h2 className="text-2xl font-bold text-purple-300 mb-4">Project Overview</h2>
+
             <div className="flex justify-between gap-6">
               {!isEditing ? (
                 <p className="text-xl leading-relaxed text-gray-300">
@@ -196,7 +197,7 @@ export default function Project() {
               </div>
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
                 <span className="text-gray-400">Last Updated:</span>
-                <span className="text-xl font-bold text-white">{new Date(project.updatedAt).toLocaleString  ()}</span>
+                <span className="text-xl font-bold text-white">{new Date(project.updatedAt).toLocaleString()}</span>
               </div>
               {project.category && (
                 <div className="flex justify-between items-center border-b border-gray-800 pb-3">
@@ -208,17 +209,37 @@ export default function Project() {
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
                 <span className="text-gray-400">AWS (Default):</span>
                 <span className="text-xl font-bold text-white">
-                  {deploymentUrlQuery.data ? <a href={deploymentUrlQuery.data} className='hover:underline' target={'_blank'}>
-                    {formatUrl(deploymentUrlQuery.data)}
-                  </a> : 'Not deployed yet'}
+                  {s3Url ? (
+                    <a href={s3Url} className="hover:underline" target={'_blank'}>
+                      {formatUrl(s3Url)}
+                    </a>
+                  ) : (
+                    'Not deployed yet'
+                  )}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
                 <span className="text-gray-400">Internet Computer:</span>
                 <span className="text-xl font-bold text-white">
-                  {icpDeploymentData ? <a href={icpDeploymentData.finalUrl} className='hover:underline' target={'_blank'}>
-                    {formatUrl(icpDeploymentData.finalUrl)}
-                  </a> : 'Not deployed yet'}
+                  {icpUrl ? (
+                    <a href={icpUrl} className="hover:underline" target={'_blank'}>
+                      {formatUrl(icpUrl)}
+                    </a>
+                  ) : (
+                    'Not deployed yet'
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                <span className="text-gray-400">Akash:</span>
+                <span className="text-xl font-bold text-white">
+                  {akashUrl ? (
+                    <a href={akashUrl} className="hover:underline" target={'_blank'}>
+                      {formatUrl(akashUrl)}
+                    </a>
+                  ) : (
+                    'Not deployed yet'
+                  )}
                 </span>
               </div>
             </div>

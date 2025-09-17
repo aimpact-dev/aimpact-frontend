@@ -12,6 +12,8 @@ import { PreviewKillPreprocessor } from '~/lib/aimpactshell/commandPreprocessors
 import { EditorScriptsRemover } from '~/lib/aimpactshell/commandPreprocessors/editorScriptsRemover';
 import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtimeErrorProcessor';
 import { CommandBuffer } from '~/lib/aimpactshell/commandBuffer';
+import { ViteConfigSyntaxChecker } from '~/lib/aimpactshell/commandPreprocessors/viteConfigSyntaxChecker';
+import { ViteTerminalErrorProcessor } from '~/lib/aimpactshell/logsProcessors/viteTerminalErrorProcessor';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -157,8 +159,12 @@ export class AimpactShell {
 //log processor for capturing preview port from Daytona.io server.
 export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, fsPromise: Promise<AimpactFs>): AimpactShell {
   const portCatcher = getPortCatcher();
-  const logsProcessors = [new LogPortCatcher(portCatcher)];
+  const logsProcessors = [
+    new LogPortCatcher(portCatcher),
+    new ViteTerminalErrorProcessor()
+  ];
   const commandsPreprocessors: CommandPreprocessor[] = [
+    new ViteConfigSyntaxChecker(fsPromise),
     new PreviewKillPreprocessor(sandboxPromise, portCatcher),
     new EditorScriptsInjector(fsPromise),
     new EditorScriptsRemover(fsPromise),

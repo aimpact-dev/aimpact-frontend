@@ -41,7 +41,7 @@ export type UpdateProjectInfoPayload = {
 export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
   return useQuery<ProjectsResponse>({
     initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
-    queryKey: ['projects', {page, pageSize}],
+    queryKey: ['projects', {page, pageSize, ownership, sortBy, sortDirection}],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -116,20 +116,25 @@ export const useProjectQuery = (id: string) => {
   });
 };
 
-export const useS3DeployemntQuery = (id: string) => {
+export const useDeploymentQuery = (projectId: string | undefined, provider: 's3' | 'icp' | 'akash') => {
   return useQuery<string | null>({
+    queryKey: ['getDeployment', projectId, provider],
+    enabled: !!projectId,
     initialData: null,
-    queryKey: ['getS3Deployment', id],
     queryFn: async () => {
-      const res = await ky.get(`deploy-app/s3-deployment?projectId=${id}`);
+      if (!projectId) return null;
 
-      if (res.status === 404) {
-        return null; // No deployment found
-      }
+      const endpointMap = {
+        s3: `deploy-app/s3-deployment`,
+        icp: `deploy-app/icp-deployment`,
+        akash: `deploy-app/akash-deployment`,
+      };
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch S3 deployment');
-      }
+      const res = await ky.get(`${endpointMap[provider]}?projectId=${projectId}`);
+      console.log(provider, res);
+
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`Failed to fetch ${provider} deployment`);
 
       const data = await res.json<{ url: string }>();
       return data.url;

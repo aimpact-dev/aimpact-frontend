@@ -5,8 +5,6 @@ import DataPagination from '@/components/common/DataPagination';
 import { motion } from 'framer-motion';
 import { useProjectsQuery, type Project } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from '@remix-run/react';
 
 interface ProjectGridProps {
@@ -20,21 +18,11 @@ const itemsPerPage = 9;
 
 const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
   const auth = useAuth();
-  const queryClient = useQueryClient();
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page') ?? '1'));
+  const currentPage = Number(searchParams.get('page')) || 1;
 
   const projectsQuery = useProjectsQuery(currentPage, itemsPerPage, filter, 'createdAt', 'DESC', auth.jwtToken);
-
-  useEffect(() => {
-    setSearchParams({ page: currentPage.toString() });
-  }, [currentPage, setSearchParams]);
-
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['projects', { currentPage, itemsPerPage }] });
-    setCurrentPage(1);
-  }, [filter, queryClient]);
 
   if (projectsQuery.isLoading) {
     return (
@@ -115,7 +103,7 @@ const ProjectGrid = ({ filter = 'all' }: ProjectGridProps) => {
   const paginationLabel = `Showing ${startIndex + 1} to ${Math.min(endIndex, totalProjects)} of ${totalProjects} projects`;
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    setSearchParams({ page: page.toString() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
