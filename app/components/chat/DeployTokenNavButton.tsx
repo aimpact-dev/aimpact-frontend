@@ -4,24 +4,35 @@ import Popup from '../common/Popup';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/Tabs';
 import DeployNewTokenForm from './DeployNewTokenForm';
 import DeployLinkedTokenForm from './LinkTokenForm';
+import { Tooltip } from './Tooltip';
 
-export interface DeployTokenNavButtonProps {
+interface DeployTokenNavButtonProps {
   projectId: string;
   disabled: boolean;
+}
+
+function getCurrentProjectUrl() {
+  const currentUrl = new URL(window.location.href);
+  currentUrl.pathname = currentUrl.pathname.replace('/chat/', '/project/');
+  return currentUrl.toString();
 }
 
 export default function DeployTokenNavButton({ projectId, disabled = false }: DeployTokenNavButtonProps) {
   const [showTokenWindow, setShowTokenWindow] = useState(false);
 
-  const currentUrl = new URL(window.location.href);
-  currentUrl.pathname = currentUrl.pathname.replace('/chat/', '/project/');
-  const projectUrl = currentUrl.toString();
+  const projectUrl = getCurrentProjectUrl();
 
   return (
     <>
-      <Button onClick={() => setShowTokenWindow(true)} disabled={disabled} className="border border-[#5c5c5c40] space-x-0">
-        Launch Token<span className='color-green-300 -ml-0.5 text-xs'>new!</span>
-      </Button>
+      <Tooltip content={disabled ? 'Token is loading' : 'Create new or link existing Solana token'} side="bottom">
+        <Button
+          onClick={() => setShowTokenWindow(true)}
+          disabled={disabled}
+          className="border border-[#5c5c5c40] space-x-0"
+        >
+          Launch Token<span className="color-green-300 -ml-0.5 text-xs">new!</span>
+        </Button>
+      </Tooltip>
 
       <Popup
         isShow={showTokenWindow}
@@ -43,7 +54,11 @@ export default function DeployTokenNavButton({ projectId, disabled = false }: De
             <DeployNewTokenForm projectId={projectId} projectUrl={projectUrl} setShowTokenWindow={setShowTokenWindow} />
           </TabsContent>
           <TabsContent value="link">
-            <DeployLinkedTokenForm projectId={projectId} projectUrl={projectUrl} setShowTokenWindow={setShowTokenWindow} />
+            <DeployLinkedTokenForm
+              projectId={projectId}
+              projectUrl={projectUrl}
+              setShowTokenWindow={setShowTokenWindow}
+            />
           </TabsContent>
         </Tabs>
       </Popup>

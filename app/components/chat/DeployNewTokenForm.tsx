@@ -31,7 +31,7 @@ const createSchema = (walletBalance: number | null) =>
   z.object({
     name: z.string().min(1, 'Name is required'),
     symbol: z.string().min(1, 'Symbol is required'),
-    description: z.string().optional(),
+    description: z.string().max(200, 'Description should be shorter than 200 symbols').optional(),
     prebuy: z.coerce
       .number({ error: 'Prebuy must be a number' })
       .nonnegative('Prebuy must be greater or equal to 0')
@@ -39,14 +39,16 @@ const createSchema = (walletBalance: number | null) =>
         message: 'Prebuy cannot be larger than your wallet balance',
       })
       .optional(),
-    twitter: z.union([
-      z.undefined(),
-      z.string().url().startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...'),
-    ]),
-    telegram: z.union([
-      z.undefined(),
-      z.string().url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...'),
-    ]),
+    twitter: z
+      .url()
+      .startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...')
+      .optional()
+      .or(z.literal('')),
+    telegram: z
+      .url()
+      .startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...')
+      .optional()
+      .or(z.literal('')),
     image: z.instanceof(File, { message: 'Image is required' }),
     link: z.string(),
   });
@@ -105,13 +107,6 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
   const { control, handleSubmit, formState } = form;
   const { isSubmitting } = formState;
   const prebuy = useWatch({ control, name: 'prebuy' });
-
-  const isBalanceValid = useMemo(() => {
-    const constFee = 0.005; // yep, i harded code it for optimization
-    if (!walletBalance || !prebuy) return true;
-
-    return !isNaN(walletBalance) && !isNaN(prebuy) && walletBalance - constFee >= prebuy;
-  }, [walletBalance, prebuy]);
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -178,7 +173,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                   <FormItem>
                     <FormLabel>Name {<RequiredFieldMark />}</FormLabel>
                     <FormControl>
-                      <Input autoComplete='off' placeholder="My Token" disabled={isSubmitting} {...field} />
+                      <Input autoComplete="off" placeholder="My Token" disabled={isSubmitting} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -192,7 +187,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                   <FormItem>
                     <FormLabel>Symbol {<RequiredFieldMark />}</FormLabel>
                     <FormControl>
-                      <Input autoComplete='off' placeholder="MTK" disabled={isSubmitting} {...field} />
+                      <Input autoComplete="off" placeholder="MTK" disabled={isSubmitting} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -210,7 +205,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                     <Textarea
                       placeholder="Short description of your token"
                       className="resize-none h-full"
-                      autoComplete='off'
+                      autoComplete="off"
                       disabled={isSubmitting}
                       {...field}
                     />
@@ -270,7 +265,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                 <FormDescription>
                   Balance:{' '}
                   {isBalanceLoading ? (
-                    <div className="inline-block i-ph:spinner-gap animate-spin"></div>
+                    <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>
                   ) : (
                     walletBalance
                   )}
@@ -284,7 +279,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                   {...field}
                   type="text"
                   pattern="[0-9]*[.,]?[0-9]*"
-                  autoComplete='off'
+                  autoComplete="off"
                   inputMode="decimal"
                   onChange={(e) => {
                     const value = e.target.value.replace(',', '.');
@@ -305,7 +300,12 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
               <FormItem>
                 <FormLabel>Telegram</FormLabel>
                 <FormControl>
-                  <Input placeholder="Token's Telegram channel link" autoComplete='off' disabled={isSubmitting} {...field} />
+                  <Input
+                    placeholder="Token's Telegram channel link"
+                    autoComplete="off"
+                    disabled={isSubmitting}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -319,7 +319,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
               <FormItem>
                 <FormLabel>𝕏</FormLabel>
                 <FormControl>
-                  <Input placeholder="Token's X profile link" autoComplete='off' disabled={isSubmitting} {...field} />
+                  <Input placeholder="Token's X profile link" autoComplete="off" disabled={isSubmitting} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

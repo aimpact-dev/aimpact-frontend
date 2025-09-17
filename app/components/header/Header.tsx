@@ -58,12 +58,7 @@ export function Header() {
         )}
         {chat.started && params.id && !tokenInfoQuery?.data && (
           <div className="h-full">
-            {/* <Tooltip
-              content={tokenInfoQuery?.isLoading ? 'Token is loading' : 'Create new or link existing Solana token'}
-              side="bottom"
-            > */}
-              <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
-            {/* </Tooltip> */}
+            <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
           </div>
         )}
         {chat.started && params.id && tokenInfoQuery?.data && (

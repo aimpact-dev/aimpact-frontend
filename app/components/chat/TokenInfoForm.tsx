@@ -1,56 +1,94 @@
 'use client';
 import { type TokenDataResponse } from '~/lib/hooks/tanstack/useHeaven';
-import { Button } from '../ui';
+import { Button, Input, Label } from '../ui';
+import { Tooltip } from './Tooltip';
+import { toast } from 'react-toastify';
 
 interface TokenInfoFormProps {
   tokenData: TokenDataResponse;
 }
 
 export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
-  const formatPrice = (price: number) => {
-    const formated = price.toFixed(7);
-    return price < 1 * 10 ** -6 ? '<0.0000001' : formated;
+  const formatNumber = (price: number) => {
+    if (price < 1e-6) return '<0.0000001';
+    const rounded = parseFloat(price.toFixed(7));
+    return rounded.toLocaleString(undefined, { maximumFractionDigits: 7 });
   };
+
   console.log(tokenData);
 
+  const inputClasses = 'border-none';
+  const DollarIcon = () => {
+    return (
+      <div className="i-ph:currency-dollar-simple w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-accent-300 pointer-events-none" />
+    );
+  };
+
   return (
-    <div className="space-y-6 mx-auto pt-2">
-      <div className="flex justify-center items-center">
-        <img src={tokenData.metadata.image} alt="token image" className="w-16 h-16 rounded-full" />
-      </div>
-      <div className="space-y-2 px-1">
-        <div className="justify-center space-y-0.5">
-          <h2 className="text-3xl font-bold color-accent-300">{tokenData.metadata.name}</h2>
-          <h3 className="text-xl mb-4 text-gray-300">{tokenData.metadata.symbol}</h3>
-          {tokenData.metadata.description ? (
-            <>
-              <p className="max-h-24 w-full overflow-auto text-left">
-                <b>Description</b>: {tokenData.metadata.description}
-              </p>
-            </>
-          ) : null}
+    <div className="flex flex-col gap-4  p-2">
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-center items-center">
+          <img src={tokenData.metadata.image} alt="token image" className="w-32 h-32 rounded-full" />
         </div>
-        <div className="text-left space-y-0.5">
-          <p>
-            <b>Price:</b> ${formatPrice(tokenData.price)}
-          </p>
-          <p>
-            <b>Token Address:</b>{' '}
-            <a
-              className="hover:underline hover:text-gray-200"
-              target="_blank"
-              rel="noopener noreferrer"
-              href={`https://solscan.io/account/${tokenData.address}`}
-            >
-              <i>{tokenData.address}</i>
+        <div>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-300 to-purple-700 bg-clip-text text-transparent">
+            {tokenData.metadata.name}
+          </h2>
+          <h3 className="text-sm text-bolt-elements-textSecondary">{tokenData.metadata.symbol}</h3>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4">
+        <div className="text-sm text-white/80">{tokenData.metadata.description}</div>
+        <div className="flex flex-col gap-2">
+          <Label>Price</Label>
+          <div className="relative w-full">
+            <DollarIcon />
+            <Input readOnly value={`${formatNumber(tokenData.price)}`} className={inputClasses + ' pl-9'} />
+          </div>
+        </div>
+        <div className="flex *:flex-1 gap-2">
+          <div className="flex flex-col gap-2">
+            <Label>Total Supply</Label>
+            <div className="relative w-full">
+              <Input
+                readOnly
+                value={tokenData.supply ? formatNumber(tokenData.supply) : '?'}
+                className={inputClasses + ' pr-16'}
+              />
+              <span className="text-sm absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-300/70 font-light">
+                {tokenData.metadata.symbol}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>Market Cap</Label>
+            <div className="relative w-full">
+              <DollarIcon />
+              <Input readOnly value={`${formatNumber(tokenData.marketCap)}`} className={inputClasses + ' pl-9'} />
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label>
+            <div className="i-ph:link-simple color-accent-300"></div> Token Address
+          </Label>
+          <div className="relative w-full">
+            <Input readOnly value={tokenData.address} className={inputClasses + ' pr-15'} />
+            <Tooltip content="Copy address" side="bottom">
+              <span
+                className="i-ph:copy-simple h-4 w-4 absolute right-8 top-1/2 transform -translate-y-1/2 text-accent-300 cursor-pointer"
+                onClick={() => {
+                  navigator.clipboard.writeText(tokenData.address);
+                  toast.success('Token address copied to clipboard!');
+                }}
+              ></span>
+            </Tooltip>
+            <a target="_blank" rel="noopener noreferrer" href={`https://solscan.io/account/${tokenData.address}`}>
+              <Tooltip content="Go to Solscan" side="bottom">
+                <span className="i-ph:globe-simple h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-300"></span>
+              </Tooltip>
             </a>
-          </p>
-          <p>
-            <b>Total Supply:</b> ${tokenData.supply || '?'} <span className='color-accent-300'>{tokenData.metadata.symbol}</span>
-          </p>
-          <p>
-            <b>Market Cap:</b> ${tokenData.marketCap.toFixed(0)}
-          </p>
+          </div>
         </div>
       </div>
 

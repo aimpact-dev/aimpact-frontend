@@ -13,17 +13,19 @@ import { Textarea } from '../ui/Textarea';
 
 const createSchema = () =>
   z.object({
-    tokenAddress: z.string(),
+    tokenAddress: z.string().min(1, 'Token address is required'),
     link: z.string(),
-    description: z.string().optional(),
-    twitter: z.union([
-      z.undefined(),
-      z.string().url().startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...'),
-    ]),
-    telegram: z.union([
-      z.undefined(),
-      z.string().url().startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...'),
-    ]),
+    description: z.string().max(200, 'Description should be shorter than 200 symbols').optional(),
+    twitter: z
+      .url()
+      .startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...')
+      .optional()
+      .or(z.literal('')),
+    telegram: z
+      .url()
+      .startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...')
+      .optional()
+      .or(z.literal('')),
   });
 
 interface DeployLinkedTokenFormProps {
@@ -91,7 +93,7 @@ export default function DeployLinkedTokenForm({
             <FormItem>
               <FormLabel>Token {<RequiredFieldMark />}</FormLabel>
               <FormControl>
-                <Input placeholder="Address of your token" disabled={isSubmitting} {...field} />
+                <Input autoComplete="off" placeholder="Address of your token" disabled={isSubmitting} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,6 +109,7 @@ export default function DeployLinkedTokenForm({
                 <FormLabel>Description</FormLabel>
                 <FormControl className="flex-1">
                   <Textarea
+                    autoComplete="off"
                     placeholder="Short description of your token"
                     className="resize-none h-full"
                     disabled={isSubmitting}
@@ -127,7 +130,12 @@ export default function DeployLinkedTokenForm({
               <FormItem>
                 <FormLabel>Telegram</FormLabel>
                 <FormControl>
-                  <Input placeholder="Token's Telegram channel link" disabled={isSubmitting} {...field} />
+                  <Input
+                    autoComplete="off"
+                    placeholder="Token's Telegram channel link"
+                    disabled={isSubmitting}
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -141,7 +149,7 @@ export default function DeployLinkedTokenForm({
               <FormItem>
                 <FormLabel>𝕏</FormLabel>
                 <FormControl>
-                  <Input placeholder="Token's X profile link" disabled={isSubmitting} {...field} />
+                  <Input autoComplete="off" placeholder="Token's X profile link" disabled={isSubmitting} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
