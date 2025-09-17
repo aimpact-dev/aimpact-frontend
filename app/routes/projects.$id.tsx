@@ -22,8 +22,6 @@ export default function Project() {
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
 
-  const deploymentUrlQuery = useS3DeployemntQuery(params.id);
-  const { mutate: icpDeploymentUrlQuery, data: icpDeploymentData } = useGetIcpDeploy();  // TODO: Replace it with query? Right now I need to change some code so I'd like to leave it like this
   const updateProjectMutation = useUpdateProjectInfoMutation(params.id, auth?.jwtToken);
   const isOwner = useMemo(() => {
     return !!(auth && auth.isAuthorized && connected && publicKey?.toBase58() === projectQuery.data?.projectOwnerAddress);
