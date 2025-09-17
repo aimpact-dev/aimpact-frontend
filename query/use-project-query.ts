@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ky } from 'query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface AppDeployments {
   provider: string;
@@ -30,6 +31,13 @@ export type ProjectWithOwner = Project & {
   projectOwnerAddress: string;
 };
 
+export type UpdateProjectInfoPayload = {
+  name?: string;
+  description?: string;
+  category?: string;
+  featured?: string;
+};
+
 export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
   return useQuery<ProjectsResponse>({
     initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
@@ -56,6 +64,32 @@ export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all
       }
 
       return data;
+    },
+  });
+};
+
+export const useUpdateProjectInfoMutation = (id: string, jwtToken?: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: UpdateProjectInfoPayload) => {
+      const headers: Record<string, string> = {};
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+      const res = await ky.post(`projects/${id}/update`, {
+        json: payload,
+        headers,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to update project');
+      }
+
+      return res.json<ProjectWithOwner>();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['project', id] });
     },
   });
 };

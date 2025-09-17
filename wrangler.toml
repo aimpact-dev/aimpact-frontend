@@ -11,3 +11,8 @@ VITE_DEPOSIT_ADDRESS = "GorN1wMsaWp75QJYtU8NrCu9GCgTtPiUeDRX3ccLZ5jj"
 VITE_REWARDS_SHARING_PERCENT = "10"
 VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
 ENVIRONMENT = "production"
+
+[env.staging]
+name = "aimpact-staging"
+[env.staging.vars]
+PUBLIC_BACKEND_URL = "https://p5c2vgrgn9emb2lbdukc6el728.ingress.d3akash.cloud"

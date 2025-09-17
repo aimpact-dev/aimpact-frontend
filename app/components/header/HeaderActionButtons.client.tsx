@@ -7,7 +7,7 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
 import { chatId, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { toast, type Id as ToastId } from 'react-toastify';
-import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, type IcpDeployResponse, type PostDeployResponse, type S3DeployResponse } from '~/lib/hooks/tanstack/useDeploy';
+import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, usePostAkashDeploy, useGetAkashDeploy, type IcpDeployResponse, type PostDeployResponse, type S3DeployResponse } from '~/lib/hooks/tanstack/useDeploy';
 import { Tooltip } from '../chat/Tooltip';
 import { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
@@ -17,7 +17,7 @@ interface HeaderActionButtonsProps {}
 enum DeployProviders {
   ICP = "ICP",
   AWS = "AWS",
-  // AKASH = "Akash",
+  AKASH = "Akash",
 }
 enum Methods {
   GET = "GET",
@@ -27,7 +27,7 @@ enum Methods {
 const providerToIconSlug: Record<DeployProviders, string> = {
   [DeployProviders.AWS]: 'i-ph:rocket',
   [DeployProviders.ICP]: 'i-bolt:icp-solid',
-  // [DeployProviders.AKASH]: 'i-bolt:akash',
+  [DeployProviders.AKASH]: 'i-bolt:akash',
 }
 
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
@@ -49,6 +49,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const { mutateAsync: createIcpDeployRequest } = usePostIcpDeploy();
   const { mutateAsync: getS3DeployRequest } = useGetS3Deploy();
   const { mutateAsync: createaS3DeployRequest } = usePostS3Deploy();
+  const { mutateAsync: getAkashDeployRequest } = useGetAkashDeploy();
+  const { mutateAsync: createAkashDeployRequest } = usePostAkashDeploy();
   const [finalDeployLink, setFinalDeployLink] = useState<string>('');
   const deployStatusInterval = useRef<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -152,6 +154,9 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       } else if (provider === DeployProviders.AWS) {
         const data = await getS3DeployRequest(projectId);
         url = data.url;
+      } else if (provider === DeployProviders.AKASH) {
+        const data = await getAkashDeployRequest(projectId);
+        url = data.url;
       } else {
         throw new Error('Invalid provider');
       }
@@ -230,6 +235,18 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           toast.dismiss(deployingToastId.current);
         }
         deployingToastId.current = toastId;
+      } else if (provider === DeployProviders.AKASH) {
+        data = await createAkashDeployRequest({
+          projectId: currentChatId,
+          snapshot: buildResult.fileMap,
+        });
+        clearDeployStatusInterval();
+        deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
+        url = data.url;
+        if (deployingToastId.current) {
+          toast.dismiss(deployingToastId.current);
+        }
+        deployingToastId.current = toastId;
       } else {
         throw new Error('Invalid provider');
       }
@@ -237,6 +254,10 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       setFinalDeployLink(url);
     } catch (error) {
       toast.error(`Failed to publish app. Maybe you have some errors in your app's code.`);
+      setIsDeploying(false);
+      if (deployingToastId.current) {
+        toast.dismiss(deployingToastId.current);
+      }
       console.error(error);
     }
   }
@@ -327,11 +348,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             </Button>
 
             <Button
-              disabled={true}
+              disabled={isDeploying || !activePreview || isStreaming}
+              onClick={() => onDeploy(DeployProviders.AKASH)}
               className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
             >
-              <div className="i-bolt:akash h-6 w-6"></div>
-              <span className="mx-auto max-w-[130px]">Publish to Akash (Coming soon)</span>
+              <div className={`${providerToIconSlug[DeployProviders.AKASH]} h-6 w-6`}></div>
+              <span className="mx-auto">Publish to Akash</span>
             </Button>
 
             <Button
