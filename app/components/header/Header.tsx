@@ -20,6 +20,7 @@ import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
 import { Tooltip } from '../chat/Tooltip';
+import { useNavigate } from '@remix-run/react';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -33,6 +34,7 @@ export type ButtonProps = PropsWithChildren<{
 
 export function Header() {
   const chat = useStore(chatStore);
+  const navigate = useNavigate();
   const { connected } = useWallet();
   const user = useStore(userInfo);
 
@@ -44,14 +46,13 @@ export function Header() {
       })}
     >
       <div className='flex gap-2.5'>
-        <a className="flex items-center gap-2 z-logo cursor-pointer" href="/projects">
-          <Button
-            variant="default"
-            className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
-          >
-            View all projects
-          </Button>
-        </a>
+        <Button
+          variant="default"
+          className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
+          onClick={() => navigate('/projects')}
+        >
+          View all projects
+        </Button>
 
         {!chat.started && (
           <>
