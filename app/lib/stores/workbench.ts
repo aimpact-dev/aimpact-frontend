@@ -2,12 +2,10 @@ import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from '
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
-import { webcontainer } from '~/lib/webcontainer';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
 import { FilesStore, type FileMap } from './files';
-import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import fileSaver from 'file-saver';
@@ -18,6 +16,11 @@ import { description } from '~/lib/persistence';
 import Cookies from 'js-cookie';
 import { createSampler } from '~/utils/sampler';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
+import { getSandbox } from '~/lib/daytona';
+import { getAimpactFs } from '~/lib/aimpactfs';
+import { BuildService } from '~/lib/services/buildService';
+import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
+import { getPortCatcher } from '~/utils/previewPortCatcher';
 
 const { saveAs } = fileSaver;
 
@@ -36,10 +39,10 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 export type WorkbenchViewType = 'code' | 'diff' | 'preview';
 
 export class WorkbenchStore {
-  #previewsStore = new PreviewsStore(webcontainer);
-  #filesStore = new FilesStore(webcontainer);
+  #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
+  #filesStore = new FilesStore(getAimpactFs());
   #editorStore = new EditorStore(this.#filesStore);
-  #terminalStore = new TerminalStore(webcontainer);
+  #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
   #reloadedMessages = new Set<string>();
 
@@ -110,8 +113,8 @@ export class WorkbenchStore {
   get showTerminal() {
     return this.#terminalStore.showTerminal;
   }
-  get boltTerminal() {
-    return this.#terminalStore.boltTerminal;
+  get getMainShell() {
+    return this.#terminalStore.getMainShell;
   }
   get alert() {
     return this.actionAlert;
@@ -140,16 +143,14 @@ export class WorkbenchStore {
     this.#terminalStore.toggleTerminal(value);
   }
 
-  attachTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachTerminal(terminal);
-  }
-  attachBoltTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachBoltTerminal(terminal);
+  attachMainTerminal(terminal: ITerminal) {
+    this.#terminalStore.attachMainAimpactTerminal(terminal);
   }
 
-  onTerminalResize(cols: number, rows: number) {
-    this.#terminalStore.onTerminalResize(cols, rows);
+  attachAimpactTerminal(terminal: ITerminal) {
+    this.#terminalStore.attachAimpactTerminal(terminal);
   }
+
 
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
@@ -225,6 +226,10 @@ export class WorkbenchStore {
     if (document === undefined) {
       return;
     }
+    if(document.isBinary){
+      console.warn("Attempt to save changes in a binary file:", filePath, " Binary files should not be editable.");
+      return;
+    }
 
     /*
      * For scoped locks, we would need to implement diff checking here
@@ -285,6 +290,15 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
+
+  /**
+   * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
+   * @param filePath
+   */
+  pendLockForFile(filePath: string){
+    this.#filesStore.pendLockForFile(filePath);
+  }
+
   /**
    * Lock a file to prevent edits
    * @param filePath Path to the file to lock
@@ -337,6 +351,10 @@ export class WorkbenchStore {
    */
   isFolderLocked(folderPath: string) {
     return this.#filesStore.isFolderLocked(folderPath);
+  }
+
+  getFile(filePath: string){
+    return this.#filesStore.getFile(filePath);
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
@@ -478,8 +496,9 @@ export class WorkbenchStore {
       closed: false,
       type,
       runner: new ActionRunner(
-        webcontainer,
-        () => this.boltTerminal,
+        Promise.resolve(new BuildService(Promise.resolve(this.getMainShell), getSandbox(), getAimpactFs())),
+        getAimpactFs(),
+        () => this.getMainShell,
         (alert) => {
           if (this.#reloadedMessages.has(messageId)) {
             return;
@@ -554,8 +573,8 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
-      const wc = await webcontainer;
-      const fullPath = path.join(wc.workdir, data.action.filePath);
+      const aimpactFs = await getAimpactFs();
+      const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
 
       /*
        * For scoped locks, we would need to implement diff checking here

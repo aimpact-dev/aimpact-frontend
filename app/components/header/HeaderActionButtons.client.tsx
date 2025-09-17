@@ -7,17 +7,17 @@ import { forwardRef, useEffect, useRef, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
 import { chatId, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { toast, type Id as ToastId } from 'react-toastify';
-import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, type IcpDeployResponse, type PostDeployResponse, type S3DeployResponse } from '~/lib/hooks/tanstack/useDeploy';
-import { DeployService } from '~/lib/services/deployService';
-import { webcontainer } from '~/lib/webcontainer';
-import type { UseMutateAsyncFunction } from '@tanstack/react-query';
+import { useGetIcpDeploy, useGetS3Deploy, usePostIcpDeploy, usePostS3Deploy, usePostAkashDeploy, useGetAkashDeploy, type IcpDeployResponse, type PostDeployResponse, type S3DeployResponse } from '~/lib/hooks/tanstack/useDeploy';
 import { Tooltip } from '../chat/Tooltip';
+import { BuildService } from '~/lib/services/buildService';
+import { getSandbox } from '~/lib/daytona';
+import { getAimpactFs } from '~/lib/aimpactfs';
 
 interface HeaderActionButtonsProps {}
 enum DeployProviders {
   ICP = "ICP",
   AWS = "AWS",
-  // AKASH = "Akash",
+  AKASH = "Akash",
 }
 enum Methods {
   GET = "GET",
@@ -27,7 +27,7 @@ enum Methods {
 const providerToIconSlug: Record<DeployProviders, string> = {
   [DeployProviders.AWS]: 'i-ph:rocket',
   [DeployProviders.ICP]: 'i-bolt:icp-solid',
-  // [DeployProviders.AKASH]: 'i-bolt:akash',
+  [DeployProviders.AKASH]: 'i-bolt:akash',
 }
 
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
@@ -49,6 +49,8 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const { mutateAsync: createIcpDeployRequest } = usePostIcpDeploy();
   const { mutateAsync: getS3DeployRequest } = useGetS3Deploy();
   const { mutateAsync: createaS3DeployRequest } = usePostS3Deploy();
+  const { mutateAsync: getAkashDeployRequest } = useGetAkashDeploy();
+  const { mutateAsync: createAkashDeployRequest } = usePostAkashDeploy();
   const [finalDeployLink, setFinalDeployLink] = useState<string>('');
   const deployStatusInterval = useRef<NodeJS.Timeout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,7 +60,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const chatSummary = useStore(lastChatSummary);
 
   // TODO: Add AbortController for canceling deploy
-  const deployService = useRef<DeployService>();
+  const buildService = useRef<BuildService>();
   const toastIds = useRef<Set<ToastId>>(new Set());
   const deployingToastId = useRef<ToastId | null>(null);
 
@@ -70,14 +72,15 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
 
   useEffect(() => {
-    if (!deployService.current) {
-      deployService.current = new DeployService(
-        webcontainer,
+    if (!buildService.current) {
+      buildService.current = new BuildService(
+        Promise.resolve(workbenchStore.getMainShell),
+        getSandbox(),
+        getAimpactFs()
       );
     }
 
     return () => {
-      deployService.current?.cleanup?.();
     };
   }, []);
 
@@ -91,7 +94,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const formattedLinkToast = (url: string, provider: DeployProviders) => {
     const toastId = toast.success(
       <div>
-        Project is published to <b>{provider}</b>. 
+        Project is published to <b>{provider}</b>.
         You can click to the button in the "Publish" dropdown and go to app by link or just click link here.
         <br /> <br />
         <a href={url} target="_blank" rel="noopener noreferrer" className='underline cursor-pointer'>
@@ -118,12 +121,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     const currentChatId = chatId.get();
     if (!currentChatId) return;
 
-    fetchDeployRequest({ 
+    fetchDeployRequest({
       projectId: currentChatId,
       showError: false,
       provider: DeployProviders.AWS,
     });
-    fetchDeployRequest({ 
+    fetchDeployRequest({
       projectId: currentChatId,
       showError: false,
       provider: DeployProviders.ICP,
@@ -151,11 +154,14 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       } else if (provider === DeployProviders.AWS) {
         const data = await getS3DeployRequest(projectId);
         url = data.url;
+      } else if (provider === DeployProviders.AKASH) {
+        const data = await getAkashDeployRequest(projectId);
+        url = data.url;
       } else {
         throw new Error('Invalid provider');
       }
       setFinalDeployLink(url);
-      
+
       if (url) {
         if (deployingToastId.current) {
           toast.dismiss(deployingToastId.current);
@@ -190,31 +196,28 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         return;
       }
 
-      if (!deployService?.current) {
+      if (!buildService?.current) {
         toast.error("Failed to init deploy service. Try to reload page");
         return;
       }
 
-      const deployResult = await deployService.current.runDeployScript();
-      
-      console.log(deployResult);
-      if (deployResult.exitCode !== 0 && deployResult.exitCode !== 143) {
-        toast.error(`Failed to build. Status code: ${deployResult.exitCode}.`, { autoClose: false })
+      const buildResult = await buildService.current.runBuildScript('pnpm');
+
+      if (buildResult.exitCode !== 0 && buildResult.exitCode !== 143) {
+        toast.error(`Failed to build. Status code: ${buildResult.exitCode}.`, { autoClose: false });
+        setIsDeploying(false);
+      }
+      if(!buildResult.fileMap) {
+        toast.error(`Failed to build. No files found in the build directory.`);
+        return;
       }
 
-      const files = workbenchStore.files.get();
-      const filteredFiles = Object.fromEntries(Object.entries(files).filter(
-        ([key, value]) => {
-          return key.startsWith("/home/project/dist/");
-        }
-      ));
-      
       let data: IcpDeployResponse | S3DeployResponse;
       let url: string;
       if (provider === DeployProviders.AWS) {
         data = await createaS3DeployRequest({
           projectId: currentChatId,
-          snapshot: filteredFiles,
+          snapshot: buildResult.fileMap,
         });
         url = data.url;
         formattedLinkToast(url, provider);
@@ -223,7 +226,19 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       } else if (provider === DeployProviders.ICP) {
         data = await createIcpDeployRequest({
           projectId: currentChatId,
-          snapshot: filteredFiles,
+          snapshot: buildResult.fileMap,
+        });
+        clearDeployStatusInterval();
+        deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
+        url = data.url;
+        if (deployingToastId.current) {
+          toast.dismiss(deployingToastId.current);
+        }
+        deployingToastId.current = toastId;
+      } else if (provider === DeployProviders.AKASH) {
+        data = await createAkashDeployRequest({
+          projectId: currentChatId,
+          snapshot: buildResult.fileMap,
         });
         clearDeployStatusInterval();
         deployStatusInterval.current = setInterval(async () => await fetchDeployRequest({ projectId: currentChatId, provider }), 5000);
@@ -239,6 +254,10 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
       setFinalDeployLink(url);
     } catch (error) {
       toast.error(`Failed to publish app. Maybe you have some errors in your app's code.`);
+      setIsDeploying(false);
+      if (deployingToastId.current) {
+        toast.dismiss(deployingToastId.current);
+      }
       console.error(error);
     }
   }
@@ -329,11 +348,12 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             </Button>
 
             <Button
-              disabled={true}
+              disabled={isDeploying || !activePreview || isStreaming}
+              onClick={() => onDeploy(DeployProviders.AKASH)}
               className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
             >
-              <div className="i-bolt:akash h-6 w-6"></div>
-              <span className="mx-auto max-w-[130px]">Publish to Akash (Coming soon)</span>
+              <div className={`${providerToIconSlug[DeployProviders.AKASH]} h-6 w-6`}></div>
+              <span className="mx-auto">Publish to Akash</span>
             </Button>
 
             <Button
