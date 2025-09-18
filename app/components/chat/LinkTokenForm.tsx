@@ -58,9 +58,9 @@ export default function DeployLinkedTokenForm({
     await LinkTokenMutation.mutateAsync(
       {
         tokenAddress: values.tokenAddress,
-        description: values.description,
-        telegram: values.telegram,
-        twitter: values.twitter,
+        description: values.description || undefined,
+        telegram: values.telegram || undefined,
+        twitter: values.twitter || undefined,
       },
       {
         onError: (error, vars, ctx) => {
@@ -73,9 +73,8 @@ export default function DeployLinkedTokenForm({
         },
       },
     );
-    const referchResponse = await GetTokenDataQuery.refetch();
-    console.log(referchResponse.isSuccess, referchResponse.data, referchResponse.dataUpdatedAt);
-    if (!referchResponse.isSuccess) {
+    const refetchResponse = await GetTokenDataQuery.refetch();
+    if (!refetchResponse.isSuccess) {
       toast.error('Successfuly linked token, but failed to load token info. Try to reloaad page');
     } else {
       toast.success('Token linked to project');

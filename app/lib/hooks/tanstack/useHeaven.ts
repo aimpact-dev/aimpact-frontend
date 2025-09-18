@@ -22,6 +22,8 @@ export interface TokenDataResponse {
     uri: string;
     image: string;
   };
+  telegram: string;
+  twitter: string;
 }
 
 export interface HeavenTokenResponse {

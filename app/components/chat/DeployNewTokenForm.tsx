@@ -139,15 +139,15 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
         return;
       }
 
-      const userTxRes = await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
+      await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
       await setProjectTokenAsync({
         tokenAddress: mintPublicKey,
-        description: values.description,
-        telegram: values.telegram,
-        twitter: values.twitter,
+        description: values.description || undefined,
+        telegram: values.telegram || undefined,
+        twitter: values.twitter || undefined,
       });
-      const referchResponse = await refetchTokenData();
-      if (!referchResponse.isSuccess) {
+      const refetchResponse = await refetchTokenData();
+      if (!refetchResponse.isSuccess) {
         toast.error('Successfuly launched token, but failed to load token info. Try to reaload page');
       } else {
         toast.success('Sucessfully launched token');
