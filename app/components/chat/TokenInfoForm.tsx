@@ -9,10 +9,10 @@ interface TokenInfoFormProps {
 }
 
 export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
-  const formatNumber = (price: number) => {
+  const formatNumber = (price: number, fraction?: number) => {
     if (price < 1e-6) return '<0.0000001';
     const rounded = parseFloat(price.toFixed(7));
-    return rounded.toLocaleString(undefined, { maximumFractionDigits: 7 });
+    return rounded.toLocaleString(undefined, { maximumFractionDigits: fraction ?? 7 });
   };
 
   console.log(tokenData);
@@ -28,7 +28,7 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
     <div className="flex flex-col gap-4  p-2">
       <div className="flex flex-col gap-3">
         <div className="flex justify-center items-center">
-          <img src={tokenData.metadata.image} alt="token image" className="w-32 h-32 rounded-full" />
+          <img src={'http://localhost/heaven-dex/tokens/images/b31c5e51-3979-474e-aa81-bc60ee40f853.png'} alt="token image" className="w-32 h-32 rounded-full" />
         </div>
         <div>
           <h2 className="text-2xl font-bold bg-gradient-to-r from-accent-300 to-purple-700 bg-clip-text text-transparent">
@@ -64,7 +64,7 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
             <Label>Market Cap</Label>
             <div className="relative w-full">
               <DollarIcon />
-              <Input readOnly value={`${formatNumber(tokenData.marketCap)}`} className={inputClasses + ' pl-9'} />
+              <Input readOnly value={`${formatNumber(tokenData.marketCap, 2)}`} className={inputClasses + ' pl-9'} />
             </div>
           </div>
         </div>

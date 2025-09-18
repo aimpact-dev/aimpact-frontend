@@ -110,6 +110,10 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   const onSubmit = async (values: z.infer<typeof schema>) => {
     if (!publicKey || !signTransaction) return;
 
@@ -127,7 +131,8 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
         }
         formData.append(key, value);
       });
-      const { tx, mintPublicKey } = await createHeavenTokenAsync(formData);
+      let { tx, mintPublicKey } = await createHeavenTokenAsync(formData);
+      mintPublicKey = '4PA4tLWSdWtXByMgkvUSDfcJyREkb89FwZV189Ect777'
 
       const txObj = VersionedTransaction.deserialize(base64ToUint8Array(tx));
       let signedTx: VersionedTransaction;
@@ -139,15 +144,16 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
         return;
       }
 
-      const userTxRes = await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
+      // const userTxRes = await sendTransactionProxy(Buffer.from(signedTx.serialize()).toString('base64'));
+      sleep(6000);
       await setProjectTokenAsync({
         tokenAddress: mintPublicKey,
-        description: values.description,
-        telegram: values.telegram,
-        twitter: values.twitter,
+        description: values.description || undefined,
+        telegram: values.telegram || undefined,
+        twitter: values.twitter || undefined,
       });
-      const referchResponse = await refetchTokenData();
-      if (!referchResponse.isSuccess) {
+      const refetchResponse = await refetchTokenData();
+      if (!refetchResponse.isSuccess) {
         toast.error('Successfuly launched token, but failed to load token info. Try to reaload page');
       } else {
         toast.success('Sucessfully launched token');

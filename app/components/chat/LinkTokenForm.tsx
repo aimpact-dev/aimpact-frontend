@@ -58,9 +58,9 @@ export default function DeployLinkedTokenForm({
     await LinkTokenMutation.mutateAsync(
       {
         tokenAddress: values.tokenAddress,
-        description: values.description,
-        telegram: values.telegram,
-        twitter: values.twitter,
+        description: values.description || undefined,
+        telegram: values.telegram || undefined,
+        twitter: values.twitter || undefined,
       },
       {
         onError: (error, vars, ctx) => {

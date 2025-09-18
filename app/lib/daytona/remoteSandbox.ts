@@ -62,10 +62,10 @@ export class RemoteSandbox implements AimpactSandbox {
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('getPreviewLink', args, authToken);
-    if(!response.ok){
+    if(!response.ok) {
       throw new Error(`Failed to get preview link: ${response.statusText}`);
     }
-    const data = await response.json();
+    const data: any = await response.json();
     if(!data.token || !data.url){
       throw new Error('Invalid response from getPreviewLink');
     }
@@ -204,7 +204,7 @@ export class RemoteSandbox implements AimpactSandbox {
     }
     let fileContent: string; //Base64 encoded file content
     try {
-      const json = await response.json();
+      const json: any = await response.json();
       fileContent = json.fileContent;
     } catch (e) {
       throw new Error(`Failed to read file content: ${e}`);
