@@ -8,6 +8,7 @@ import { type Change, diffLines } from 'diff';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { toast } from 'react-toastify';
 import { path } from '~/utils/path';
+import { Tooltip } from '../chat/Tooltip';
 
 const logger = createScopedLogger('FileTree');
 
@@ -57,7 +58,6 @@ export const FileTree = memo(
     const fileList = useMemo(() => {
       return buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);
     }, [files, rootFolder, hideRoot, computedHiddenFiles]);
-
 
     const [collapsedFolders, setCollapsedFolders] = useState(() => {
       return collapsed
@@ -186,7 +186,7 @@ export const FileTree = memo(
                 />
               );
             }
-            case 'pending' : {
+            case 'pending': {
               return (
                 <Pending
                   key={fileOrFolder.id}
@@ -225,15 +225,18 @@ interface FolderProps {
 
 interface FolderContextMenuProps {
   onCopyPath?: () => void;
+  isLocked: boolean;
+  onIsLockedChange: (isLocked: boolean) => void;
   onCopyRelativePath?: () => void;
   children: ReactNode;
 }
 
-function ContextMenuItem({ onSelect, children }: { onSelect?: () => void; children: ReactNode }) {
+function ContextMenuItem({ onSelect, children, ...props }: { onSelect?: () => void; children: ReactNode }) {
   return (
     <ContextMenu.Item
       onSelect={onSelect}
       className="flex items-center gap-2 px-2 py-1.5 outline-0 text-sm text-bolt-elements-textPrimary cursor-pointer ws-nowrap text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive rounded-md"
+      {...props}
     >
       <span className="size-4 shrink-0"></span>
       <span>{children}</span>
@@ -298,6 +301,8 @@ function InlineInput({ depth, placeholder, initialValue = '', onSubmit, onCancel
 function FileContextMenu({
   onCopyPath,
   onCopyRelativePath,
+  isLocked,
+  onIsLockedChange,
   fullPath,
   children,
 }: FolderContextMenuProps & { fullPath: string }) {
@@ -331,7 +336,7 @@ function FileContextMenu({
   }, []);
 
   const removeFilesFromPath = useCallback((path: string) => {
-    if(workbenchStore.getFile(path) !== undefined){
+    if (workbenchStore.getFile(path) !== undefined) {
       return path.substring(0, path.lastIndexOf('/')) + '/';
     }
     return path;
@@ -357,7 +362,7 @@ function FileContextMenu({
             const arrayBuffer = await file.arrayBuffer();
             const binaryContent = new Uint8Array(arrayBuffer);
 
-            logger.debug("File path in drop:", filePath);
+            logger.debug('File path in drop:', filePath);
             const success = await workbenchStore.createFile(filePath, binaryContent);
 
             if (success) {
@@ -438,6 +443,7 @@ function FileContextMenu({
       const success = workbenchStore.lockFile(fullPath);
 
       if (success) {
+        onIsLockedChange(true);
         toast.success(`File locked successfully`);
       } else {
         toast.error(`Failed to lock file`);
@@ -458,6 +464,7 @@ function FileContextMenu({
       const success = workbenchStore.unlockFile(fullPath);
 
       if (success) {
+        onIsLockedChange(false);
         toast.success(`File unlocked successfully`);
       } else {
         toast.error(`Failed to unlock file`);
@@ -549,36 +556,24 @@ function FileContextMenu({
             </ContextMenu.Group>
             {/* Add lock/unlock options for files and folders */}
             <ContextMenu.Group className="p-1 border-t-px border-solid border-bolt-elements-borderColor">
-              {!isFolder ? (
-                <>
-                  <ContextMenuItem onSelect={handleLockFile}>
-                    <div className="flex items-center gap-2">
-                      <div className="i-ph:lock-simple" />
-                      Lock File
-                    </div>
-                  </ContextMenuItem>
-                  <ContextMenuItem onSelect={handleUnlockFile}>
+              {isLocked ? (
+                <Tooltip content={`Allow AI to edit this ${isFolder ? 'folder' : 'file'}`} side="right">
+                  <ContextMenuItem onSelect={isFolder ? handleUnlockFolder : handleUnlockFile}>
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-key-open" />
-                      Unlock File
+                      Unlock {isFolder ? 'Folder' : 'File'}
                     </div>
                   </ContextMenuItem>
-                </>
+                </Tooltip>
               ) : (
-                <>
-                  <ContextMenuItem onSelect={handleLockFolder}>
+                <Tooltip content={`Restrict AI from editing this ${isFolder ? 'folder' : 'file'}`} side="right">
+                  <ContextMenuItem onSelect={isFolder ? handleLockFolder : handleLockFile}>
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-simple" />
-                      Lock Folder
+                      Lock {isFolder ? 'Folder' : 'File'}
                     </div>
                   </ContextMenuItem>
-                  <ContextMenuItem onSelect={handleUnlockFolder}>
-                    <div className="flex items-center gap-2">
-                      <div className="i-ph:lock-key-open" />
-                      Unlock Folder
-                    </div>
-                  </ContextMenuItem>
-                </>
+                </Tooltip>
               )}
             </ContextMenu.Group>
             {/* Add delete option in a new group */}
@@ -615,10 +610,16 @@ function FileContextMenu({
 
 function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativePath, onClick }: FolderProps) {
   // Check if the folder is locked
-  const { isLocked } = workbenchStore.isFolderLocked(folder.fullPath);
+  const [isLocked, setIsLocked] = useState(() => workbenchStore.isFolderLocked(folder.fullPath).isLocked);
 
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={folder.fullPath}>
+    <FileContextMenu
+      onCopyPath={onCopyPath}
+      isLocked={isLocked}
+      onIsLockedChange={setIsLocked}
+      onCopyRelativePath={onCopyRelativePath}
+      fullPath={folder.fullPath}
+    >
       <NodeButton
         className={classNames('group', {
           'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
@@ -654,16 +655,16 @@ interface PendingNodeProps {
   onClick: () => void;
 }
 
-
-function Pending({
-  node,
-  onClick,
-  onCopyPath,
-  onCopyRelativePath,
-  selected,
-}: PendingNodeProps){
+function Pending({ node, onClick, onCopyPath, onCopyRelativePath, selected }: PendingNodeProps) {
+  const [isLocked, setIsLocked] = useState(() => workbenchStore.isFolderLocked(node.fullPath).isLocked);
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={node.fullPath}>
+    <FileContextMenu
+      onCopyPath={onCopyPath}
+      isLocked={isLocked}
+      onIsLockedChange={setIsLocked}
+      onCopyRelativePath={onCopyRelativePath}
+      fullPath={node.fullPath}
+    >
       <NodeButton
         className={classNames('group', {
           'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
@@ -672,9 +673,7 @@ function Pending({
         })}
         depth={node.depth}
         onClick={onClick}
-        iconClasses={
-          'i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault'
-        }
+        iconClasses={'i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault'}
       >
         <div className="flex items-center w-full">
           <div className="flex-1 truncate pr-2">{node.name}</div>
@@ -706,7 +705,7 @@ function File({
   const { depth, name, fullPath } = file;
 
   // Check if the file is locked
-  const { locked } = workbenchStore.isFileLocked(fullPath);
+  const [isLocked, setIsLocked] = useState(() => workbenchStore.isFileLocked(fullPath).locked);
 
   const fileModifications = fileHistory[fullPath];
 
@@ -748,7 +747,13 @@ function File({
   const showStats = additions > 0 || deletions > 0;
 
   return (
-    <FileContextMenu onCopyPath={onCopyPath} onCopyRelativePath={onCopyRelativePath} fullPath={fullPath}>
+    <FileContextMenu
+      onCopyPath={onCopyPath}
+      isLocked={isLocked}
+      onIsLockedChange={setIsLocked}
+      onCopyRelativePath={onCopyRelativePath}
+      fullPath={fullPath}
+    >
       <NodeButton
         className={classNames('group', {
           'bg-transparent hover:bg-bolt-elements-item-backgroundActive text-bolt-elements-item-contentDefault':
@@ -774,10 +779,10 @@ function File({
                 {deletions > 0 && <span className="text-red-500">-{deletions}</span>}
               </div>
             )}
-            {locked && (
+            {isLocked && (
               <span
                 className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
-                title={'File is locked'}
+                title={'File is locked from AI editing'}
               />
             )}
             {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
@@ -830,7 +835,7 @@ interface FolderNode extends BaseNode {
 }
 
 //Represents a file or folder that is in the process of being loaded.
-interface PendingNode extends BaseNode{
+interface PendingNode extends BaseNode {
   kind: 'pending';
 }
 
