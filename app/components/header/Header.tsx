@@ -21,6 +21,7 @@ import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
 import { Tooltip } from '../chat/Tooltip';
 import { useNavigate } from '@remix-run/react';
+import { TestAnchorValidatorButton } from '~/components/testAnchorProjectValidatorButton';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;

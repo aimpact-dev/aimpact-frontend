@@ -12,6 +12,8 @@ import { Tooltip } from '../chat/Tooltip';
 import { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
+import LeaderbaordNavButton from '~/components/chat/LeaderboardNavButton';
+import { TestAnchorValidatorButton } from '~/components/testAnchorProjectValidatorButton';
 
 interface HeaderActionButtonsProps {}
 enum DeployProviders {
@@ -312,6 +314,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 mr-4 text-sm h-full">
+            <TestAnchorValidatorButton/>
             <Button
               active
               // disabled={isDeploying || !activePreview || isStreaming}
