@@ -15,7 +15,6 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
     return rounded.toLocaleString(undefined, { maximumFractionDigits: fraction ?? 7 });
   };
 
-  console.log(tokenData);
 
   const inputClasses = 'border-none';
   const DollarIcon = () => {
