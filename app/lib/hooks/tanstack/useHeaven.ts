@@ -31,10 +31,25 @@ export interface HeavenTokenResponse {
   mintPublicKey: string;
 }
 
+export interface QuoteInitalBuyResponse {
+  tokenAmount: number;
+  solAmount: number;
+}
+
 export const useCreateHeavenToken = () =>
   useMutation<HeavenTokenResponse, AxiosError, FormData>({
     mutationFn: async (formDataPayload) => {
       const { data } = await client.post<HeavenTokenResponse>('/heaven-dex/tokens', formDataPayload);
+      return data;
+    },
+  });
+
+export const useQuoteInitialBuy = () =>
+  useMutation<QuoteInitalBuyResponse, AxiosError, number>({
+    mutationFn: async (percent: number) => {
+      const { data } = await client.get<QuoteInitalBuyResponse>('/heaven-dex/tokens/quote/initial-buy', {
+        params: { percent },
+      });
       return data;
     },
   });

@@ -23,33 +23,51 @@ import {
   RequiredFieldMark,
 } from '../ui/Form';
 import { base64ToUint8Array } from '~/lib/utils';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { useCreateHeavenToken, useGetHeavenToken, useSetTokenForProject } from '~/lib/hooks/tanstack/useHeaven';
+import {
+  useCreateHeavenToken,
+  useGetHeavenToken,
+  useQuoteInitialBuy,
+  useSetTokenForProject,
+  type QuoteInitalBuyResponse,
+} from '~/lib/hooks/tanstack/useHeaven';
 
+const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
+const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
 const createSchema = (walletBalance: number | null) =>
   z.object({
-    name: z.string().min(1, 'Name is required'),
-    symbol: z.string().min(1, 'Symbol is required'),
+    name: z.string().min(1, 'Name is required').max(32),
+    symbol: z.string().min(1, 'Symbol is required').max(16),
     description: z.string().max(200, 'Description should be shorter than 200 symbols').optional(),
     prebuy: z.coerce
       .number({ error: 'Prebuy must be a number' })
       .nonnegative('Prebuy must be greater or equal to 0')
-      .refine((val) => walletBalance === null || val <= walletBalance, {
-        message: 'Prebuy cannot be larger than your wallet balance',
-      })
+      .max(99, 'Prebuy must be ≥ 0 and ≤ 99')
+      // .refine((val) => walletBalance === null || val + estimatedDeployCost <= walletBalance, {
+      // message: `Prebuy cannot be larger than your wallet balance. You should leave a ${estimatedDeployCost.toFixed(2)} SOL for create token.`,
+      // })
       .optional(),
     twitter: z
       .url()
+      .max(36)
       .startsWith('https://x.com/', 'Invalid twitter page. Must be https://x.com/...')
       .optional()
       .or(z.literal('')),
     telegram: z
       .url()
       .startsWith('https://t.me/', 'Invalid telegram page. Must be https://t.me/...')
+      .max(36)
       .optional()
       .or(z.literal('')),
-    image: z.instanceof(File, { message: 'Image is required' }),
+    image: z
+      .instanceof(File, { message: 'Image is required' })
+      .refine((file) => file.size <= 8 * 1024 * 1024, {
+        message: 'File must be smaller than 8 MB',
+      })
+      .refine((file) => acceptedFileTypes.includes(file.type), {
+        message: 'Only PNG, JPEG or GIF are allowed',
+      }),
     link: z.string(),
   });
 
@@ -63,6 +81,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
   const { publicKey, signTransaction } = useWallet();
   const { fetchBalance, sendTransaction: sendTransactionProxy } = useSolanaProxy();
   const { mutateAsync: createHeavenTokenAsync } = useCreateHeavenToken();
+  const { mutateAsync: quoteInitalBuy } = useQuoteInitialBuy();
   const { mutateAsync: setProjectTokenAsync } = useSetTokenForProject(projectId);
   const { refetch: refetchTokenData } = useGetHeavenToken(projectId);
 
@@ -104,7 +123,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     },
   });
 
-  const { control, handleSubmit, formState } = form;
+  const { control, handleSubmit, formState, setError } = form;
   const { isSubmitting } = formState;
   const prebuy = useWatch({ control, name: 'prebuy' });
 
@@ -114,18 +133,34 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     if (!publicKey || !signTransaction) return;
 
     try {
+      if (walletBalance && estimatedDeployCost > walletBalance) {
+        setError('root', {
+          message: `You should have at least ${estimatedDeployCost.toFixed(3)} SOL to create token`,
+          type: 'disabled',
+        });
+      }
+      let initialBuy: QuoteInitalBuyResponse;
+      if (prebuy && walletBalance) {
+        initialBuy = await quoteInitalBuy(prebuy);
+        if (initialBuy.solAmount + estimatedDeployCost > walletBalance) {
+          const minAmount = (initialBuy.solAmount + estimatedDeployCost).toFixed(4);
+          setError('root', {
+            message: `Prebuy cannot be larger than your wallet balance. You should have at least ${minAmount} SOL to create token and prebuy ${prebuy}% of supply`,
+          });
+          return;
+        }
+      }
+
       const formData = new FormData();
       Object.entries(values).map(([key, val]) => {
         if (typeof val === 'undefined') return;
-        let value: Blob | string;
-        if (typeof val === 'number') {
-          value = val.toString();
-        } else if (val instanceof File) {
-          value = new Blob([val]);
+        if (val instanceof File) {
+          formData.append(key, val, val.name);
+        } else if (key === 'prebuy') {
+          formData.append(key, String(initialBuy?.tokenAmount ?? 0));
         } else {
-          value = val;
+          formData.append(key, String(val));
         }
-        formData.append(key, value);
       });
       const { tx, mintPublicKey } = await createHeavenTokenAsync(formData);
 
@@ -257,35 +292,42 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
         <FormField
           control={control}
           name="prebuy"
-          rules={{ min: { value: 0, message: 'Minimum quantity is 1' } }}
+          rules={{
+            min: { value: 0, message: 'Minimum percent is 0' },
+            max: { value: 99, message: 'Maximum percent is 99' },
+          }}
           render={({ field }) => (
             <FormItem>
               <div className="flex justify-between">
                 <FormLabel>Prebuy Amount</FormLabel>
                 <FormDescription>
-                  Balance:{' '}
+                  {/* Balance:{' '}
                   {isBalanceLoading ? (
                     <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>
                   ) : (
                     walletBalance
                   )}
-                  SOL
+                  SOL */}
+                  Buy supply of token in percents
                 </FormDescription>
               </div>
               <FormControl>
-                <Input
-                  placeholder="0 SOL"
-                  disabled={isSubmitting || !!balanceError || isBalanceLoading}
-                  {...field}
-                  type="text"
-                  pattern="[0-9]*[.,]?[0-9]*"
-                  autoComplete="off"
-                  inputMode="decimal"
-                  onChange={(e) => {
-                    const value = e.target.value.replace(',', '.');
-                    field.onChange(value === '' ? undefined : value);
-                  }}
-                />
+                <div className="flex justify-center items-center">
+                  <Input
+                    placeholder="0"
+                    disabled={isSubmitting || !!balanceError || isBalanceLoading}
+                    {...field}
+                    type="text"
+                    pattern="[0-9]*[.,]?[0-9]*"
+                    autoComplete="off"
+                    inputMode="decimal"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(',', '.');
+                      field.onChange(value === '' ? undefined : value);
+                    }}
+                  />
+                  <p className="absolute right-8 text-gray-300">%</p>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -352,6 +394,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
           )}
         />
 
+        {formState.errors.root && <p className="text-destructive text-sm">{formState.errors.root.message}</p>}
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Creating...' : 'Create Token'}
         </Button>
