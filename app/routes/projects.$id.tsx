@@ -5,6 +5,14 @@ import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { formatUrl } from '~/utils/urlUtils';
+import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
+import { classNames } from '~/utils/classNames';
+import { twMerge } from 'tailwind-merge';
+import { formatNumber } from '~/lib/utils';
+import TokenInfoForm from '~/components/chat/TokenInfoForm';
+import { useState } from 'react';
+import Popup from '~/components/common/Popup';
+import { LoadingDots } from '~/components/ui';
 
 export default function Project() {
   const params = useParams();
@@ -22,6 +30,13 @@ export default function Project() {
   const s3Url = useDeploymentQuery(params.id, 's3').data;
   const icpUrl = useDeploymentQuery(params.id, 'icp').data;
   const akashUrl = useDeploymentQuery(params.id, 'akash').data;
+  const { data: tokenInfo, isLoading: tokenInfoLoading } = useGetHeavenToken(params.id);
+
+  const [showTokenWindow, setShowTokenWindow] = useState(false);
+
+  const truncateAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-6)}`;
+  };
 
   if (projectQuery.isLoading) {
     return (
@@ -109,7 +124,7 @@ export default function Project() {
                   <span className="text-xl font-bold text-white">{project.category}</span>
                 </div>
               )}
-              <h2 className="text-xl font-semibold text-purple-300 mb-6">Deployment links</h2>
+              <h2 className="text-xl font-semibold text-purple-300 mb-6">Deployment Links</h2>
               <div className="flex justify-between items-center border-b border-gray-800 pb-3">
                 <span className="text-gray-400">AWS (Default):</span>
                 <span className="text-xl font-bold text-white">
@@ -146,6 +161,65 @@ export default function Project() {
                   )}
                 </span>
               </div>
+              <a
+                className={twMerge(
+                  'flex items-center mb-6 gap-0.5 text-purple-300 w-fit',
+                  tokenInfo && 'hover:text-[#c28aff] hover:cursor-pointer',
+                )}
+                onClick={() => setShowTokenWindow(true)}
+              >
+                <h2 className="text-xl font-semibold">Token Info</h2>
+                {tokenInfo && <div className="i-ph:arrow-line-up-right size-5" />}
+              </a>
+              {tokenInfo ? (
+                <>
+                  <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                    <p className="text-gray-400">Address:</p>
+                    <a
+                      href={`https://solscan.io/account/${tokenInfo.address}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-white text-xl hover:underline"
+                    >
+                      {truncateAddress(tokenInfo.address)}
+                    </a>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-gray-800 pb-3">
+                    <p className="text-gray-400">Name:</p>
+                    <p className="text-white text-xl">
+                      <span className="font-bold">{`${tokenInfo.metadata.name}`}</span>{' '}
+                      {`(${tokenInfo.metadata.symbol})`}
+                    </p>
+                  </div>
+                  <div
+                    className={twMerge(
+                      'flex justify-between items-center border-b border-gray-800 pb-3',
+                      !tokenInfo.metadata.description && 'hidden',
+                    )}
+                  >
+                    <p className="text-gray-400">Description:</p>
+                    <p className="text-white overflow-auto max-h-36 whitespace-pre-line max-w-96 text-lg">{tokenInfo.metadata.description}</p>
+                  </div>
+                  <div className={twMerge('flex justify-between items-center border-b border-gray-800 pb-3')}>
+                    <p className="text-gray-400">Price:</p>
+                    <p className="text-white font-bold text-xl">{`\$${formatNumber(tokenInfo.price)} (\$${tokenInfo.marketCap.toFixed()} Market cap)`}</p>
+                  </div>
+
+                  <Popup
+                    isShow={showTokenWindow}
+                    handleToggle={() => {
+                      setShowTokenWindow(!showTokenWindow);
+                    }}
+                    positionClasses="sm:max-w-[500px] sm:w-[500px] mt-12"
+                  >
+                    <TokenInfoForm tokenData={tokenInfo}></TokenInfoForm>
+                  </Popup>
+                </>
+              ) : tokenInfoLoading ? (
+                <LoadingDots text={'Loading'} />
+              ) : (
+                <p>This project doesn't have a token</p>
+              )}
             </div>
           </section>
         </div>

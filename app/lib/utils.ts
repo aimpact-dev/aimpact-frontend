@@ -19,3 +19,9 @@ export function uint8ArrayToBase64(arr: Uint8Array): string {
   }
   return btoa(bin);
 }
+
+export const formatNumber = (price: number, fraction?: number) => {
+  if (price < 1e-6) return '<0.0000001';
+  const rounded = parseFloat(price.toFixed(7));
+  return rounded.toLocaleString(undefined, { maximumFractionDigits: fraction ?? 7 });
+};

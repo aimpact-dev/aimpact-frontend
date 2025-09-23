@@ -61,7 +61,7 @@ export const useGetHeavenToken = (projectId: string) =>
       const { data } = await client.get<TokenDataResponse>(`/heaven-dex/projects/${projectId}/tokens`);
       return data;
     },
-    retry: false,
+    retryDelay: 20000,
   });
 
 export interface SetTokenForProjectRequest {

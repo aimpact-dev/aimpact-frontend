@@ -3,19 +3,13 @@ import { type TokenDataResponse } from '~/lib/hooks/tanstack/useHeaven';
 import { Button, Input, Label } from '../ui';
 import { Tooltip } from './Tooltip';
 import { toast } from 'react-toastify';
+import { formatNumber } from '~/lib/utils';
 
 interface TokenInfoFormProps {
   tokenData: TokenDataResponse;
 }
 
 export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
-  const formatNumber = (price: number, fraction?: number) => {
-    if (price < 1e-6) return '<0.0000001';
-    const rounded = parseFloat(price.toFixed(7));
-    return rounded.toLocaleString(undefined, { maximumFractionDigits: fraction ?? 7 });
-  };
-
-
   const inputClasses = 'border-none';
   const DollarIcon = () => {
     return (
@@ -89,46 +83,35 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
             </a>
           </div>
         </div>
-        {/* <div className="flex flex-col gap-2 pl-1">
-          {tokenData.telegram && (
-            <a href={tokenData.telegram} className='flex gap-3'>
-              <div className="i-ph:telegram-logo size-5" />
-              <p className='hover:underline'>{tokenData.telegram}</p>
-            </a>
-          )}
-
-          {tokenData.twitter && (
-            <a href={tokenData.twitter} className='flex gap-3'>
-              <div className="i-ph:x-logo size-5" />
-              <p className='hover:underline'>{tokenData.telegram}</p>
-            </a>
-          )}
-        </div> */}
 
         <div className="flex flex-col gap-3 pl-1 mt-2">
-          <div className="space-y-2">
-            <Label>
-              <div className="i-ph:telegram-logo color-accent-300" /> Telegram
-            </Label>
-            <div className="relative w-full">
-              <a target="_blank" rel="noopener noreferrer" href={tokenData.telegram}>
-                <Input readOnly value={tokenData.telegram} className={inputClasses + ' pr-15 cursor-pointer'} />
-                <span className="i-ph:arrow-square-out h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-300"></span>
-              </a>
+          {tokenData.telegram && (
+            <div className="space-y-2">
+              <Label>
+                <div className="i-ph:telegram-logo color-accent-300" /> Telegram
+              </Label>
+              <div className="relative w-full">
+                <a target="_blank" rel="noopener noreferrer" href={tokenData.telegram}>
+                  <Input readOnly value={tokenData.telegram} className={inputClasses + ' pr-15 cursor-pointer'} />
+                  <span className="i-ph:arrow-square-out h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-300" />
+                </a>
+              </div>
             </div>
-          </div>
+          )}
 
-          <a target="_blank" rel="noopener noreferrer" href={tokenData.twitter}>
+          {tokenData.telegram && (
             <div className="space-y-2">
               <Label>
                 <div className="i-ph:x-logo color-accent-300" /> Twitter
               </Label>
               <div className="relative w-full">
-                <Input readOnly value={tokenData.twitter} className={inputClasses + ' pr-15 cursor-pointer'} />
-                <span className="i-ph:arrow-square-out h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-300"></span>
+                <a target="_blank" rel="noopener noreferrer" href={tokenData.twitter}>
+                  <Input readOnly value={tokenData.twitter} className={inputClasses + ' pr-15 cursor-pointer'} />
+                  <span className="i-ph:arrow-square-out h-4 w-4 absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-300" />
+                </a>
               </div>
             </div>
-          </a>
+          )}
         </div>
       </div>
 
