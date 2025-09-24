@@ -4,9 +4,12 @@ import { getAimpactFs } from '~/lib/aimpactfs';
 import { toast } from 'react-toastify';
 import { ContractBuildService } from '~/lib/smartContracts/contractBuildService';
 import { chatId } from '~/lib/persistence';
+import { usePostBuildRequest } from '~/lib/hooks/tanstack/useContractBuild';
+import { workbenchStore } from '~/lib/stores/workbench';
+import type { Dirent } from '~/lib/stores/files';
 
 export function TestAnchorValidatorButton() {
-
+  const { mutateAsync: createContractBuildRequest } = usePostBuildRequest();
 
   const handleClick = async () => {
     const validator = new AnchorProjectValidator(getAimpactFs());
@@ -16,8 +19,20 @@ export function TestAnchorValidatorButton() {
     }
     else{
       toast.success(result.message);
-      const contractBuildService = new ContractBuildService(validator, getAimpactFs());
-      await contractBuildService.requestContractBuild(chatId.get()!)
+
+      const files = workbenchStore.files.get();
+      const anchorProjectSnapshot: Record<string, Dirent | undefined> = {};
+      const anchorPathPrefix = '/home/project/src-anchor';
+      Object.entries(files).forEach(([path, item]) => {
+        if(path.startsWith(anchorPathPrefix)) {
+          const clearedPath = path.replace('/src-anchor' , '');
+          anchorProjectSnapshot[clearedPath] = item;
+        }
+      });
+      await createContractBuildRequest({
+        projectId: chatId.get()!,
+        snapshot: anchorProjectSnapshot
+      });
     }
   };
 

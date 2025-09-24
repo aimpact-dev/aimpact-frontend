@@ -35,11 +35,8 @@ export class ContractBuildService {
     const files = workbenchStore.files.get();
     const anchorProjectSnapshot: Record<string, Dirent | undefined> = {};
     const anchorPathPrefix = workDir + '/' + ANCHOR_PROJECT_FOLDER_NAME;
-    console.log("Anchor prefix: " + anchorPathPrefix);
     Object.entries(files).forEach(([path, item]) => {
-      console.log("Checking path: " + path);
       if(path.startsWith(anchorPathPrefix)) {
-        console.log("Adding element with path: " + path);
         const clearedPath = path.replace('/' + ANCHOR_PROJECT_FOLDER_NAME, '');
         anchorProjectSnapshot[clearedPath] = item;
       }

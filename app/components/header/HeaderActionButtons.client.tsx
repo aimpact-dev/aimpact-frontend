@@ -314,7 +314,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 mr-4 text-sm h-full">
-            <TestAnchorValidatorButton/>
             <Button
               active
               // disabled={isDeploying || !activePreview || isStreaming}
