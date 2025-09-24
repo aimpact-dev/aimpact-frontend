@@ -11,10 +11,10 @@ export interface HeavenTokenRequest {
 }
 
 export interface TokenDataResponse {
-  marketCap: number;
+  marketCap?: number;
   supply: number;
   address: string;
-  price: number;
+  price?: number;
   metadata: {
     name: string;
     description: string;
@@ -24,6 +24,7 @@ export interface TokenDataResponse {
   };
   telegram: string;
   twitter: string;
+  isHeaven: boolean;
 }
 
 export interface HeavenTokenResponse {

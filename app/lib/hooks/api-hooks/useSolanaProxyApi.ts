@@ -46,7 +46,7 @@ export const useSolanaProxy = () => {
         'Content-Type': 'application/json',
       },
     }) as Promise<{ lamports: number }>;
-  }
+  };
 
   return {
     getRecentBlockhash,

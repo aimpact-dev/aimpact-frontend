@@ -36,7 +36,11 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
           <Label>Price</Label>
           <div className="relative w-full">
             <DollarIcon />
-            <Input readOnly value={`${formatNumber(tokenData.price)}`} className={inputClasses + ' pl-9'} />
+            <Input
+              readOnly
+              value={tokenData.price ? formatNumber(tokenData.price) : '?'}
+              className={inputClasses + ' pl-9'}
+            />
           </div>
         </div>
         <div className="flex *:flex-1 gap-2">
@@ -57,7 +61,11 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
             <Label>Market Cap</Label>
             <div className="relative w-full">
               <DollarIcon />
-              <Input readOnly value={`${formatNumber(tokenData.marketCap, 2)}`} className={inputClasses + ' pl-9'} />
+              <Input
+                readOnly
+                value={tokenData.marketCap ? formatNumber(tokenData.marketCap, 2) : '$?'}
+                className={inputClasses + ' pl-9'}
+              />
             </div>
           </div>
         </div>
@@ -116,9 +124,11 @@ export default function TokenInfoForm({ tokenData }: TokenInfoFormProps) {
       </div>
 
       <div className="mt-4">
-        <a href={`https://heaven.xyz/token/${tokenData.address}`} target="_blank" rel="noopener noreferrer">
-          <Button size="default">View on Heaven</Button>
-        </a>
+        {tokenData.isHeaven && (
+          <a href={`https://heaven.xyz/token/${tokenData.address}`} target="_blank" rel="noopener noreferrer">
+            <Button size="default">View on Heaven</Button>
+          </a>
+        )}
       </div>
     </div>
   );

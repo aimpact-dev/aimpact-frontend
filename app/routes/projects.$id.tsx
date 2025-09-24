@@ -10,7 +10,7 @@ import { classNames } from '~/utils/classNames';
 import { twMerge } from 'tailwind-merge';
 import { formatNumber } from '~/lib/utils';
 import TokenInfoForm from '~/components/chat/TokenInfoForm';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Popup from '~/components/common/Popup';
 import { LoadingDots } from '~/components/ui';
 
@@ -30,7 +30,11 @@ export default function Project() {
   const s3Url = useDeploymentQuery(params.id, 's3').data;
   const icpUrl = useDeploymentQuery(params.id, 'icp').data;
   const akashUrl = useDeploymentQuery(params.id, 'akash').data;
-  const { data: tokenInfo, isLoading: tokenInfoLoading } = useGetHeavenToken(params.id);
+  const { data: tokenInfo, isLoading: tokenInfoLoading, error: tokenInfoError } = useGetHeavenToken(params.id);
+
+  useEffect(() => {
+    console.log(!!tokenInfo, tokenInfoLoading, tokenInfoError);
+  });
 
   const [showTokenWindow, setShowTokenWindow] = useState(false);
 
@@ -198,11 +202,14 @@ export default function Project() {
                     )}
                   >
                     <p className="text-gray-400">Description:</p>
-                    <p className="text-white overflow-auto max-h-36 whitespace-pre-line max-w-96 text-lg">{tokenInfo.metadata.description}</p>
+                    <p className="text-white overflow-auto max-h-36 whitespace-pre-line max-w-96 text-lg">
+                      {tokenInfo.metadata.description}
+                    </p>
                   </div>
                   <div className={twMerge('flex justify-between items-center border-b border-gray-800 pb-3')}>
                     <p className="text-gray-400">Price:</p>
-                    <p className="text-white font-bold text-xl">{`\$${formatNumber(tokenInfo.price)} (\$${tokenInfo.marketCap.toFixed()} Market cap)`}</p>
+                    <p className="text-white font-bold text-xl">{`\$${tokenInfo.price ? formatNumber(tokenInfo.price) : '?'} ${' '}
+                      (\$${tokenInfo.marketCap ? tokenInfo.marketCap.toFixed() : '?'} Market cap)`}</p>
                   </div>
 
                   <Popup
@@ -212,7 +219,7 @@ export default function Project() {
                     }}
                     positionClasses="sm:max-w-[500px] sm:w-[500px] mt-12"
                   >
-                    <TokenInfoForm tokenData={tokenInfo}></TokenInfoForm>
+                    <TokenInfoForm tokenData={tokenInfo} />
                   </Popup>
                 </>
               ) : tokenInfoLoading ? (

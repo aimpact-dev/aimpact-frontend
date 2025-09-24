@@ -15,7 +15,7 @@ interface ProjectsResponse {
     pageSize: number;
     total: number;
   };
-};
+}
 
 export type Project = {
   id: string;
@@ -25,17 +25,24 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  appDeployments?: AppDeployments[],
+  appDeployments?: AppDeployments[];
 };
 
 export type ProjectWithOwner = Project & {
   projectOwnerAddress: string;
 };
 
-export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+export const useProjectsQuery = (
+  page: number,
+  pageSize: number,
+  ownership: 'all' | 'owned',
+  sortBy: 'createdAt' | 'updatedAt' | 'name',
+  sortDirection: 'ASC' | 'DESC',
+  jwtToken?: string,
+) => {
   return useQuery<ProjectsResponse>({
     initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
-    queryKey: ['projects', {page, pageSize, ownership, sortBy, sortDirection}],
+    queryKey: ['projects', { page, pageSize, ownership, sortBy, sortDirection }],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -49,8 +56,8 @@ export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all
           sortBy,
           sortOrder: sortDirection,
         },
-        headers: requestHeaders
-      })
+        headers: requestHeaders,
+      });
       const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
@@ -121,6 +128,6 @@ export const useSetProjectToken = (id: string) => {
         json: payload,
       });
       return data;
-    }
-  })
-}
+    },
+  });
+};

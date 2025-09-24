@@ -18,16 +18,6 @@ import { useParams } from '@remix-run/react';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import TokenInfoNavButton from '../chat/TokenInfoButton';
 
-export type ButtonProps = PropsWithChildren<{
-  className?: string;
-  disabled?: boolean;
-  endIcon?: ReactElement;
-  onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
-  startIcon?: ReactElement;
-  style?: CSSProperties;
-  tabIndex?: number;
-}>;
-
 export function Header() {
   const chat = useStore(chatStore);
   const { connected } = useWallet();

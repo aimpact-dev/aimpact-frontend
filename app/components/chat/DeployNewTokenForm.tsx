@@ -269,9 +269,8 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                         accept="image/*"
                         onChange={(e) => {
                           const file = e.target.files?.[0];
-                          field.onChange(file); // set value in RHF
                           if (file) {
-                            field.onChange(file);
+                            field.onChange(file); // set value in RHF
                             const url = URL.createObjectURL(file);
                             setImagePreview(url);
                           }
