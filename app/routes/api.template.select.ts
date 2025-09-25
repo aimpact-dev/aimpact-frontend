@@ -117,7 +117,8 @@ async function templateSelectAction({ context, request }: ActionFunctionArgs) {
         statusText: 'Internal Server Error',
       });
     }
-  } else {
+  }
+  else {
     try {
       const models = await getModelList({ apiKeys, providerSettings, serverEnv: context.cloudflare?.env as any });
       const modelDetails = models.find((m: ModelInfo) => m.name === model);
