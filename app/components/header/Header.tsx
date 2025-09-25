@@ -49,7 +49,7 @@ export function Header() {
         <Button
           variant="default"
           className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
-          onClick={() => navigate('/projects')}
+          onClick={() => { window.location.href = '/projects'; }}
         >
           View all projects
         </Button>
