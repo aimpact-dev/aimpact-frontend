@@ -231,7 +231,7 @@ export default function SmartContractView() {
   return (
     <div className="flex w-full h-full justify-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
       {anchorProject ? (
-        <div className="w-full bg-bolt-elements-background-depth-2 px-6 py-8">
+        <div className="w-full bg-bolt-elements-background-depth-2 px-6 py-8 overflow-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex flex-col xl:gap-6 gap-3 px-6 py-8 bg-bolt-elements-background-depth-3 rounded-sm">
             <div className="flex justify-between">
               <h1>Anchor project detected</h1>
@@ -338,8 +338,8 @@ export default function SmartContractView() {
                             {anchorProject.build.message}
                             <span className="ml-3 inline-block i-ph:x text-bolt-elements-icon-error align-text-top w-4 h-4"></span>
                           </div>
-                          <div className="max-h-[150px] overflow-auto bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
-                            {anchorProject.build.logs?.map((log) => <p>{log}</p>)}
+                          <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
+                            {anchorProject.build.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
                           </div>
                           <Button onClick={fixBuild}>Fix with AI</Button>
                         </>
@@ -414,8 +414,8 @@ export default function SmartContractView() {
                               {anchorProject.deploy.message}
                               <span className="ml-3 inline-block i-ph:x text-bolt-elements-icon-error align-text-top w-4 h-4"></span>
                             </div>
-                            <div className="max-h-[150px] overflow-auto bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
-                              {anchorProject.deploy.logs?.map((log) => <p>{log}</p>)}
+                            <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
+                              {anchorProject.deploy.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
                             </div>
                             <Button onClick={fixDeploy}>Fix with AI</Button>
                           </>

@@ -52,8 +52,7 @@ body {
 
   // Firefox support
   scrollbar-width: thin;
-  // Use CSS variables for Firefox colors
-  scrollbar-color: var(--modern-scrollbar-thumb-backgroundHover) transparent; // Use hover color for thumb for consistency
+  scrollbar-color: #A3A3A350 transparent; 
 }
 
 .modern-scrollbar-invert {

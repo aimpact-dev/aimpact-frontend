@@ -16,7 +16,7 @@ export const Slider = genericMemo(<T,>({ selected, options, setSelected }: Slide
   return (
     <div className="flex items-center flex-wrap shrink-0 gap-1 bg-bolt-elements-background-depth-1 overflow-hidden rounded-full p-1">
       {options.map(({ value, text }) => (
-        <SliderButton selected={value === selected} setSelected={() => setSelected?.(value)}>
+        <SliderButton key={String(value)} selected={value === selected} setSelected={() => setSelected?.(value)}>
           {text}
         </SliderButton>
       ))}
