@@ -1,21 +1,14 @@
-﻿import type { AnchorProjectValidator } from '~/lib/smartContracts/anchorProjectValidator';
-import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
+﻿import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import {workbenchStore} from '~/lib/stores/workbench';
 import {getAuthTokenFromCookies} from '~/lib/hooks/useAuth';
 import type { Dirent } from '~/lib/stores/files';
+import { getAnchorProjectSnapshot, validateAnchorProject } from '~/lib/smartContracts/anchorProjectUtils';
 
 const ANCHOR_PROJECT_FOLDER_NAME = 'src-anchor';
 
 //Class for sending a contract build request to the backend.
 //Needed to be able to run build request logic outside of React components.
 export class ContractBuildService {
-  private readonly projectValidator: AnchorProjectValidator;
-  private readonly fsPromise: Promise<AimpactFs>;
-
-  constructor(projectValidator: AnchorProjectValidator, fsPromise: Promise<AimpactFs>) {
-    this.projectValidator = projectValidator;
-    this.fsPromise = fsPromise;
-  }
 
   //Make sure to validate the anchor project via AnchorProjectValidator before calling this method.
   //If the anchor project is invalid an error will be thrown.
@@ -25,26 +18,15 @@ export class ContractBuildService {
       throw new Error('Not authorized');
     }
 
-    const validationResult = await this.projectValidator.validateAnchorProject();
-    if(!validationResult.isValid){
-      throw new Error("Cannot request smart contract build, a validation error occurred: " + validationResult.message);
+    const validationResult = validateAnchorProject();
+    if(validationResult.status !== 'VALID') {
+      throw new Error('Cannot request anchor project build, validation has failed with an error: ' + validationResult.message);
     }
-
-    const fs = await this.fsPromise;
-    const workDir = await fs.workdir();
-    const files = workbenchStore.files.get();
-    const anchorProjectSnapshot: Record<string, Dirent | undefined> = {};
-    const anchorPathPrefix = workDir + '/' + ANCHOR_PROJECT_FOLDER_NAME;
-    Object.entries(files).forEach(([path, item]) => {
-      if(path.startsWith(anchorPathPrefix)) {
-        const clearedPath = path.replace('/' + ANCHOR_PROJECT_FOLDER_NAME, '');
-        anchorProjectSnapshot[clearedPath] = item;
-      }
-    });
+    const anchorProjectSnapshot = getAnchorProjectSnapshot();
 
     const payload = {
       projectId: projectId,
-      snapshot: anchorProjectSnapshot
+      snapshot: anchorProjectSnapshot.files
     }
     const response = await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/build-contract/build-request`, {
       method: 'POST',
