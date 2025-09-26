@@ -101,7 +101,6 @@ function Providers({ children }: { children: React.ReactNode }) {
             </RefCodeProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
-          <DaytonaCleanup />
         </Suspense>
       )}
     </ClientOnly>
