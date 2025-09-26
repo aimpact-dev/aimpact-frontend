@@ -34,7 +34,6 @@ export type ButtonProps = PropsWithChildren<{
 
 export function Header() {
   const chat = useStore(chatStore);
-  const navigate = useNavigate();
   const { connected } = useWallet();
   const user = useStore(userInfo);
 

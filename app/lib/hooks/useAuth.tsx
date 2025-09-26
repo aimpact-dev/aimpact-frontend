@@ -38,7 +38,7 @@ export const userInfo = atom<UserInfo | undefined>(undefined);
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { publicKey, connected, signMessage, disconnect } = useWallet();
+  const { publicKey, connected, signMessage, disconnect, wallet } = useWallet();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [jwtToken, setJwtToken] = useState('');
 
@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               signedMessage: signature,
               walletAddress: publicKey.toBase58(),
               inviteCode: localStorage.getItem('refCode') || null,
+              wallet: wallet?.adapter.name,
             }),
             method: 'POST',
           });
@@ -124,9 +125,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkCreds().then(() => {
-       // console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
-       // console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
-       // console.log(`Public Key: ${publicKey}`);
+      // console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
+      // console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
+      // console.log(`Public Key: ${publicKey}`);
     });
   }, [publicKey, connected, signMessage, disconnect]);
 
@@ -141,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!connected || !isAuthorized) {
-        return;
+      return;
     }
 
     const req = async () => {
