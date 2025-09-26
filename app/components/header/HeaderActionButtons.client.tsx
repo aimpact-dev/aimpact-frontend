@@ -12,8 +12,6 @@ import { Tooltip } from '../chat/Tooltip';
 import { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
-import LeaderbaordNavButton from '~/components/chat/LeaderboardNavButton';
-import { TestAnchorValidatorButton } from '~/components/testAnchorProjectValidatorButton';
 
 interface HeaderActionButtonsProps {}
 enum DeployProviders {

@@ -2,11 +2,51 @@
 import type { AxiosError } from 'axios';
 import { client } from '../../api/backend/api';
 import type { Dirent } from '~/lib/stores/files';
+import { AnchorProjectValidator } from '~/lib/smartContracts/anchorProjectValidator';
+import { getAimpactFs } from '~/lib/aimpactfs';
+import { toast } from 'react-toastify';
+import { workbenchStore } from '~/lib/stores/workbench';
+import { chatId } from '~/lib/persistence';
+
+export type ContractBuildRequestStatus = 'STARTED' | 'BUILDING' | 'COMPLETED' | 'FAILED';
 
 export interface PostBuildRequestPayload {
   projectId: string;
   snapshot: Record<string, Dirent | undefined>;
 }
+
+export interface GetBuildRequestResponse {
+  projectId: string;
+  status: ContractBuildRequestStatus;
+  startedAt: Date;
+  message?: string;
+  logs?: Array<string>;
+}
+
+export interface GetBuildResponse {
+  programId: string;
+  programIdl: object;
+  programName: string;
+  buildUrl: string;
+  builtAt: Date;
+  sizeBytes: number;
+}
+
+export const useGetBuild = () =>
+  useMutation<GetBuildResponse, AxiosError, string>({
+    mutationFn: async(projectId) => {
+      const { data } = await client.get<GetBuildResponse>(`/build-contract/${projectId}/build`);
+      return data;
+    }
+  });
+
+export const useGetBuildRequest = () =>
+  useMutation<GetBuildRequestResponse, AxiosError, string>({
+    mutationFn: async (projectId) => {
+      const { data } = await client.get<GetBuildRequestResponse>(`/build-contract/${projectId}/build-request`);
+      return data;
+    }
+  });
 
 export const usePostBuildRequest = () =>
   useMutation<void, AxiosError, PostBuildRequestPayload>({
