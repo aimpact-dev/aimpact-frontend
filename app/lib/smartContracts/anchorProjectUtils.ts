@@ -28,7 +28,6 @@ const EXPECTED_ROOT_FILES: string[] = [
 //Paths of the files, that must be present in the *anchor_root*/programs/*program_folder_name* folder
 const EXPECTED_PROGRAM_FILES: string[] = [
   'Cargo.toml',
-  'Xargo.toml',
   'src/lib.rs'
 ]
 

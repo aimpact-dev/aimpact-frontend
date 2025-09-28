@@ -1,28 +1,41 @@
 import { useEffect, useState } from 'react';
 import { Badge, Button } from '../ui';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { getAnchorProjectSnapshot, validateAnchorProject } from '~/lib/smartContracts/anchorProjectUtils';
+import { toast } from 'react-toastify';
+import {
+  type ContractBuildRequestStatus,
+  type GetBuildRequestResponse, type GetBuildResponse, useGetBuild, useGetBuildRequest,
+  usePostBuildRequest
+} from '~/lib/hooks/tanstack/useContractBuild';
+import { chatId } from '~/lib/persistence';
+import {
+  type ContractDeployRequestStatus,
+  type GetDeploymentResponse,
+  type GetDeployRequestResponse, useGetDeployment, useGetDeployRequest, usePostDeployRequest
+} from '~/lib/hooks/tanstack/useContractDeploy';
+import { Connection } from '@solana/web3.js';
+
+//Represents anchor project found in user's files on the client
+interface LocalAnchorProject {
+  path: string;
+  programName: string;
+}
+
+interface ContractBuild extends GetBuildResponse{
+  deployCost: number;
+}
 
 interface AnchorProject {
   name: string;
   path: string;
-  build?: {
-    id: string;
-    startedAt: string;
-    status: 'STARTED' | 'BUILDING' | 'COMPLETED' | 'FAILED';
-    message?: string;
-    logs?: Array<string>;
-    name?: string;
-    url?: string;
-    builtAt?: string;
-    sizeBytes?: number;
-    idl?: string;
-    deployCost?: number;
-  };
+  buildRequest?: GetBuildRequestResponse;
+  build?: ContractBuild;
   deploy?: {
     id: string;
     network: string;
     startedAt: string;
-    status: 'STARTED' | 'DEPLOYING' | 'COMPLETED' | 'FAILED';
+    status: ContractDeployRequestStatus;
     message?: string;
     logs?: Array<string>;
     name?: string;
@@ -32,170 +45,158 @@ interface AnchorProject {
   };
 }
 
+const DEVNET_RPC = 'https://api.devnet.solana.com';
+const ANCHOR_PROJECT_CHECKING_INTERVAL_MS = 1000;
+const BUILD_REQUEST_POLLING_INTERVAL_MS = 1000;
+const DEPLOY_REQUEST_POLLING_INTERVAL_MS = 1000;
+
 export default function SmartContractView() {
-  const [anchorProject, setAnchorProject] = useState<AnchorProject | null>({
-    name: 'anchor',
-    path: 'src/anchor',
-  });
-  // get anchor project here
+  const [anchorProject, setAnchorProject] = useState<AnchorProject | null>();
+
+  const [localAnchorProject, setLocalAnchorProject] = useState<LocalAnchorProject | null>();
+  const [contractBuildRequest, setContractBuildRequest] = useState<GetBuildRequestResponse | null>();
+  const [contractBuild, setContractBuild] = useState<ContractBuild | null>();
+  const [contractDeployRequest, setContractDeployRequest] = useState<GetDeployRequestResponse | null>();
+  const [contractDeployment, setContractDeployment] = useState<GetDeploymentResponse | null>();
 
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    if (!anchorProject) return;
+  const {mutateAsync: requestContractBuild } = usePostBuildRequest();
+  const {mutateAsync: getContractBuildRequest } = useGetBuildRequest();
+  const {mutateAsync: getContractBuild} = useGetBuild();
+  const {mutateAsync: requestContractDeploy } = usePostDeployRequest();
+  const {mutateAsync: getContractDeployRequest} = useGetDeployRequest();
+  const {mutateAsync: getContractDeployment} = useGetDeployment();
 
-    if (anchorProject?.deploy) {
+  useEffect(() => {
+    if (!localAnchorProject) return;
+
+    if (contractDeployRequest) {
       setOpenAccordion('deploy');
     } else {
       setOpenAccordion('build');
     }
-  }, [anchorProject?.deploy, anchorProject?.build]);
+  }, [contractDeployRequest, contractBuildRequest]);
 
-  const buildContract = () => {
-    // setAnchorProject((prev) => {
-    //   if (!prev) return prev;
-    //   return {
-    //     ...prev,
-    //     build: {
-    //       id: `build-${Date.now()}`,
-    //       startedAt: new Date().toISOString(),
-    //       status: 'STARTED',
-    //     },
-    //   };
-    // });
-    // setTimeout(() => {
-    //   setAnchorProject((prev) =>
-    //     prev
-    //       ? {
-    //           ...prev,
-    //           build: {
-    //             ...prev.build!,
-    //             status: 'BUILDING',
-    //           },
-    //         }
-    //       : null,
-    //   );
-    // }, 2000);
-    // setTimeout(() => {
-    //   const isSuccess = Math.random() > 0.1; // 70% success rate
-    //   setAnchorProject((prev) =>
-    //     prev
-    //       ? {
-    //           ...prev,
-    //           build: {
-    //             ...prev.build!,
-    //             status: isSuccess ? 'COMPLETED' : 'FAILED',
-    //             builtAt: isSuccess ? new Date().toISOString() : undefined,
-    //             message: isSuccess ? 'Anchor build completed successfully' : 'Anchor build failed',
-    //             logs: isSuccess
-    //               ? []
-    //               : [
-    //                   '[2025-09-24 10:15:12] Build requested...',
-    //                   '[2025-09-24 10:15:13] Fetching project files...',
-    //                   '[2025-09-24 10:15:16] Running pre-build checks...',
-    //                   '[2025-09-24 10:15:18] Installing dependencies...',
-    //                   '[2025-09-24 10:15:27] Dependencies installed successfully.',
-    //                   '[2025-09-24 10:15:30] Compiling smart contract sources...',
-    //                   '[2025-09-24 10:15:37] Source compilation in progress...',
-    //                   "[2025-09-24 10:15:44] Warning: unused variable 'tempCounter' in src/lib.rs:42",
-    //                   '[2025-09-24 10:15:51] Error: cannot find type `AccountInfo` in this scope',
-    //                   '[2025-09-24 10:15:52]   --> src/contract.rs:17:14',
-    //                   '[2025-09-24 10:15:52]    |',
-    //                   '[2025-09-24 10:15:52] 17 |     fn init(ctx: Context<Init>) -> Result<()> {',
-    //                   '[2025-09-24 10:15:52]    |              ^^^ not found in this scope',
-    //                   '[2025-09-24 10:15:53] Compilation failed due to 1 previous error.',
-    //                   '[2025-09-24 10:15:54] Error: Build process exited with code 1',
-    //                 ],
-    //             name: isSuccess ? 'program.so' : undefined,
-    //             sizeBytes: isSuccess ? 224000 : undefined,
-    //             idl: isSuccess ? '{ ...mock idl... }' : undefined,
-    //             url: isSuccess ? '/mock/program.so' : undefined,
-    //             deployCost: isSuccess ? 100 : undefined,
-    //           },
-    //         }
-    //       : null,
-    //   );
-    // }, 4000);
+  const updateLocalAnchorProject = () => {
+    const validationResult = validateAnchorProject();
+    if(validationResult.status === 'VALID'){
+      const snapshot = getAnchorProjectSnapshot();
+      setLocalAnchorProject({
+        path: 'src-anchor',
+        programName: snapshot.programName
+      })
+    }
+  }
+
+  //Checking local files for anchor project and setting up periodical anchor project check
+  useEffect(() => {
+    updateLocalAnchorProject();
+    const interval = setInterval(() => {
+      updateLocalAnchorProject();
+    }, ANCHOR_PROJECT_CHECKING_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+
+  //User may already have smart contract artifacts (build and deploy requests, build, deployment), so we need to download them on smart
+  //contracts section load.
+  useEffect(()=> {
+    const loadAnchorProject = async() => {
+      const projectId = chatId.get();
+      if(!projectId) {
+        console.log("Initial load of anchor project data from backend failed, project id is undefined.");
+        return;
+      }
+
+      try {
+        const buildRequest = await getContractBuildRequest(projectId);
+        setContractBuildRequest(buildRequest);
+      }
+      catch(e) {
+        console.log(`On smart contract view load, could not get contract build request for project with id: ${projectId}, an error occurred: ${e}`);
+      }
+
+      try {
+        const contractBuild = await getContractBuild(projectId);
+        const connection = new Connection(DEVNET_RPC);
+        const deployCost = await connection.getMinimumBalanceForRentExemption(contractBuild.sizeBytes);
+        setContractBuild({
+          ...contractBuild,
+          deployCost: deployCost
+        });
+      }
+      catch(e) {
+        console.log(`On smart contract view load, could not  get build for project with id: ${projectId}, an error occurred: ${e}`);
+      }
+
+      try {
+        const deployRequest = await getContractDeployRequest(projectId);
+        setContractDeployRequest(deployRequest);
+      }
+      catch(e) {
+        console.log(`On smart contract view load, could not get deploy request for project with id: ${projectId}, an error occurred: ${e} `);
+      }
+
+      try {
+        const contractDeployment = await getContractDeployment(projectId);
+        setContractDeployment(contractDeployment);
+      }
+      catch(e) {
+        console.log(`On smart contract view load, could not get smart contract deployment for project with id: ${projectId}, an error occurred: ${e}`);
+      }
+    }
+    loadAnchorProject();
+  }, []);
+
+  const buildContract = async () => {
+    const validationResult = validateAnchorProject();
+    if(validationResult.status !== 'VALID'){
+      //TODO: Add more comprehensive invalid anchor project handling.
+      toast.error("Cannot build contract, validation error occurred: " + validationResult.message);
+    }
+    else{
+      const snapshot = getAnchorProjectSnapshot();
+      try {
+        const projectId = chatId.get();
+        if (!projectId) {
+          toast.error("Cannot request contract build, could not retrieve project id.");
+          return;
+        }
+        await requestContractBuild({
+          projectId: projectId,
+          snapshot: snapshot.files
+        });
+      }
+      catch (error) {
+        if(error instanceof Error) {
+          toast.error("Smart contract build request failed with an error: " + error.message);
+        }
+        else {
+          toast.error("Smart contract build request failed with an unknown error.");
+        }
+      }
+    }
   };
 
   const fixBuild = () => {
-    // buildContract();
+
   };
 
   const deployContract = () => {
-    // if (!anchorProject) return;
-    // setAnchorProject((prev) =>
-    //   prev
-    //     ? {
-    //         ...prev,
-    //         deploy: {
-    //           id: `deploy-${Date.now()}`,
-    //           network: 'devnet', // or any network you want
-    //           startedAt: new Date().toISOString(),
-    //           status: 'STARTED',
-    //         },
-    //       }
-    //     : null,
-    // );
-    // setTimeout(() => {
-    //   setAnchorProject((prev) =>
-    //     prev
-    //       ? {
-    //           ...prev,
-    //           deploy: {
-    //             ...prev.deploy!,
-    //             status: 'DEPLOYING',
-    //           },
-    //         }
-    //       : null,
-    //   );
-    // }, 2000);
-    // setTimeout(() => {
-    //   const isSuccess = Math.random() > 0.99; // 70% success rate
-    //   setAnchorProject((prev) =>
-    //     prev
-    //       ? {
-    //           ...prev,
-    //           deploy: {
-    //             ...prev.deploy!,
-    //             status: isSuccess ? 'COMPLETED' : 'FAILED',
-    //             deployedAt: isSuccess ? new Date().toISOString() : undefined,
-    //             message: isSuccess ? 'Anchor deployment completed successfully' : 'Anchor deployment failed',
-    //             logs: isSuccess
-    //               ? []
-    //               : [
-    //                   '[2025-09-24 11:45:01] Deploy requested...',
-    //                   '[2025-09-24 11:45:03] Preparing deployment package...',
-    //                   '[2025-09-24 11:45:07] Deployment package prepared successfully.',
-    //                   '[2025-09-24 11:45:10] Connecting to Solana devnet...',
-    //                   '[2025-09-24 11:45:13] Network connection established.',
-    //                   '[2025-09-24 11:45:16] Sending deployment transaction...',
-    //                   '[2025-09-24 11:45:19] Error: insufficient funds for transaction fee',
-    //                   '[2025-09-24 11:45:20]   → required: 0.002 SOL, available: 0.0005 SOL',
-    //                   '[2025-09-24 11:45:23] Transaction aborted.',
-    //                   '[2025-09-24 11:45:26] Error: Deployment failed',
-    //                 ],
-    //             name: isSuccess ? 'program.so' : undefined,
-    //             sizeBytes: isSuccess ? 224000 : undefined,
-    //             idl: isSuccess ? '{ ...mock idl... }' : undefined,
-    //             url: isSuccess ? '/mock/program.so' : undefined,
-    //           },
-    //         }
-    //       : null,
-    //   );
-    // }, 6000);
+
   };
 
   const fixDeploy = () => {
-    // deployContract();
+
   };
 
   const getStatusBadge = () => {
     if (!anchorProject) {
       return <Badge variant="secondary">No project</Badge>;
     }
-    if (anchorProject.build && !anchorProject.deploy) {
-      switch (anchorProject.build.status) {
+    if (anchorProject.buildRequest && !anchorProject.deploy) {
+      switch (anchorProject.buildRequest.status) {
         case 'STARTED':
           return <Badge variant="warning">Build requested</Badge>;
         case 'BUILDING':
@@ -252,7 +253,7 @@ export default function SmartContractView() {
               </div>
             </div>
 
-            {anchorProject.build ? (
+            {anchorProject.buildRequest ? (
               <>
                 <Accordion
                   type="single"
@@ -263,18 +264,18 @@ export default function SmartContractView() {
                   <AccordionItem value="build">
                     <AccordionTrigger>Build</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-3">
-                      {anchorProject.build.status === 'STARTED' && (
+                      {anchorProject.buildRequest.status === 'STARTED' && (
                         <div>
                           <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                            {anchorProject.build.startedAt
-                              ? new Date(anchorProject.build.startedAt).toLocaleString()
+                            {anchorProject.buildRequest.startedAt
+                              ? new Date(anchorProject.buildRequest.startedAt).toLocaleString()
                               : ''}
                           </span>
                           Build has started
                           <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault align-text-top w-4 h-4"></span>
                         </div>
                       )}
-                      {anchorProject.build.status === 'BUILDING' && (
+                      {anchorProject.buildRequest.status === 'BUILDING' && (
                         <div>
                           <span className="text-bolt-elements-textSecondary text-sm mr-3">
                             {new Date().toLocaleString()}
@@ -283,63 +284,74 @@ export default function SmartContractView() {
                           <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault align-text-top w-4 h-4"></span>
                         </div>
                       )}
-                      {anchorProject.build.status === 'COMPLETED' && (
+                      {anchorProject.buildRequest.status === 'COMPLETED' && (
                         <>
-                          <div>
-                            <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                              {new Date(anchorProject.build.builtAt!).toLocaleString()}
-                            </span>
-                            Building has finished successfully
-                            <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
-                          </div>
+                          {anchorProject.build ? (
+                            <>
+                              <div>
+                                <span className="text-bolt-elements-textSecondary text-sm mr-3">
+                                  {new Date(anchorProject.build.builtAt!).toLocaleString()}
+                                </span>
+                                  Building has finished successfully
+                                <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
+                              </div>
 
-                          <div className="flex *:flex-1 [&_p]:text-bolt-elements-textSecondary">
-                            <div>
-                              <div>
-                                <p>Name:</p> {anchorProject.build.name}
+                              <div className="flex *:flex-1 [&_p]:text-bolt-elements-textSecondary">
+                                <div>
+                                  <div>
+                                    <p>Name:</p> {anchorProject.build.programName}
+                                  </div>
+                                  <div>
+                                    <p>Program ID:</p> {anchorProject.build.programId}
+                                  </div>
+                                  <div>
+                                    <p>Size:</p> {anchorProject.build.sizeBytes}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div>
+                                    <p>Started at:</p> {new Date(anchorProject.buildRequest.startedAt!).toLocaleString()}
+                                  </div>
+                                  <div>
+                                    <p>Built at:</p> {new Date(anchorProject.build.builtAt!).toLocaleString()}
+                                  </div>
+                                  <div>
+                                    <p>Deploy cost:</p> <span className="opacity-70">$</span>{' '}
+                                    {anchorProject.build.deployCost}
+                                  </div>
+                                </div>
                               </div>
                               <div>
-                                <p>ID:</p> {anchorProject.build.id}
+                                <a
+                                  href="#"
+                                  className="text-bolt-elements-item-contentAccent underline hover:color-accent-400 transition-100"
+                                >
+                                  <span className="inline-block align-text-bottom text-lg i-ph:arrow-square-out"></span>
+                                  Open IDL
+                                </a>
                               </div>
+                            </>
+                          ) : (
+                            <>
                               <div>
-                                <p>Size:</p> {anchorProject.build.sizeBytes}
+                                Building has finished successfully, downloading build artifacts.
+                                <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
                               </div>
-                            </div>
-                            <div>
-                              <div>
-                                <p>Started at:</p> {new Date(anchorProject.build.startedAt!).toLocaleString()}
-                              </div>
-                              <div>
-                                <p>Built at:</p> {new Date(anchorProject.build.builtAt!).toLocaleString()}
-                              </div>
-                              <div>
-                                <p>Deploy cost:</p> <span className="opacity-70">$</span>{' '}
-                                {anchorProject.build.deployCost}
-                              </div>
-                            </div>
-                          </div>
-                          <div>
-                            <a
-                              href="#"
-                              className="text-bolt-elements-item-contentAccent underline hover:color-accent-400 transition-100"
-                            >
-                              <span className="inline-block align-text-bottom text-lg i-ph:arrow-square-out"></span>
-                              Open IDL
-                            </a>
-                          </div>
+                            </>
+                          )}
                         </>
                       )}
-                      {anchorProject.build.status === 'FAILED' && (
+                      {anchorProject.buildRequest.status === 'FAILED' && (
                         <>
                           <div>
                             <span className="text-bolt-elements-textSecondary text-sm mr-3">
                               {new Date().toLocaleString()}
                             </span>
-                            {anchorProject.build.message}
+                            {anchorProject.buildRequest.message}
                             <span className="ml-3 inline-block i-ph:x text-bolt-elements-icon-error align-text-top w-4 h-4"></span>
                           </div>
                           <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
-                            {anchorProject.build.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
+                            {anchorProject.buildRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
                           </div>
                           <Button onClick={fixBuild}>Fix with AI</Button>
                         </>
@@ -354,7 +366,7 @@ export default function SmartContractView() {
                         {anchorProject.deploy.status === 'STARTED' && (
                           <div>
                             <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                              {anchorProject.build.startedAt
+                              {anchorProject.deploy.startedAt
                                 ? new Date(anchorProject.deploy.startedAt).toLocaleString()
                                 : ''}
                             </span>
@@ -425,7 +437,7 @@ export default function SmartContractView() {
                   )}
                 </Accordion>
 
-                {anchorProject.build?.status === 'COMPLETED' && !anchorProject.deploy && (
+                {anchorProject.buildRequest?.status === 'COMPLETED' && !anchorProject.deploy && (
                   <Button onClick={deployContract}>
                     <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span> Deploy
                     contract

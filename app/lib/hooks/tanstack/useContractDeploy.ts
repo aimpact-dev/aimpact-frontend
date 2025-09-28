@@ -36,3 +36,19 @@ export const usePostDeployRequest = () =>
       return data;
     }
   });
+
+export const useGetDeployRequest = () =>
+  useMutation<GetDeployRequestResponse, AxiosError, string>({
+    mutationFn: async (projectId) => {
+      const { data } = await client.get(`/deploy-contract/${projectId}/deploy-request`);
+      return data;
+    }
+  });
+
+export const useGetDeployment = () =>
+  useMutation<GetDeploymentResponse, AxiosError, string>({
+    mutationFn: async (projectId) => {
+      const { data } = await client.get(`/deploy-contract/${projectId}/deployment`);
+      return data;
+    }
+  });
