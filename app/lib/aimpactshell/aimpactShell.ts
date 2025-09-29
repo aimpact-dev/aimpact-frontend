@@ -14,6 +14,7 @@ import { RuntimeErrorProcessor } from '~/lib/aimpactshell/logsProcessors/runtime
 import { CommandBuffer } from '~/lib/aimpactshell/commandBuffer';
 import { ViteConfigSyntaxChecker } from '~/lib/aimpactshell/commandPreprocessors/viteConfigSyntaxChecker';
 import { ViteTerminalErrorProcessor } from '~/lib/aimpactshell/logsProcessors/viteTerminalErrorProcessor';
+import { MiscTerminalErrorProcessor } from '~/lib/aimpactshell/logsProcessors/miscTerminalErrorProcessor';
 
 export type ExecutionResult = { output: string; exitCode: number } | undefined;
 
@@ -161,7 +162,8 @@ export function newAimpactShellProcess(sandboxPromise: Promise<AimpactSandbox>, 
   const portCatcher = getPortCatcher();
   const logsProcessors = [
     new LogPortCatcher(portCatcher),
-    new ViteTerminalErrorProcessor()
+    new ViteTerminalErrorProcessor(),
+    new MiscTerminalErrorProcessor()
   ];
   const commandsPreprocessors: CommandPreprocessor[] = [
     new ViteConfigSyntaxChecker(fsPromise),
