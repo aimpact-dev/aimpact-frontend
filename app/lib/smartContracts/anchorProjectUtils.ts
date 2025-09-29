@@ -1,14 +1,21 @@
 ﻿import { workbenchStore } from '~/lib/stores/workbench';
 import type { FileMap } from '~/lib/stores/files';
+import { path } from '~/utils/path';
 
 export interface AnchorProjectSnapshot {
   programName: string;
   files: FileMap
 }
 
+export enum AnchorValidationStatus {
+  NOT_FOUND = 'NOT_FOUND',
+  INVALID = 'INVALID',
+  VALID = 'VALID',
+}
+
 export interface AnchorValidationResult{
   message: string;
-  status: 'NOT_FOUND' | 'INVALID' | 'VALID';
+  status: AnchorValidationStatus;
 }
 
 interface DirentExistenceCheck {
@@ -34,56 +41,54 @@ const EXPECTED_PROGRAM_FILES: string[] = [
 
 export function validateAnchorProject(): AnchorValidationResult {
   const files = workbenchStore.files.get();
-  const anchorRootAbsolutePath = WORK_DIR + '/' + ANCHOR_ROOT_DIR_NAME;
+  const anchorRootAbsolutePath = path.join(WORK_DIR, ANCHOR_ROOT_DIR_NAME);
   if(!(anchorRootAbsolutePath in files)){
     return {
-      status: 'NOT_FOUND',
+      status: AnchorValidationStatus.NOT_FOUND,
       message: 'Anchor project not found, directory src-anchor is not present in the project root.',
     }
   }
 
   //Check if there is any empty files in the anchor projects. There should not be.
-  let emptyFileFound = false;
-  let emptyFileRelativePath = '';
+  let emptyFileRelativePath: string | null = null;
   Object.entries(files).forEach(([path, dirent]) => {
     if(path.startsWith(anchorRootAbsolutePath) && dirent && dirent.type === 'file'){
-      if(dirent.content.trim().length == 0){
-        emptyFileFound = true;
+      if(dirent.content.trim().length === 0){
         emptyFileRelativePath = path.replace(anchorRootAbsolutePath + '/', '');
         return;
       }
     }
   })
-  if(emptyFileFound){
+  if(emptyFileRelativePath){
     return {
-      status: 'INVALID',
+      status: AnchorValidationStatus.INVALID,
       message: `File ${emptyFileRelativePath} is empty. Anchor project must not contain any empty files.`,
     }
   }
 
   for(const rootFile of EXPECTED_ROOT_FILES){
-    const absolutePath = anchorRootAbsolutePath + '/' + rootFile;
+    const absolutePath = path.join(anchorRootAbsolutePath, rootFile);
     if(!(absolutePath in files)){
       return {
-        status: 'INVALID',
+        status: AnchorValidationStatus.INVALID,
         message: `Could not find ${rootFile} in ${ANCHOR_ROOT_DIR_NAME} folder. Anchor project is invalid.`
       }
     }
   }
 
-  const programDirAbsolutePath = WORK_DIR + '/' + ANCHOR_ROOT_DIR_NAME + '/programs';
+  const programDirAbsolutePath = path.join(WORK_DIR, ANCHOR_ROOT_DIR_NAME, 'programs');
   const programSubDirsNames = getProgramsSubDirsNames(files);
-  if(programSubDirsNames.size == 0){
+  if(programSubDirsNames.size === 0){
     return {
-      status: 'INVALID',
+      status: AnchorValidationStatus.INVALID,
       message: `No programs found in anchor project. Directory ${ANCHOR_ROOT_DIR_NAME}/programs does not contain any sub directories.`,
     }
   }
   if(programSubDirsNames.size > 1){
     return {
-      status: 'INVALID',
-      message: `Anchor project is invalid, more than one program found. Multiple programs are not supported yet.
-      Make sure ${ANCHOR_ROOT_DIR_NAME}/programs contains only one sub directory.`,
+      status: AnchorValidationStatus.INVALID,
+      message: `Anchor project is invalid, more than one program found. Multiple programs are not supported yet.` +
+        `\nMake sure ${ANCHOR_ROOT_DIR_NAME}/programs contains only one sub directory.`,
     }
   }
   const programSubDirName = programSubDirsNames.values().next().value!;
@@ -93,7 +98,7 @@ export function validateAnchorProject(): AnchorValidationResult {
     const absolutePath = programSubDirAbsolutePath + '/' + programFile;
     if(!(absolutePath in files)){
       return {
-        status: 'INVALID',
+        status: AnchorValidationStatus.INVALID,
         message: `Could not find ${programFile} in ${ANCHOR_ROOT_DIR_NAME + '/programs/' + programSubDirName} folder. Anchor program is invalid.`
       }
     }
@@ -104,33 +109,35 @@ export function validateAnchorProject(): AnchorValidationResult {
   const cargoTomlAbsolutePath = programSubDirAbsolutePath + '/Cargo.toml';
   const cargoTomlDirent = files[cargoTomlAbsolutePath];
   //Additional check in case if Cargo.toml becomes absent in EXPECTED_PROGRAM_FILES for some reason.
-  if(!cargoTomlDirent || cargoTomlDirent.type == 'folder'){
+  if(!cargoTomlDirent || cargoTomlDirent.type === 'folder'){
     return {
-      status: 'INVALID',
+      status: AnchorValidationStatus.INVALID,
       message: `Could not find Cargo.toml file in ${ANCHOR_ROOT_DIR_NAME + '/programs/' + programSubDirName} folder. Anchor program is invalid.`
     }
   }
   const cargoTomlStr = cargoTomlDirent.content;
   if(!hasPackageName(cargoTomlStr)){
     return {
-      status: 'INVALID',
+      status: AnchorValidationStatus.INVALID,
       message: `Cargo.toml file from ${ANCHOR_ROOT_DIR_NAME + '/programs/' + programSubDirName} does not contain package name.`,
     }
   }
 
   return {
-    status: 'VALID',
+    status: AnchorValidationStatus.VALID,
     message: 'Anchor project is valid.'
   };
 }
 
 //Returns an anchor project snapshot if there is a valid anchor project.
-//Throws an exception if validation fails.
+//If validate flag is set to true, runs a validation before taking snapshot and throws an exception if it fails.
 //Uses validateAnchorProject for validation.
-export function getAnchorProjectSnapshot(): AnchorProjectSnapshot {
-  const validationResult = validateAnchorProject();
-  if(validationResult.status !== 'VALID'){
-    throw new Error("Cannot take a snapshot of the anchor project, validation has failed with message: " + validationResult.message);
+export function getAnchorProjectSnapshot(validate: boolean = false): AnchorProjectSnapshot {
+  if(validate){
+    const validationResult = validateAnchorProject();
+    if(validationResult.status !== AnchorValidationStatus.VALID){
+      throw new Error("Cannot take a snapshot of the anchor project, validation has failed with message: " + validationResult.message);
+    }
   }
   const files = workbenchStore.files.get();
 
@@ -148,7 +155,7 @@ export function getAnchorProjectSnapshot(): AnchorProjectSnapshot {
   const programSubDirName = getProgramsSubDirsNames(files).values().next().value;
   const cargoTomlAbsolutePath = WORK_DIR + '/' + ANCHOR_ROOT_DIR_NAME + '/programs/' + programSubDirName + '/Cargo.toml';
   const cargoTomlDirent = files[cargoTomlAbsolutePath];
-  if(!cargoTomlDirent || cargoTomlDirent.type == 'folder'){
+  if(!cargoTomlDirent || cargoTomlDirent.type === 'folder'){
     throw new Error("Cannot retrieve anchor program name. Cargo.toml does not exists or is not a file.");
   }
   const programName = getPackageName(cargoTomlDirent.content);
@@ -178,7 +185,7 @@ function getProgramsSubDirsNames(files: FileMap): Set<string>{
   const programDirAbsolutePath = WORK_DIR + '/' + ANCHOR_ROOT_DIR_NAME + '/programs';
   const programSubDirsNames: Set<string> = new Set();
   Object.entries(files).forEach(([path, dirent]) => {
-    if(path.startsWith(programDirAbsolutePath + '/') && dirent && dirent.type == 'folder'){
+    if(path.startsWith(programDirAbsolutePath + '/') && dirent && dirent.type === 'folder'){
       const relativePath = path.replace(programDirAbsolutePath + '/', '');
       const segments = relativePath.split('/');
       const subDirName = segments[0];
