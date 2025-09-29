@@ -1,4 +1,6 @@
 ﻿import { getAnchorProjectSnapshot, validateAnchorProject } from '~/lib/smartContracts/anchorProjectUtils';
+import { client } from '../api/backend/api';
+import axios from 'axios';
 
 
 /**
@@ -7,8 +9,7 @@
  * Needed to be able to run build request logic outside of React components.
  */
 export class ContractBuildService {
-  constructor(private authToken: string){}
-
+  
   //Make sure to validate the anchor project via validateAnchorProject before calling this method.
   //If the anchor project is invalid an error will be thrown.
   async requestContractBuild(projectId: string): Promise<void>{
@@ -22,18 +23,19 @@ export class ContractBuildService {
       projectId: projectId,
       snapshot: anchorProjectSnapshot.files
     }
-    const response = await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/build-contract/build-request`, {
-      method: 'POST',
-      headers: {
-        accept: 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + this.authToken,
-      },
-      body: JSON.stringify(payload),
-    });
-    if (!response.ok) {
-      console.error("Contract build request failed with status code: " + response.status + ". Response text: " + await response.text());
-      throw new Error("Could not request smart contract build. HTTP request failed with status code: " + response.status);
+    try{
+      await client.post('/build-contract/build-request', payload);
+    }
+    catch (error) {
+      if(axios.isAxiosError(error)){
+        console.error("Contract build request failed with status code: " + error.response?.status +
+          "\nData: " + error.response?.data + "\nMessage: " + error.message + "\nCode: " + error.code);
+        throw new Error("Could not request smart contract build. HTTP request failed with status code: " + error.response?.status);
+      }
+      else{
+        console.error("Could not request contract build, an unknown error occurred. Error: " + error);
+        throw new Error("Could not request smart contract build. Error: " + error);
+      }
     }
   }
 }
