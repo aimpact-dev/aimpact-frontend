@@ -16,7 +16,7 @@ export class ContractBuildService {
     if(validationResult.status !== 'VALID') {
       throw new Error('Cannot request anchor project build, validation has failed with an error: ' + validationResult.message);
     }
-    const anchorProjectSnapshot = getAnchorProjectSnapshot();
+    const anchorProjectSnapshot = getAnchorProjectSnapshot(false);
 
     const payload = {
       projectId: projectId,

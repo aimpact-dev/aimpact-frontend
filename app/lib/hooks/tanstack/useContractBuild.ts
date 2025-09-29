@@ -2,9 +2,6 @@
 import type { AxiosError } from 'axios';
 import { client } from '../../api/backend/api';
 import type { Dirent } from '~/lib/stores/files';
-import { toast } from 'react-toastify';
-import { chatId } from '~/lib/persistence';
-import { getAnchorProjectSnapshot, validateAnchorProject } from '~/lib/smartContracts/anchorProjectUtils';
 
 export type ContractBuildRequestStatus = 'STARTED' | 'BUILDING' | 'COMPLETED' | 'FAILED';
 

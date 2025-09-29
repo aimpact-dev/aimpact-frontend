@@ -131,12 +131,14 @@ export function validateAnchorProject(): AnchorValidationResult {
 }
 
 //Returns an anchor project snapshot if there is a valid anchor project.
-//Throws an exception if validation fails.
+//If validate flag is set to true, runs a validation before taking snapshot and throws an exception if it fails.
 //Uses validateAnchorProject for validation.
-export function getAnchorProjectSnapshot(): AnchorProjectSnapshot {
-  const validationResult = validateAnchorProject();
-  if(validationResult.status !== AnchorValidationStatus.VALID){
-    throw new Error("Cannot take a snapshot of the anchor project, validation has failed with message: " + validationResult.message);
+export function getAnchorProjectSnapshot(validate: boolean = false): AnchorProjectSnapshot {
+  if(validate){
+    const validationResult = validateAnchorProject();
+    if(validationResult.status !== AnchorValidationStatus.VALID){
+      throw new Error("Cannot take a snapshot of the anchor project, validation has failed with message: " + validationResult.message);
+    }
   }
   const files = workbenchStore.files.get();
 
