@@ -1,18 +1,27 @@
 import { useEffect, useState } from 'react';
 import { Badge, Button } from '../ui';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { getAnchorProjectSnapshot, validateAnchorProject } from '~/lib/smartContracts/anchorProjectUtils';
+import {
+  AnchorValidationStatus,
+  getAnchorProjectSnapshot,
+  validateAnchorProject
+} from '~/lib/smartContracts/anchorProjectUtils';
 import { toast } from 'react-toastify';
 import {
-  type ContractBuildRequestStatus,
-  type GetBuildRequestResponse, type GetBuildResponse, useGetBuild, useGetBuildRequest,
+  type GetBuildRequestResponse,
+  type GetBuildResponse,
+  useGetBuild,
+  useGetBuildRequest,
   usePostBuildRequest
 } from '~/lib/hooks/tanstack/useContractBuild';
 import { chatId } from '~/lib/persistence';
 import {
   type ContractDeployRequestStatus,
   type GetDeploymentResponse,
-  type GetDeployRequestResponse, useGetDeployment, useGetDeployRequest, usePostDeployRequest
+  type GetDeployRequestResponse,
+  useGetDeployment,
+  useGetDeployRequest,
+  usePostDeployRequest
 } from '~/lib/hooks/tanstack/useContractDeploy';
 import { Connection } from '@solana/web3.js';
 
@@ -80,8 +89,8 @@ export default function SmartContractView() {
 
   const updateLocalAnchorProject = () => {
     const validationResult = validateAnchorProject();
-    if(validationResult.status === 'VALID'){
-      const snapshot = getAnchorProjectSnapshot();
+    if(validationResult.status === AnchorValidationStatus.VALID){
+      const snapshot = getAnchorProjectSnapshot(false);
       setLocalAnchorProject({
         path: 'src-anchor',
         programName: snapshot.programName
@@ -151,7 +160,7 @@ export default function SmartContractView() {
 
   const buildContract = async () => {
     const validationResult = validateAnchorProject();
-    if(validationResult.status !== 'VALID'){
+    if(validationResult.status !== AnchorValidationStatus.VALID){
       //TODO: Add more comprehensive invalid anchor project handling.
       toast.error("Cannot build contract, validation error occurred: " + validationResult.message);
     }

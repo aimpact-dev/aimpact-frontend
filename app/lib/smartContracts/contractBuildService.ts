@@ -9,7 +9,7 @@ import axios from 'axios';
  * Needed to be able to run build request logic outside of React components.
  */
 export class ContractBuildService {
-  
+
   //Make sure to validate the anchor project via validateAnchorProject before calling this method.
   //If the anchor project is invalid an error will be thrown.
   async requestContractBuild(projectId: string): Promise<void>{
