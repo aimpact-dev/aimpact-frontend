@@ -23,7 +23,7 @@ export interface GetDeployRequestResponse {
 export interface GetDeploymentResponse {
   programName: string;
   programId: string;
-  programIds: object;
+  programIdl: object;
   network: SolanaNetwork;
   deployedAt: Date;
   upgradeAuthorityPublicKey: string;

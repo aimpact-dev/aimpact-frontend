@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Badge, Button } from '../ui';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
@@ -24,6 +24,7 @@ import {
   usePostDeployRequest
 } from '~/lib/hooks/tanstack/useContractDeploy';
 import { Connection } from '@solana/web3.js';
+import axios, { Axios } from 'axios';
 
 //Represents anchor project found in user's files on the client
 interface LocalAnchorProject {
@@ -56,18 +57,18 @@ interface AnchorProject {
 
 const DEVNET_RPC = 'https://api.devnet.solana.com';
 const ANCHOR_PROJECT_CHECKING_INTERVAL_MS = 1000;
-const BUILD_REQUEST_POLLING_INTERVAL_MS = 1000;
+const BUILD_REQUEST_POLLING_INTERVAL_MS = 5000;
 const DEPLOY_REQUEST_POLLING_INTERVAL_MS = 1000;
 
 export default function SmartContractView() {
-  const [anchorProject, setAnchorProject] = useState<AnchorProject | null>();
-
   const [localAnchorProject, setLocalAnchorProject] = useState<LocalAnchorProject | null>();
   const [contractBuildRequest, setContractBuildRequest] = useState<GetBuildRequestResponse | null>();
   const [contractBuild, setContractBuild] = useState<ContractBuild | null>();
   const [contractDeployRequest, setContractDeployRequest] = useState<GetDeployRequestResponse | null>();
   const [contractDeployment, setContractDeployment] = useState<GetDeploymentResponse | null>();
 
+  const [buildInProgress, setBuildInProgress] = useState<boolean>(false);
+  const buildRequestPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
 
   const {mutateAsync: requestContractBuild } = usePostBuildRequest();
@@ -107,7 +108,6 @@ export default function SmartContractView() {
     return () => clearInterval(interval);
   }, []);
 
-
   //User may already have smart contract artifacts (build and deploy requests, build, deployment), so we need to download them on smart
   //contracts section load.
   useEffect(()=> {
@@ -121,6 +121,12 @@ export default function SmartContractView() {
       try {
         const buildRequest = await getContractBuildRequest(projectId);
         setContractBuildRequest(buildRequest);
+        if(buildRequest.status !== 'FAILED' && buildRequest.status !== 'COMPLETED'){
+          setBuildInProgress(true);
+        }
+        else {
+          setBuildInProgress(false);
+        }
       }
       catch(e) {
         console.log(`On smart contract view load, could not get contract build request for project with id: ${projectId}, an error occurred: ${e}`);
@@ -158,26 +164,78 @@ export default function SmartContractView() {
     loadAnchorProject();
   }, []);
 
+  //This effect controls polling of build requests. You can start polling by setting buildInProgress to true.
+  useEffect(() => {
+    const projectId = chatId.get();
+
+    if(buildInProgress){
+      buildRequestPollingIntervalRef.current = setInterval(async () => {
+        if(!projectId){
+          toast.error('Cannot poll build request, project id is undefined.');
+          return;
+        }
+        try{
+          const buildRequest = await getContractBuildRequest(projectId);
+          setContractBuildRequest(buildRequest);
+          if(buildRequest.status === 'FAILED' || buildRequest.status === 'COMPLETED'){
+            setBuildInProgress(false);
+          }
+        }
+        catch (error){
+          if (axios.isAxiosError(error) ) {
+            if(error.response && error.response.status === 404){
+              setContractBuildRequest(null);
+              buildRequestPollingIntervalRef.current = null;
+              setBuildInProgress(false);
+              toast.error('Build request was not found on the server, stopping polling.');
+            }
+            else{
+              toast.error('Network error when polling build request.');
+            }
+          }
+          else{
+            toast.error('An unknown error occurred when polling build request.');
+          }
+        }
+      }, BUILD_REQUEST_POLLING_INTERVAL_MS);
+    } else if (buildRequestPollingIntervalRef.current){
+      clearInterval(buildRequestPollingIntervalRef.current);
+      buildRequestPollingIntervalRef.current = null;
+    }
+
+    return () => {
+      if (buildRequestPollingIntervalRef.current) {
+        clearInterval(buildRequestPollingIntervalRef.current);
+        buildRequestPollingIntervalRef.current = null;
+      }
+    };
+  }, [buildInProgress]);
+
   const buildContract = async () => {
+    if(buildInProgress){
+      return;
+    }
     const validationResult = validateAnchorProject();
     if(validationResult.status !== AnchorValidationStatus.VALID){
       //TODO: Add more comprehensive invalid anchor project handling.
       toast.error("Cannot build contract, validation error occurred: " + validationResult.message);
     }
     else{
-      const snapshot = getAnchorProjectSnapshot();
+      const snapshot = getAnchorProjectSnapshot(false);
       try {
         const projectId = chatId.get();
         if (!projectId) {
           toast.error("Cannot request contract build, could not retrieve project id.");
           return;
         }
+        setBuildInProgress(true);
         await requestContractBuild({
           projectId: projectId,
           snapshot: snapshot.files
         });
       }
       catch (error) {
+        setBuildInProgress(false);
         if(error instanceof Error) {
           toast.error("Smart contract build request failed with an error: " + error.message);
         }
@@ -201,11 +259,11 @@ export default function SmartContractView() {
   };
 
   const getStatusBadge = () => {
-    if (!anchorProject) {
+    if (!localAnchorProject) {
       return <Badge variant="secondary">No project</Badge>;
     }
-    if (anchorProject.buildRequest && !anchorProject.deploy) {
-      switch (anchorProject.buildRequest.status) {
+    if (contractBuildRequest && !contractDeployRequest) {
+      switch (contractBuildRequest.status) {
         case 'STARTED':
           return <Badge variant="warning">Build requested</Badge>;
         case 'BUILDING':
@@ -222,8 +280,8 @@ export default function SmartContractView() {
       }
     }
 
-    if (anchorProject.deploy) {
-      switch (anchorProject.deploy.status) {
+    if (contractDeployRequest) {
+      switch (contractDeployRequest.status) {
         case 'STARTED':
           return <Badge variant="warning">Deploy requested</Badge>;
         case 'DEPLOYING':
@@ -240,7 +298,7 @@ export default function SmartContractView() {
 
   return (
     <div className="flex w-full h-full justify-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      {anchorProject ? (
+      {localAnchorProject ? (
         <div className="w-full bg-bolt-elements-background-depth-2 px-6 py-8 overflow-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex flex-col xl:gap-6 gap-3 px-6 py-8 bg-bolt-elements-background-depth-3 rounded-sm">
             <div className="flex justify-between">
@@ -249,20 +307,20 @@ export default function SmartContractView() {
             </div>
             <div className="bg-bolt-elements-background-depth-2 border rounded-lg *:p-3 border-bolt-elements-borderColor">
               <div className="flex items-center gap-2 ">
-                <span className="text-sm text-muted-foreground">Project:</span>
+                <span className="text-sm text-muted-foreground">Program name:</span>
                 <span className="bg-muted px-2 py-1 rounded text-sm font-mono text-bolt-elements-item-contentAccent">
-                  {anchorProject.name}
+                  {localAnchorProject.programName}
                 </span>
               </div>
               <div className="flex items-center gap-2 border-t border-bolt-elements-borderColor">
                 <span className="text-sm text-muted-foreground">Path:</span>
                 <span className="bg-muted px-2 py-1 rounded text-sm font-mono text-bolt-elements-item-contentAccent">
-                  {anchorProject.path}
+                  {localAnchorProject.path}
                 </span>
               </div>
             </div>
 
-            {anchorProject.buildRequest ? (
+            {contractBuildRequest ? (
               <>
                 <Accordion
                   type="single"
@@ -273,18 +331,18 @@ export default function SmartContractView() {
                   <AccordionItem value="build">
                     <AccordionTrigger>Build</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-3">
-                      {anchorProject.buildRequest.status === 'STARTED' && (
+                      {contractBuildRequest.status === 'STARTED' && (
                         <div>
                           <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                            {anchorProject.buildRequest.startedAt
-                              ? new Date(anchorProject.buildRequest.startedAt).toLocaleString()
+                            {contractBuildRequest.startedAt
+                              ? new Date(contractBuildRequest.startedAt).toLocaleString()
                               : ''}
                           </span>
                           Build has started
                           <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault align-text-top w-4 h-4"></span>
                         </div>
                       )}
-                      {anchorProject.buildRequest.status === 'BUILDING' && (
+                      {contractBuildRequest.status === 'BUILDING' && (
                         <div>
                           <span className="text-bolt-elements-textSecondary text-sm mr-3">
                             {new Date().toLocaleString()}
@@ -293,13 +351,13 @@ export default function SmartContractView() {
                           <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault align-text-top w-4 h-4"></span>
                         </div>
                       )}
-                      {anchorProject.buildRequest.status === 'COMPLETED' && (
+                      {contractBuildRequest.status === 'COMPLETED' && (
                         <>
-                          {anchorProject.build ? (
+                          {contractBuild ? (
                             <>
                               <div>
                                 <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                                  {new Date(anchorProject.build.builtAt!).toLocaleString()}
+                                  {new Date(contractBuild.builtAt!).toLocaleString()}
                                 </span>
                                   Building has finished successfully
                                 <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
@@ -308,25 +366,25 @@ export default function SmartContractView() {
                               <div className="flex *:flex-1 [&_p]:text-bolt-elements-textSecondary">
                                 <div>
                                   <div>
-                                    <p>Name:</p> {anchorProject.build.programName}
+                                    <p>Name:</p> {contractBuild.programName}
                                   </div>
                                   <div>
-                                    <p>Program ID:</p> {anchorProject.build.programId}
+                                    <p>Program ID:</p> {contractBuild.programId}
                                   </div>
                                   <div>
-                                    <p>Size:</p> {anchorProject.build.sizeBytes}
+                                    <p>Size:</p> {contractBuild.sizeBytes}
                                   </div>
                                 </div>
                                 <div>
                                   <div>
-                                    <p>Started at:</p> {new Date(anchorProject.buildRequest.startedAt!).toLocaleString()}
+                                    <p>Started at:</p> {new Date(contractBuildRequest.startedAt!).toLocaleString()}
                                   </div>
                                   <div>
-                                    <p>Built at:</p> {new Date(anchorProject.build.builtAt!).toLocaleString()}
+                                    <p>Built at:</p> {new Date(contractBuild.builtAt!).toLocaleString()}
                                   </div>
                                   <div>
                                     <p>Deploy cost:</p> <span className="opacity-70">$</span>{' '}
-                                    {anchorProject.build.deployCost}
+                                    {contractBuild.deployCost}
                                   </div>
                                 </div>
                               </div>
@@ -350,17 +408,17 @@ export default function SmartContractView() {
                           )}
                         </>
                       )}
-                      {anchorProject.buildRequest.status === 'FAILED' && (
+                      {contractBuildRequest.status === 'FAILED' && (
                         <>
                           <div>
                             <span className="text-bolt-elements-textSecondary text-sm mr-3">
                               {new Date().toLocaleString()}
                             </span>
-                            {anchorProject.buildRequest.message}
+                            {contractBuildRequest.message}
                             <span className="ml-3 inline-block i-ph:x text-bolt-elements-icon-error align-text-top w-4 h-4"></span>
                           </div>
                           <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
-                            {anchorProject.buildRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
+                            {contractBuildRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
                           </div>
                           <Button onClick={fixBuild}>Fix with AI</Button>
                         </>
@@ -368,22 +426,22 @@ export default function SmartContractView() {
                     </AccordionContent>
                   </AccordionItem>
 
-                  {anchorProject.deploy && (
+                  {contractDeployRequest && (
                     <AccordionItem value="deploy">
                       <AccordionTrigger>Deploy</AccordionTrigger>
                       <AccordionContent className="flex flex-col gap-3">
-                        {anchorProject.deploy.status === 'STARTED' && (
+                        {contractDeployRequest.status === 'STARTED' && (
                           <div>
                             <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                              {anchorProject.deploy.startedAt
-                                ? new Date(anchorProject.deploy.startedAt).toLocaleString()
+                              {contractDeployRequest.startedAt
+                                ? new Date(contractDeployRequest.startedAt).toLocaleString()
                                 : ''}
                             </span>
                             Deployment has started
                             <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault align-text-top w-4 h-4"></span>
                           </div>
                         )}
-                        {anchorProject.deploy.status === 'DEPLOYING' && (
+                        {contractDeployRequest.status === 'DEPLOYING' && (
                           <div>
                             <span className="text-bolt-elements-textSecondary text-sm mr-3">
                               {new Date().toLocaleString()}
@@ -392,51 +450,62 @@ export default function SmartContractView() {
                             <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault align-text-top w-4 h-4"></span>
                           </div>
                         )}
-                        {anchorProject.deploy.status === 'COMPLETED' && (
+                        {contractDeployRequest.status === 'COMPLETED' && (
                           <>
-                            <div>
-                              <span className="text-bolt-elements-textSecondary text-sm mr-3">
-                                {anchorProject.deploy.deployedAt
-                                  ? new Date(anchorProject.deploy.deployedAt).toLocaleString()
-                                  : ''}
-                              </span>
-                              Deployment has finished successfully
-                              <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
-                            </div>
-                            <div className="flex *:flex-1 [&_p]:text-bolt-elements-textSecondary">
-                              <div>
+                            {contractDeployment ? (
+                              <>
                                 <div>
-                                  <p>Name:</p> {anchorProject.deploy.name}
+                                  <span className="text-bolt-elements-textSecondary text-sm mr-3">
+                                    {contractDeployment.deployedAt
+                                      ? new Date(contractDeployment.deployedAt).toLocaleString()
+                                      : ''}
+                                  </span>
+                                  Deployment has finished successfully
+                                  <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
                                 </div>
+                                <div className="flex *:flex-1 [&_p]:text-bolt-elements-textSecondary">
+                                  <div>
+                                    <div>
+                                      <p>Name:</p> {contractDeployment.programName}
+                                    </div>
+                                    <div>
+                                      <p>ID:</p> {contractDeployment.programId}
+                                    </div>
+                                    {/*<div>*/}
+                                    {/*  <p>Size:</p> {contractDeployment.sizeBytes}*/}
+                                    {/*</div>*/}
+                                  </div>
+                                  <div>
+                                    <div>
+                                      <p>Network</p> {contractDeployment.network}
+                                    </div>
+                                    <div>
+                                      <p>Deployed at:</p> {new Date(contractDeployment.deployedAt!).toLocaleString()}
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
                                 <div>
-                                  <p>ID:</p> {anchorProject.deploy.id}
+                                  Deployment has finished successfully, downloading deploy artifacts.
+                                  <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
                                 </div>
-                                <div>
-                                  <p>Size:</p> {anchorProject.deploy.sizeBytes}
-                                </div>
-                              </div>
-                              <div>
-                                <div>
-                                  <p>Network</p> {anchorProject.deploy.network}
-                                </div>
-                                <div>
-                                  <p>Deployed at:</p> {new Date(anchorProject.deploy.deployedAt!).toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
+                              </>
+                            )}
                           </>
                         )}
-                        {anchorProject.deploy.status === 'FAILED' && (
+                        {contractDeployRequest.status === 'FAILED' && (
                           <>
                             <div>
                               <span className="text-bolt-elements-textSecondary text-sm mr-3">
                                 {new Date().toLocaleString()}
                               </span>
-                              {anchorProject.deploy.message}
+                              {contractDeployRequest.message}
                               <span className="ml-3 inline-block i-ph:x text-bolt-elements-icon-error align-text-top w-4 h-4"></span>
                             </div>
                             <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
-                              {anchorProject.deploy.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
+                              {contractDeployRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
                             </div>
                             <Button onClick={fixDeploy}>Fix with AI</Button>
                           </>
@@ -446,7 +515,7 @@ export default function SmartContractView() {
                   )}
                 </Accordion>
 
-                {anchorProject.buildRequest?.status === 'COMPLETED' && !anchorProject.deploy && (
+                {contractBuildRequest?.status === 'COMPLETED' && !contractDeployRequest && (
                   <Button onClick={deployContract}>
                     <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span> Deploy
                     contract
