@@ -19,7 +19,6 @@ import GetMessagesButton from '../chat/GetMessagesButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderbaordNavButton from '../chat/LeaderboardNavButton';
-import { Tooltip } from '../chat/Tooltip';
 import { useNavigate } from '@remix-run/react';
 
 export type ButtonProps = PropsWithChildren<{
