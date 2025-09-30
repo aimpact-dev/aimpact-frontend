@@ -16,6 +16,8 @@ interface PaginationProps {
 }
 
 const DataPagination = ({ totalPages, currentPage, label, onChange }: PaginationProps) => {
+  const paginationButtonClasses = 'cursor-pointer hover:bg-purple-500/20';
+
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
@@ -68,7 +70,7 @@ const DataPagination = ({ totalPages, currentPage, label, onChange }: Pagination
                     e.preventDefault();
                     if (currentPage > 1) handlePageChange(currentPage - 1);
                   }}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : paginationButtonClasses}
                 />
               </PaginationItem>
 
@@ -84,7 +86,7 @@ const DataPagination = ({ totalPages, currentPage, label, onChange }: Pagination
                         handlePageChange(page as number);
                       }}
                       isActive={currentPage === page}
-                      className="cursor-pointer"
+                      className={paginationButtonClasses}
                     >
                       {page}
                     </PaginationLink>
@@ -99,7 +101,7 @@ const DataPagination = ({ totalPages, currentPage, label, onChange }: Pagination
                     e.preventDefault();
                     if (currentPage < totalPages) handlePageChange(currentPage + 1);
                   }}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : paginationButtonClasses}
                 />
               </PaginationItem>
             </PaginationContent>

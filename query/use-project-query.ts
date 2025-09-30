@@ -30,10 +30,32 @@ export type ProjectWithOwner = Project & {
   projectOwnerAddress: string;
 };
 
-export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+export type OwnershipFilter = 'all' | 'owned';
+export type DeploymentPlatform = 'S3' | 'Akash' | 'ICP';
+export type StatusFilter = 'deployed' | 'hackathonWinner' | 'featured';
+export type ProjectFilters = OwnershipFilter | DeploymentPlatform | StatusFilter;
+
+const deploymentPlatforms: DeploymentPlatform[] = ['S3', 'Akash', 'ICP'];
+
+export const useProjectsQuery = (page: number, pageSize: number, filters: ProjectFilters[], sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+  const ownership: OwnershipFilter = filters.includes('owned') ? 'owned' : 'all';
+
+  const provider = deploymentPlatforms.find((p) => filters.includes(p));
+
+  const statusFilters: Partial<Record<StatusFilter, boolean>> = {};
+
+  if (filters.includes('hackathonWinner')) {
+    statusFilters.hackathonWinner = true;
+  }
+  if (filters.includes('featured')) {
+    statusFilters.featured = true;
+  }
+  if (filters.includes('deployed')) {
+    statusFilters.deployed = true;
+  }
+
   return useQuery<ProjectsResponse>({
-    initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
-    queryKey: ['projects', {page, pageSize, ownership, sortBy, sortDirection}],
+    queryKey: ['projects', {page, pageSize, ownership, statusFilters, provider,  sortBy, sortDirection}],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -44,6 +66,8 @@ export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all
           page,
           pageSize,
           ownership,
+          ...(provider ? { provider } : {}),
+          ...statusFilters,
           sortBy,
           sortOrder: sortDirection,
         },
@@ -62,7 +86,6 @@ export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all
 
 export const useProjectQuery = (id: string) => {
   return useQuery<ProjectWithOwner | null>({
-    initialData: null,
     queryKey: ['project', id],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
