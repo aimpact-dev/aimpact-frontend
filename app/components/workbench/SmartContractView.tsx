@@ -22,8 +22,15 @@ import {
   useGetDeployment,
   useGetDeployRequest,
   usePostDeployRequest
+
 } from '~/lib/hooks/tanstack/useContractDeploy';
-import { Connection } from '@solana/web3.js';
+//TODO: Switch to real implementations.
+// import {
+//   useGetBuild,
+//   useGetBuildRequest,
+//   usePostBuildRequest
+// } from '~/lib/hooks/tanstack/mocks/useContractBuild';
+import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios, { Axios } from 'axios';
 
 //Represents anchor project found in user's files on the client
@@ -135,10 +142,11 @@ export default function SmartContractView() {
       try {
         const contractBuild = await getContractBuild(projectId);
         const connection = new Connection(DEVNET_RPC);
-        const deployCost = await connection.getMinimumBalanceForRentExemption(contractBuild.sizeBytes);
+        const deployCostLamports = await connection.getMinimumBalanceForRentExemption(contractBuild.sizeBytes);
+        const deployCostSOL = deployCostLamports / LAMPORTS_PER_SOL;
         setContractBuild({
           ...contractBuild,
-          deployCost: deployCost
+          deployCost: deployCostSOL
         });
       }
       catch(e) {
@@ -320,7 +328,14 @@ export default function SmartContractView() {
               </div>
             </div>
 
-            {contractBuildRequest ? (
+            {(!contractBuildRequest ||
+              contractBuildRequest.status === 'FAILED' ||
+              contractBuildRequest.status === 'COMPLETED') && (
+              <Button onClick={buildContract}>
+                <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Build contract
+              </Button>
+            )}
+            {contractBuildRequest && (
               <>
                 <Accordion
                   type="single"
@@ -369,7 +384,8 @@ export default function SmartContractView() {
                                     <p>Name:</p> {contractBuild.programName}
                                   </div>
                                   <div>
-                                    <p>Program ID:</p> {contractBuild.programId}
+                                    <p>Program ID:</p>
+                                    <span className="text-xs break-all">{contractBuild.programId}</span>
                                   </div>
                                   <div>
                                     <p>Size:</p> {contractBuild.sizeBytes}
@@ -383,7 +399,7 @@ export default function SmartContractView() {
                                     <p>Built at:</p> {new Date(contractBuild.builtAt!).toLocaleString()}
                                   </div>
                                   <div>
-                                    <p>Deploy cost:</p> <span className="opacity-70">$</span>{' '}
+                                    <p>Deploy cost:</p> <span className="opacity-70">SOL</span>{' '}
                                     {contractBuild.deployCost}
                                   </div>
                                 </div>
@@ -402,7 +418,7 @@ export default function SmartContractView() {
                             <>
                               <div>
                                 Building has finished successfully, downloading build artifacts.
-                                <span className="ml-3 inline-block i-ph:check text-bolt-elements-icon-success align-text-top w-4 h-4"></span>
+                                <span className="ml-3 inline-block i-ph:circle-notch-duotone scale-98 animate-spin align-text-top w-4 h-4"></span>
                               </div>
                             </>
                           )}
@@ -522,10 +538,6 @@ export default function SmartContractView() {
                   </Button>
                 )}
               </>
-            ) : (
-              <Button onClick={buildContract}>
-                <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Build contract
-              </Button>
             )}
           </div>
         </div>
