@@ -1,4 +1,6 @@
-﻿import { useMutation } from '@tanstack/react-query';
+﻿//TODO: Use MSW or other library for mocking APIs in the future.
+
+import { useMutation } from '@tanstack/react-query';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { client } from '~/lib/api/backend/api';
 import type {
@@ -7,6 +9,12 @@ import type {
   PostBuildRequestPayload
 } from '~/lib/hooks/tanstack/useContractBuild';
 
+//Change this const to control build failures imitation.
+const FAIL_BUILD_REQUEST: boolean = false;
+
+const POST_REQUEST_DELAY_MS = 1000;
+const GET_REQUEST_DELAY_MS = 500;
+const GET_BUILD_DELAY_MS = 500;
 const MIN_TIME_BETWEEN_REQUESTS_MS = 60 * 1000;
 const STATE_SWITCH_INTERVAL_MS = 10 * 1000;
 
@@ -18,7 +26,12 @@ let stateSwitchTimeout: NodeJS.Timeout | null = null;
 function switchToBuilding(){
   if(!currentRequest) return;
   currentRequest.status = 'BUILDING';
-  stateSwitchTimeout = setInterval(() => switchToCompleted(), MIN_TIME_BETWEEN_REQUESTS_MS);
+  if(FAIL_BUILD_REQUEST){
+    stateSwitchTimeout = setTimeout(()=>switchToFailed(), STATE_SWITCH_INTERVAL_MS);
+  }
+  else{
+    stateSwitchTimeout = setInterval(() => switchToCompleted(), STATE_SWITCH_INTERVAL_MS);
+  }
 }
 
 function switchToCompleted(){
@@ -34,9 +47,17 @@ function switchToCompleted(){
   }
 }
 
+function switchToFailed(){
+  if(!currentRequest) return;
+  currentRequest.status = 'FAILED';
+  currentRequest.message = 'Contract build failed.';
+  currentRequest.logs = ['An error occurred when building smart contract.', 'Some files were missing or wahtever.', 'This is a mock fail message.'];
+}
+
 export const useGetBuild = () =>
   useMutation<GetBuildResponse, AxiosError, string>({
     mutationFn: async(projectId) => {
+      await new Promise(res => setTimeout(res, GET_BUILD_DELAY_MS));
       if(!currentBuild){
         throw new AxiosError(
           'Not Found',
@@ -61,6 +82,7 @@ export const useGetBuild = () =>
 export const useGetBuildRequest = () =>
   useMutation<GetBuildRequestResponse, AxiosError, string>({
     mutationFn: async (projectId) => {
+      await new Promise(res => setTimeout(res, GET_REQUEST_DELAY_MS));
       if(!currentRequest){
         throw new AxiosError(
           'Not Found',
@@ -85,6 +107,7 @@ export const useGetBuildRequest = () =>
 export const usePostBuildRequest = () =>
   useMutation<void, AxiosError, PostBuildRequestPayload>({
     mutationFn: async (payload) => {
+      await new Promise(res => setTimeout(res, POST_REQUEST_DELAY_MS));
       if(!currentRequest ||
         (Date.now() - currentRequest.startedAt.getTime() > MIN_TIME_BETWEEN_REQUESTS_MS)) {
         currentRequest = {

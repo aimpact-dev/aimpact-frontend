@@ -623,6 +623,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 actionRunner={actionRunner ?? ({} as ActionRunner)}
                 chatStarted={chatStarted}
                 isStreaming={isStreaming}
+                postMessage={(message: string | undefined) => {
+                  sendMessage?.({} as any, message);
+                }}
               />
             )}
           </ClientOnly>

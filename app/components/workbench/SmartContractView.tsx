@@ -22,7 +22,6 @@ import {
   useGetDeployment,
   useGetDeployRequest,
   usePostDeployRequest
-
 } from '~/lib/hooks/tanstack/useContractDeploy';
 //TODO: Switch to real implementations.
 // import {
@@ -30,6 +29,11 @@ import {
 //   useGetBuildRequest,
 //   usePostBuildRequest
 // } from '~/lib/hooks/tanstack/mocks/useContractBuild';
+// import {
+//   useGetDeployment,
+//   useGetDeployRequest,
+//   usePostDeployRequest
+// }from '~/lib/hooks/tanstack/mocks/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios, { Axios } from 'axios';
 
@@ -62,12 +66,16 @@ interface AnchorProject {
   };
 }
 
+interface Props {
+  postMessage: (message: string) => void;
+}
+
 const DEVNET_RPC = 'https://api.devnet.solana.com';
 const ANCHOR_PROJECT_CHECKING_INTERVAL_MS = 1000;
 const BUILD_REQUEST_POLLING_INTERVAL_MS = 5000;
 const DEPLOY_REQUEST_POLLING_INTERVAL_MS = 1000;
 
-export default function SmartContractView() {
+export default function SmartContractView({postMessage}: Props) {
   const [localAnchorProject, setLocalAnchorProject] = useState<LocalAnchorProject | null>();
   const [contractBuildRequest, setContractBuildRequest] = useState<GetBuildRequestResponse | null>();
   const [contractBuild, setContractBuild] = useState<ContractBuild | null>();
@@ -76,7 +84,10 @@ export default function SmartContractView() {
 
   const [buildInProgress, setBuildInProgress] = useState<boolean>(false);
   const buildRequestPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [deployInProgress, setDeployInProgress] = useState<boolean>(false);
+  const deployRequestPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
+
 
   const {mutateAsync: requestContractBuild } = usePostBuildRequest();
   const {mutateAsync: getContractBuildRequest } = useGetBuildRequest();
@@ -104,6 +115,17 @@ export default function SmartContractView() {
         programName: snapshot.programName
       })
     }
+  }
+
+  //Converting GetBuildResponse to the local contract build type by adding deploy cost to it.
+  const convertToContractBuild = async (buildResponse: GetBuildResponse): Promise<ContractBuild> => {
+    const connection = new Connection(DEVNET_RPC);
+    const deployCostLamports = await connection.getMinimumBalanceForRentExemption(buildResponse.sizeBytes);
+    const deployCostSOL = deployCostLamports / LAMPORTS_PER_SOL;
+    return {
+      ...buildResponse,
+      deployCost: deployCostSOL
+    };
   }
 
   //Checking local files for anchor project and setting up periodical anchor project check
@@ -140,14 +162,8 @@ export default function SmartContractView() {
       }
 
       try {
-        const contractBuild = await getContractBuild(projectId);
-        const connection = new Connection(DEVNET_RPC);
-        const deployCostLamports = await connection.getMinimumBalanceForRentExemption(contractBuild.sizeBytes);
-        const deployCostSOL = deployCostLamports / LAMPORTS_PER_SOL;
-        setContractBuild({
-          ...contractBuild,
-          deployCost: deployCostSOL
-        });
+        const contractBuildResponse = await getContractBuild(projectId);
+        setContractBuild(await convertToContractBuild(contractBuildResponse));
       }
       catch(e) {
         console.log(`On smart contract view load, could not  get build for project with id: ${projectId}, an error occurred: ${e}`);
@@ -174,10 +190,31 @@ export default function SmartContractView() {
 
   //This effect controls polling of build requests. You can start polling by setting buildInProgress to true.
   useEffect(() => {
-    const projectId = chatId.get();
+    //This function retrieves contract build and processes 404 error in case build is not found on the backend.
+    //Should be called upon build request completion.
+    const onBuildComplete = async () => {
+      const projectId = chatId.get();
+      if(!projectId) return;
+      try{
+        const buildResponse = await getContractBuild(projectId);
+        setContractBuild(await convertToContractBuild(buildResponse));
+      }
+      catch (error){
+        if(axios.isAxiosError(error) && error.response && error.response.status === 404){
+          toast.error('Contract build was not found on the server after build completion.');
+        }
+        else {
+          throw error;
+        }
+      }
+    };
 
     if(buildInProgress){
+      if(buildRequestPollingIntervalRef.current){
+        clearInterval(buildRequestPollingIntervalRef.current);
+      }
       buildRequestPollingIntervalRef.current = setInterval(async () => {
+        const projectId = chatId.get();
         if(!projectId){
           toast.error('Cannot poll build request, project id is undefined.');
           return;
@@ -186,6 +223,9 @@ export default function SmartContractView() {
           const buildRequest = await getContractBuildRequest(projectId);
           setContractBuildRequest(buildRequest);
           if(buildRequest.status === 'FAILED' || buildRequest.status === 'COMPLETED'){
+            if(buildRequest.status === 'COMPLETED'){
+              await onBuildComplete();
+            }
             setBuildInProgress(false);
           }
         }
@@ -193,16 +233,27 @@ export default function SmartContractView() {
           if (axios.isAxiosError(error) ) {
             if(error.response && error.response.status === 404){
               setContractBuildRequest(null);
+              if(buildRequestPollingIntervalRef.current){
+                clearInterval(buildRequestPollingIntervalRef.current);
+              }
               buildRequestPollingIntervalRef.current = null;
               setBuildInProgress(false);
               toast.error('Build request was not found on the server, stopping polling.');
             }
             else{
               toast.error('Network error when polling build request.');
+              console.error('Network error when polling build request: ', {
+                message: error.message,
+                code: error.code,
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url
+              });
             }
           }
           else{
             toast.error('An unknown error occurred when polling build request.');
+            console.error('Unknown error when polling build request: ' + error);
           }
         }
       }, BUILD_REQUEST_POLLING_INTERVAL_MS);
@@ -218,6 +269,82 @@ export default function SmartContractView() {
       }
     };
   }, [buildInProgress]);
+
+  //This effect controls polling of deploy request. You can start polling by setting deployInProgress to true.
+  useEffect(() => {
+
+    const onDeployComplete = async () => {
+      const projectId = chatId.get();
+      if(!projectId) return;
+      try{
+        const deployment = await getContractDeployment(projectId);
+        setContractDeployment(deployment);
+      } catch(error){
+        if(axios.isAxiosError(error) && error.response && error.response.status === 404){
+          toast.error('Contract deployment was not found on the server after deploy completion.');
+        }
+        else {
+          throw error;
+        }
+      }
+    };
+
+    if(deployInProgress){
+      deployRequestPollingIntervalRef.current = setInterval(async () => {
+        const projectId = chatId.get();
+        if(!projectId){
+          toast.error('Cannot poll deploy request, project id is undefined.');
+          return;
+        }
+        try{
+          const deployRequest = await getContractDeployRequest(projectId);
+          setContractDeployRequest(deployRequest);
+          if(deployRequest.status === 'FAILED' || deployRequest.status === 'COMPLETED'){
+            if(deployRequest.status === 'COMPLETED'){
+              await onDeployComplete();
+            }
+            setDeployInProgress(false);
+          }
+        } catch(error){
+          if(axios.isAxiosError(error)){
+            if(error.response && error.response.status === 404){
+              setContractDeployRequest(null);
+              if(deployRequestPollingIntervalRef.current){
+                clearInterval(deployRequestPollingIntervalRef.current);
+              }
+              deployRequestPollingIntervalRef.current = null;
+              setDeployInProgress(false);
+              toast.error('Deploy request was not found on the server, stopping polling.');
+            }
+            else{
+              toast.error('Network error when polling deploy request.');
+              console.error('Network error when polling deploy request: ',     {
+                message: error.message,
+                code: error.code,
+                status: error.response?.status,
+                data: error.response?.data,
+                url: error.config?.url
+              });
+            }
+          }
+          else{
+            toast.error('An unknown error occurred when polling deploy request.');
+            console.error('Unknown error when polling deploy request: ' + error);
+          }
+        }
+      }, DEPLOY_REQUEST_POLLING_INTERVAL_MS);
+    } else if (deployRequestPollingIntervalRef.current){
+      clearInterval(deployRequestPollingIntervalRef.current);
+      deployRequestPollingIntervalRef.current = null;
+    }
+
+    return () => {
+      if (deployRequestPollingIntervalRef.current) {
+        clearInterval(deployRequestPollingIntervalRef.current);
+        deployRequestPollingIntervalRef.current = null;
+      }
+    }
+  }, [deployInProgress]);
 
   const buildContract = async () => {
     if(buildInProgress){
@@ -241,8 +368,9 @@ export default function SmartContractView() {
           projectId: projectId,
           snapshot: snapshot.files
         });
-      }
-      catch (error) {
+        const request = await getContractBuildRequest(projectId);
+        setContractBuildRequest(request);
+      } catch (error) {
         setBuildInProgress(false);
         if(error instanceof Error) {
           toast.error("Smart contract build request failed with an error: " + error.message);
@@ -255,15 +383,47 @@ export default function SmartContractView() {
   };
 
   const fixBuild = () => {
-
+    if(!contractBuildRequest || contractBuildRequest.status !== 'FAILED') return;
+    const content = contractBuildRequest.logs?.join('\n');
+    postMessage(
+      `*Fix this anchor build error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`,
+    );
   };
 
-  const deployContract = () => {
-
+  const deployContract = async () => {
+    if(deployInProgress){
+      return;
+    }
+    const projectId = chatId.get();
+    if (!projectId) {
+      toast.error("Cannot request contract deploy, could not retrieve project id.");
+      return;
+    }
+    try {
+      setDeployInProgress(true);
+      await requestContractDeploy({
+        projectId: projectId,
+        network: 'devnet'
+      });
+      const request = await getContractDeployRequest(projectId);
+      setContractDeployRequest(request);
+    } catch(error){
+      setDeployInProgress(false);
+      if(error instanceof Error) {
+        toast.error("Smart contract deploy request failed with an error: " + error.message);
+      }
+      else {
+        toast.error("Smart contract deploy request failed with an unknown error.");
+      }
+    }
   };
 
   const fixDeploy = () => {
-
+    if(!contractDeployRequest || contractDeployRequest.status !== 'FAILED') return;
+    const content = contractDeployRequest.logs?.join('\n');
+    postMessage(
+      `*Fix this anchor contract deploy error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`,
+    );
   };
 
   const getStatusBadge = () => {
@@ -328,11 +488,15 @@ export default function SmartContractView() {
               </div>
             </div>
 
-            {(!contractBuildRequest ||
-              contractBuildRequest.status === 'FAILED' ||
-              contractBuildRequest.status === 'COMPLETED') && (
+            {!contractBuildRequest && (
               <Button onClick={buildContract}>
                 <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Build contract
+              </Button>
+            )}
+            {contractBuildRequest && (contractBuildRequest.status === 'FAILED' ||
+              contractBuildRequest.status === 'COMPLETED') && (
+              <Button onClick={buildContract}>
+                <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Build contract again
               </Button>
             )}
             {contractBuildRequest && (
@@ -531,10 +695,16 @@ export default function SmartContractView() {
                   )}
                 </Accordion>
 
-                {contractBuildRequest?.status === 'COMPLETED' && !contractDeployRequest && (
+                {contractBuildRequest?.status === 'COMPLETED' && contractBuild && !contractDeployRequest && (
                   <Button onClick={deployContract}>
                     <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span> Deploy
                     contract
+                  </Button>
+                )}
+                {(contractDeployRequest?.status === 'COMPLETED' || contractDeployRequest?.status === 'FAILED') && contractBuild && (
+                  <Button onClick={deployContract}>
+                    <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span> Deploy
+                    contract again
                   </Button>
                 )}
               </>

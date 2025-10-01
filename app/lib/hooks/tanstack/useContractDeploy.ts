@@ -7,7 +7,7 @@ export type SolanaNetwork = 'devnet' | 'mainnet';
 
 export interface PostDeployRequestPayload {
   projectId: string;
-  solanaNetwork: 'devnet' | 'mainnet';
+  network: 'devnet' | 'mainnet';
 }
 
 export interface GetDeployRequestResponse {
