@@ -113,7 +113,7 @@ export const usePostBuildRequest = () =>
         currentRequest = {
           projectId: payload.projectId,
           status: 'STARTED',
-          startedAt: new Date()
+          startedAt: new Date(),
         }
         if(stateSwitchTimeout){
           clearInterval(stateSwitchTimeout);

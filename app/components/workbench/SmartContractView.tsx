@@ -11,30 +11,19 @@ import { toast } from 'react-toastify';
 import {
   type GetBuildRequestResponse,
   type GetBuildResponse,
-  // useGetBuild,
-  // useGetBuildRequest,
-  // usePostBuildRequest
+  useGetBuild,
+  useGetBuildRequest,
+  usePostBuildRequest
 } from '~/lib/hooks/tanstack/useContractBuild';
 import { chatId } from '~/lib/persistence';
 import {
   type ContractDeployRequestStatus,
   type GetDeploymentResponse,
   type GetDeployRequestResponse,
-  // useGetDeployment,
-  // useGetDeployRequest,
-  // usePostDeployRequest
-} from '~/lib/hooks/tanstack/useContractDeploy';
-// TODO: Switch to real implementations.
-import {
-  useGetBuild,
-  useGetBuildRequest,
-  usePostBuildRequest
-} from '~/lib/hooks/tanstack/mocks/useContractBuild';
-import {
   useGetDeployment,
   useGetDeployRequest,
   usePostDeployRequest
-}from '~/lib/hooks/tanstack/mocks/useContractDeploy';
+} from '~/lib/hooks/tanstack/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios, { Axios } from 'axios';
 import { getAimpactFs } from '~/lib/aimpactfs';
@@ -72,6 +61,7 @@ interface Props {
   postMessage: (message: string) => void;
 }
 
+const CONTRACT_IDL_FILE_NAME='contract-idl.json';
 const DEVNET_RPC = 'https://api.devnet.solana.com';
 const ANCHOR_PROJECT_CHECKING_INTERVAL_MS = 1000;
 const BUILD_REQUEST_POLLING_INTERVAL_MS = 5000;
@@ -183,6 +173,8 @@ export default function SmartContractView({postMessage}: Props) {
 
       try {
         const contractDeployment = await getContractDeployment(projectId);
+        const fs = await getAimpactFs();
+        await fs.writeFile(CONTRACT_IDL_FILE_NAME, JSON.stringify(contractDeployment.programIdl), 'utf-8');
         setContractDeployment(contractDeployment);
       }
       catch(e) {
@@ -284,7 +276,7 @@ export default function SmartContractView({postMessage}: Props) {
         const fs = await getAimpactFs();
         const deployment = await getContractDeployment(projectId);
         setContractDeployment(deployment);
-        await fs.writeFile('contract-idl.json', JSON.stringify(deployment.programIdl), 'utf-8');
+        await fs.writeFile(CONTRACT_IDL_FILE_NAME, JSON.stringify(deployment.programIdl), 'utf-8');
       } catch(error){
         if(axios.isAxiosError(error) && error.response && error.response.status === 404){
           toast.error('Contract deployment was not found on the server after deploy completion.');
@@ -499,10 +491,10 @@ export default function SmartContractView({postMessage}: Props) {
                 <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Build contract
               </Button>
             )}
-            {contractBuildRequest && (contractBuildRequest.status === 'FAILED' ||
+            {contractBuild && contractBuildRequest && (contractBuildRequest.status === 'FAILED' ||
               contractBuildRequest.status === 'COMPLETED') && (
               <Button onClick={buildContract}>
-                <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Build contract again
+                <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Rebuild contract
               </Button>
             )}
             {contractBuildRequest && (
@@ -705,10 +697,10 @@ export default function SmartContractView({postMessage}: Props) {
                     contract
                   </Button>
                 )}
-                {(contractDeployRequest?.status === 'COMPLETED' || contractDeployRequest?.status === 'FAILED') && contractBuild && (
+                {(contractDeployRequest?.status === 'COMPLETED' || contractDeployRequest?.status === 'FAILED') && contractBuild && contractDeployment && (
                   <Button onClick={deployContract}>
-                    <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span> Deploy
-                    contract again
+                    <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span> Redeploy
+                    contract
                   </Button>
                 )}
               </>
