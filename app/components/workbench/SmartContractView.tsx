@@ -4,36 +4,37 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import {
   AnchorValidationStatus,
   getAnchorProjectSnapshot,
-  validateAnchorProject
+  validateAnchorProject,
+  type AnchorValidationResult
 } from '~/lib/smartContracts/anchorProjectUtils';
 import { toast } from 'react-toastify';
 import {
   type GetBuildRequestResponse,
   type GetBuildResponse,
-  useGetBuild,
-  useGetBuildRequest,
-  usePostBuildRequest
+  // useGetBuild,
+  // useGetBuildRequest,
+  // usePostBuildRequest
 } from '~/lib/hooks/tanstack/useContractBuild';
 import { chatId } from '~/lib/persistence';
 import {
   type ContractDeployRequestStatus,
   type GetDeploymentResponse,
   type GetDeployRequestResponse,
+  // useGetDeployment,
+  // useGetDeployRequest,
+  // usePostDeployRequest
+} from '~/lib/hooks/tanstack/useContractDeploy';
+// TODO: Switch to real implementations.
+import {
+  useGetBuild,
+  useGetBuildRequest,
+  usePostBuildRequest
+} from '~/lib/hooks/tanstack/mocks/useContractBuild';
+import {
   useGetDeployment,
   useGetDeployRequest,
   usePostDeployRequest
-} from '~/lib/hooks/tanstack/useContractDeploy';
-//TODO: Switch to real implementations.
-// import {
-//   useGetBuild,
-//   useGetBuildRequest,
-//   usePostBuildRequest
-// } from '~/lib/hooks/tanstack/mocks/useContractBuild';
-// import {
-//   useGetDeployment,
-//   useGetDeployRequest,
-//   usePostDeployRequest
-// }from '~/lib/hooks/tanstack/mocks/useContractDeploy';
+}from '~/lib/hooks/tanstack/mocks/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios, { Axios } from 'axios';
 
@@ -76,6 +77,7 @@ const BUILD_REQUEST_POLLING_INTERVAL_MS = 5000;
 const DEPLOY_REQUEST_POLLING_INTERVAL_MS = 1000;
 
 export default function SmartContractView({postMessage}: Props) {
+  const [lastValidationResult, setLastValidationResult] = useState<AnchorValidationResult | null>(null);
   const [localAnchorProject, setLocalAnchorProject] = useState<LocalAnchorProject | null>();
   const [contractBuildRequest, setContractBuildRequest] = useState<GetBuildRequestResponse | null>();
   const [contractBuild, setContractBuild] = useState<ContractBuild | null>();
@@ -108,6 +110,7 @@ export default function SmartContractView({postMessage}: Props) {
 
   const updateLocalAnchorProject = () => {
     const validationResult = validateAnchorProject();
+    setLastValidationResult(validationResult);
     if(validationResult.status === AnchorValidationStatus.VALID){
       const snapshot = getAnchorProjectSnapshot(false);
       setLocalAnchorProject({
@@ -466,7 +469,7 @@ export default function SmartContractView({postMessage}: Props) {
 
   return (
     <div className="flex w-full h-full justify-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      {localAnchorProject ? (
+      {(lastValidationResult && lastValidationResult.status === 'VALID' && localAnchorProject) ? (
         <div className="w-full bg-bolt-elements-background-depth-2 px-6 py-8 overflow-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex flex-col xl:gap-6 gap-3 px-6 py-8 bg-bolt-elements-background-depth-3 rounded-sm">
             <div className="flex justify-between">
@@ -649,11 +652,9 @@ export default function SmartContractView({postMessage}: Props) {
                                       <p>Name:</p> {contractDeployment.programName}
                                     </div>
                                     <div>
-                                      <p>ID:</p> {contractDeployment.programId}
+                                      <p>Program ID:</p>
+                                      <span className="text-xs break-all">{contractDeployment.programId}</span>
                                     </div>
-                                    {/*<div>*/}
-                                    {/*  <p>Size:</p> {contractDeployment.sizeBytes}*/}
-                                    {/*</div>*/}
                                   </div>
                                   <div>
                                     <div>
@@ -712,12 +713,18 @@ export default function SmartContractView({postMessage}: Props) {
           </div>
         </div>
       ) : (
-        <p className="max-w-70 text-center self-center">
-          No Anchor project has been detected. <br />
-          <span className="text-muted-foreground text-sm">
+        (lastValidationResult && lastValidationResult.status === 'INVALID') ? (
+          <p className="max-w-70 text-center self-center text-destructive">
+            {lastValidationResult.message}
+          </p>
+        ) : (
+          <p className="max-w-70 text-center self-center">
+            No Anchor project has been detected. <br />
+            <span className="text-muted-foreground text-sm">
             Create an Anchor project to get started with smart contract development.
           </span>
-        </p>
+          </p>
+        )
       )}
     </div>
   );
