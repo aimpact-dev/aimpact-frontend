@@ -37,6 +37,7 @@ import {
 }from '~/lib/hooks/tanstack/mocks/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios, { Axios } from 'axios';
+import { getAimpactFs } from '~/lib/aimpactfs';
 
 //Represents anchor project found in user's files on the client
 interface LocalAnchorProject {
@@ -280,8 +281,10 @@ export default function SmartContractView({postMessage}: Props) {
       const projectId = chatId.get();
       if(!projectId) return;
       try{
+        const fs = await getAimpactFs();
         const deployment = await getContractDeployment(projectId);
         setContractDeployment(deployment);
+        await fs.writeFile('contract-idl.json', JSON.stringify(deployment.programIdl), 'utf-8');
       } catch(error){
         if(axios.isAxiosError(error) && error.response && error.response.status === 404){
           toast.error('Contract deployment was not found on the server after deploy completion.');
