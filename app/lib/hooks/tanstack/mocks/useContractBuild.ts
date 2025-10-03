@@ -30,7 +30,7 @@ function switchToBuilding(){
     stateSwitchTimeout = setTimeout(()=>switchToFailed(), STATE_SWITCH_INTERVAL_MS);
   }
   else{
-    stateSwitchTimeout = setInterval(() => switchToCompleted(), STATE_SWITCH_INTERVAL_MS);
+    stateSwitchTimeout = setTimeout(() => switchToCompleted(), STATE_SWITCH_INTERVAL_MS);
   }
 }
 
@@ -51,7 +51,7 @@ function switchToFailed(){
   if(!currentRequest) return;
   currentRequest.status = 'FAILED';
   currentRequest.message = 'Contract build failed.';
-  currentRequest.logs = ['An error occurred when building smart contract.', 'Some files were missing or wahtever.', 'This is a mock fail message.'];
+  currentRequest.logs = ['An error occurred when building smart contract.', 'Some files were missing or whatever.', 'This is a mock fail message.'];
 }
 
 export const useGetBuild = () =>
@@ -116,7 +116,7 @@ export const usePostBuildRequest = () =>
           startedAt: new Date(),
         }
         if(stateSwitchTimeout){
-          clearInterval(stateSwitchTimeout);
+          clearTimeout(stateSwitchTimeout);
         }
         stateSwitchTimeout = setTimeout(() => switchToBuilding(), STATE_SWITCH_INTERVAL_MS);
         return;
