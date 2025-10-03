@@ -18,6 +18,7 @@ export interface GetDeployRequestResponse {
   startedAt: Date;
   message?: string;
   logs?: Array<string>;
+  buildFinishTime?: Date;
 }
 
 export interface GetDeploymentResponse {

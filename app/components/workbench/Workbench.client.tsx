@@ -27,7 +27,7 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
-import SmartContractView from './SmartContractView';
+import SmartContractView from './smart_contracts/SmartContractView';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -583,7 +583,11 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
                   >
-                    <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} isTabOpen={selectedView === 'diff'} />
+                    <DiffView
+                      fileHistory={fileHistory}
+                      setFileHistory={setFileHistory}
+                      isTabOpen={selectedView === 'diff'}
+                    />
                   </View>
                   <View
                     initial={{ x: '100%' }}
