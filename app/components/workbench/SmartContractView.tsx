@@ -25,7 +25,7 @@ import {
   usePostDeployRequest
 } from '~/lib/hooks/tanstack/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import axios, { Axios } from 'axios';
+import axios from 'axios';
 import { getAimpactFs } from '~/lib/aimpactfs';
 
 //Represents anchor project found in user's files on the client
