@@ -76,7 +76,7 @@ export const useGetDeployment = () =>
           }
         );
       } else {
-        return currentDeployment;
+        return {...currentDeployment};
       }
     }
   });
@@ -100,7 +100,7 @@ export const useGetDeployRequest = () =>
           }
         );
       } else {
-        return currentRequest;
+        return {...currentRequest};
       }
     }
   });
