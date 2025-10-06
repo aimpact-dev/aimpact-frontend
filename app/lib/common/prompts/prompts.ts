@@ -10,7 +10,11 @@ When users ask to generate a Web3 application or smart contract functionality, f
 
 ## For Web3 Applications:
 - Generate solana smart contract code for the app in the \`src-anchor\` directory (lib.rs file)
-Pop up a Phantom Wallet to confirm transactions for each action.`
+- Pop up a Phantom Wallet to confirm transactions for each action
+- Do not try to use solana and anchor cli tools, because those are not installed in the system
+- To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
+- Use frontend solana libraries to parse the IDL and integrate it into app
+- Always get the smart contract public key from IDL, key from declare_id! macro in lib.rs is overwritten on every deploy.`
 
   return ENABLE_SOLANA_PROMPT ? prompt : "";
 }
@@ -145,10 +149,10 @@ pub struct Initialize<'info> {
               seeds=[&domain.to_le_bytes().as_ref(), &key.to_le_bytes().as_ref()],
               bump)]
     val: Account<'info, Val>,
-    
+
     #[account(mut)]
     signer: Signer<'info>,
-    
+
     system_program: Program<'info, System>,
 }
 
@@ -272,5 +276,5 @@ Instructions:
 5. If no perfect match exists, recommend the closest option
 
 Important: Provide only the selection tags in your response, no additional text.
-MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH 
+MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH
 `;

@@ -27,7 +27,7 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
-import SmartContractView from './smart_contracts/SmartContractView';
+import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
 
 interface WorkspaceProps {
   chatStarted?: boolean;

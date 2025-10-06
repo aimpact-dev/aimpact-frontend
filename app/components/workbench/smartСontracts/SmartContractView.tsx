@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge, Button } from '../../ui';
 import {
   AnchorValidationStatus,
@@ -10,19 +10,29 @@ import { toast } from 'react-toastify';
 import {
   type GetBuildRequestResponse,
   type GetBuildResponse,
+  // useGetBuild,
+  // useGetBuildRequest,
+  // usePostBuildRequest,
+} from '~/lib/hooks/tanstack/useContractBuild';
+import {
   useGetBuild,
   useGetBuildRequest,
   usePostBuildRequest,
-} from '~/lib/hooks/tanstack/useContractBuild';
+}from '~/lib/hooks/tanstack/mocks/useContractBuild';
 import { chatId } from '~/lib/persistence';
 import {
   type ContractDeployRequestStatus,
   type GetDeploymentResponse,
   type GetDeployRequestResponse,
+  // useGetDeployment,
+  // useGetDeployRequest,
+  // usePostDeployRequest,
+} from '~/lib/hooks/tanstack/useContractDeploy';
+import {
   useGetDeployment,
   useGetDeployRequest,
   usePostDeployRequest,
-} from '~/lib/hooks/tanstack/useContractDeploy';
+} from '~/lib/hooks/tanstack/mocks/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios from 'axios';
 import { getAimpactFs } from '~/lib/aimpactfs';
@@ -38,26 +48,6 @@ export interface ContractBuild extends GetBuildResponse {
   deployCost: number;
 }
 
-interface AnchorProject {
-  name: string;
-  path: string;
-  buildRequest?: GetBuildRequestResponse;
-  build?: ContractBuild;
-  deploy?: {
-    id: string;
-    network: string;
-    startedAt: string;
-    status: ContractDeployRequestStatus;
-    message?: string;
-    logs?: Array<string>;
-    name?: string;
-    deployedAt?: string;
-    buildFinishTime?: string;
-    sizeBytes?: number;
-    idl?: string;
-  };
-}
-
 interface Props {
   postMessage: (message: string) => void;
 }
@@ -66,7 +56,7 @@ const CONTRACT_IDL_FILE_NAME = 'contract-idl.json';
 const DEVNET_RPC = 'https://api.devnet.solana.com';
 const ANCHOR_PROJECT_CHECKING_INTERVAL_MS = 1000;
 const BUILD_REQUEST_POLLING_INTERVAL_MS = 5000;
-const DEPLOY_REQUEST_POLLING_INTERVAL_MS = 1000;
+const DEPLOY_REQUEST_POLLING_INTERVAL_MS = 5000;
 
 export default function SmartContractView({ postMessage }: Props) {
   const [lastValidationResult, setLastValidationResult] = useState<AnchorValidationResult | null>(null);
@@ -367,11 +357,11 @@ export default function SmartContractView({ postMessage }: Props) {
     }
   };
 
-  const fixBuild = () => {
+  const fixBuild = useCallback(() => {
     if (!contractBuildRequest || contractBuildRequest.status !== 'FAILED') return;
     const content = contractBuildRequest.logs?.join('\n');
     postMessage(`*Fix this anchor build error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`);
-  };
+  }, []);
 
   const deployContract = async () => {
     if (deployInProgress) {

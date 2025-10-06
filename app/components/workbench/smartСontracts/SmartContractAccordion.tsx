@@ -3,6 +3,7 @@ import type { GetBuildRequestResponse } from '~/lib/hooks/tanstack/useContractBu
 import type { ContractBuild } from './SmartContractView';
 import type { GetDeploymentResponse, GetDeployRequestResponse } from '~/lib/hooks/tanstack/useContractDeploy';
 import { Button } from '~/components/ui';
+import { memo } from 'react';
 
 interface Props {
   openAccordion: string | undefined;
