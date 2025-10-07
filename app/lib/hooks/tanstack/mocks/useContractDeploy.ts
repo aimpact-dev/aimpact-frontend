@@ -16,7 +16,7 @@ const POST_REQUEST_DELAY_MS = 1000;
 const GET_REQUEST_DELAY_MS = 500;
 const GET_DEPLOY_DELAY_MS = 500;
 const MIN_TIME_BETWEEN_REQUESTS_MS = 60 * 1000;
-const STATE_SWITCH_INTERVAL_MS = 10 * 1000;
+const STATE_SWITCH_INTERVAL_MS = 5 * 1000;
 
 let currentRequest: GetDeployRequestResponse | null = null;
 let currentDeployment: GetDeploymentResponse | null = null;
@@ -43,6 +43,7 @@ function switchToCompleted() {
     network: currentRequest.network,
     deployedAt: new Date(),
     upgradeAuthorityPublicKey: 'mockupgradeauthoritykey',
+    buildFinishTime: new Date(),
   };
 }
 
@@ -110,6 +111,8 @@ export const usePostDeployRequest = () =>
     mutationFn: async (payload) => {
       await new Promise(res => setTimeout(res, POST_REQUEST_DELAY_MS));
       if (!currentRequest ||
+        currentRequest.status === 'FAILED' ||
+        currentRequest.status === 'COMPLETED' ||
         (Date.now() - currentRequest.startedAt.getTime() > MIN_TIME_BETWEEN_REQUESTS_MS)) {
         currentRequest = {
           projectId: payload.projectId,

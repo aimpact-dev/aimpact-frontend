@@ -18,7 +18,6 @@ export interface GetDeployRequestResponse {
   startedAt: Date;
   message?: string;
   logs?: Array<string>;
-  buildFinishTime?: Date;
 }
 
 export interface GetDeploymentResponse {
@@ -28,6 +27,7 @@ export interface GetDeploymentResponse {
   network: SolanaNetwork;
   deployedAt: Date;
   upgradeAuthorityPublicKey: string;
+  buildFinishTime: Date;
 }
 
 export const usePostDeployRequest = () =>

@@ -131,6 +131,10 @@ export default function SmartContractAccordion({
                 {contractBuildRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
               </div>
               <Button onClick={fixBuild}>Fix with AI</Button>
+              <Button onClick={buildContract}>
+                <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Rebuild
+                contract
+              </Button>
             </>
           )}
         </AccordionContent>

@@ -10,13 +10,13 @@ import type {
 } from '~/lib/hooks/tanstack/useContractBuild';
 
 //Change this const to control build failures imitation.
-const FAIL_BUILD_REQUEST: boolean = false;
+const FAIL_BUILD_REQUEST: boolean = true;
 
 const POST_REQUEST_DELAY_MS = 1000;
 const GET_REQUEST_DELAY_MS = 500;
 const GET_BUILD_DELAY_MS = 500;
 const MIN_TIME_BETWEEN_REQUESTS_MS = 60 * 1000;
-const STATE_SWITCH_INTERVAL_MS = 10 * 1000;
+const STATE_SWITCH_INTERVAL_MS = 5 * 1000;
 
 let currentRequest: GetBuildRequestResponse | null = null;
 let currentBuild: GetBuildResponse | null = null;
@@ -109,6 +109,8 @@ export const usePostBuildRequest = () =>
     mutationFn: async (payload) => {
       await new Promise(res => setTimeout(res, POST_REQUEST_DELAY_MS));
       if(!currentRequest ||
+        currentRequest.status === 'FAILED' ||
+        currentRequest.status === 'COMPLETED' ||
         (Date.now() - currentRequest.startedAt.getTime() > MIN_TIME_BETWEEN_REQUESTS_MS)) {
         currentRequest = {
           projectId: payload.projectId,

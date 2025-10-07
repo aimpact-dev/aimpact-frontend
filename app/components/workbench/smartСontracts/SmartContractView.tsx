@@ -272,7 +272,6 @@ export default function SmartContractView({ postMessage }: Props) {
         }
         try {
           const deployRequest = await getContractDeployRequest(projectId);
-          deployRequest.buildFinishTime = contractBuild?.builtAt;
           setContractDeployRequest(deployRequest);
           if (deployRequest.status === 'FAILED' || deployRequest.status === 'COMPLETED') {
             if (deployRequest.status === 'COMPLETED') {
@@ -319,7 +318,7 @@ export default function SmartContractView({ postMessage }: Props) {
     };
   }, [deployInProgress]);
 
-  const buildContract = async () => {
+  const buildContract = useCallback(async () => {
     if (buildInProgress) {
       return;
     }
@@ -345,7 +344,6 @@ export default function SmartContractView({ postMessage }: Props) {
         });
         const request = await getContractBuildRequest(projectId);
         setContractBuildRequest(request);
-        setBuildInProgress(false);
       } catch (error) {
         setBuildInProgress(false);
         if (error instanceof Error) {
@@ -355,7 +353,7 @@ export default function SmartContractView({ postMessage }: Props) {
         }
       }
     }
-  };
+  }, []);
 
   const fixBuild = useCallback(() => {
     if (!contractBuildRequest || contractBuildRequest.status !== 'FAILED') return;
@@ -382,7 +380,6 @@ export default function SmartContractView({ postMessage }: Props) {
       });
       const request = await getContractDeployRequest(projectId);
       setContractDeployRequest(request);
-      setDeployInProgress(false);
     } catch (error) {
       setDeployInProgress(false);
       if (error instanceof Error) {
@@ -393,11 +390,11 @@ export default function SmartContractView({ postMessage }: Props) {
     }
   };
 
-  const fixDeploy = () => {
+  const fixDeploy = useCallback(() => {
     if (!contractDeployRequest || contractDeployRequest.status !== 'FAILED') return;
     const content = contractDeployRequest.logs?.join('\n');
     postMessage(`*Fix this anchor contract deploy error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`);
-  };
+  }, []);
 
   const getStatusBadge = () => {
     if (!localAnchorProject) {
@@ -447,44 +444,44 @@ export default function SmartContractView({ postMessage }: Props) {
     }
 
     if (contractDeployRequest) {
-      if (contractDeployRequest.buildFinishTime !== contractBuild?.builtAt) {
-        badges.push(
-          <Badge key="deploy-outdated" variant="warning">
-            Deploy outdated
-          </Badge>,
-        );
-      } else {
-        switch (contractDeployRequest.status) {
-          case 'STARTED':
-            badges.push(
-              <Badge key="deploy-started" variant="warning">
-                Deploy requested
-              </Badge>,
-            );
-            break;
-          case 'DEPLOYING':
-            badges.push(
-              <Badge key="deploying" variant="info">
-                Deploying...
-              </Badge>,
-            );
-            break;
-          case 'COMPLETED':
-            badges.push(
-              <Badge key="deploy-completed" variant="success">
-                Deploy completed
-              </Badge>,
-            );
-            break;
-          case 'FAILED':
-            badges.push(
-              <Badge key="deploy-failed" variant="destructive">
-                Deploy failed
-              </Badge>,
-            );
-            break;
-        }
+      switch (contractDeployRequest.status) {
+        case 'STARTED':
+          badges.push(
+            <Badge key="deploy-started" variant="warning">
+              Deploy requested
+            </Badge>,
+          );
+          break;
+        case 'DEPLOYING':
+          badges.push(
+            <Badge key="deploying" variant="info">
+              Deploying...
+            </Badge>,
+          );
+          break;
+        case 'COMPLETED':
+          badges.push(
+            <Badge key="deploy-completed" variant="success">
+              Deploy completed
+            </Badge>,
+          );
+          break;
+        case 'FAILED':
+          badges.push(
+            <Badge key="deploy-failed" variant="destructive">
+              Deploy failed
+            </Badge>,
+          );
+          break;
       }
+    }
+
+    if (contractDeployment && contractBuild && contractDeployment.buildFinishTime !== contractBuild.builtAt) {
+      badges.push(
+        <Badge key="deploy-outdated" variant="warning">
+          Deploy outdated
+        </Badge>,
+      );
     }
 
     if (badges.length === 0) {
