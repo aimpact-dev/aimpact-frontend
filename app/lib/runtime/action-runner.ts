@@ -3,12 +3,13 @@ import { map, type MapStore } from 'nanostores';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
-import type { ActionCallbackData } from './message-parser';
+import { parseOldNewPairs, type ActionCallbackData } from './message-parser';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import type { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { isBinaryPath } from '~/utils/fileExtensionUtils';
+import { ac } from 'vitest/dist/chunks/reporters.nr4dxCkA.js';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -134,7 +135,7 @@ export class ActionRunner {
       return; // No return value here
     }
 
-    if (isStreaming && action.type !== 'file') {
+    if (isStreaming && action.type !== 'file' && action.type !== 'update') {
       return; // No return value here
     }
 
@@ -156,11 +157,13 @@ export class ActionRunner {
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
 
-    //Waiting for the sandbox to be ready
+    // Waiting for the sandbox to be ready
     await getSandbox();
 
     this.#updateAction(actionId, { status: 'running' });
 
+    logger.debug('executing action');
+    logger.debug(action);
     try {
       switch (action.type) {
         case 'shell': {
@@ -193,38 +196,9 @@ export class ActionRunner {
           this.buildOutput = buildOutput;
           break;
         }
-        case 'start': {
-          // making the start app non blocking
-
-          this.#runStartAction(action)
-            .then(() => this.#updateAction(actionId, { status: 'complete' }))
-            .catch((err: Error) => {
-              if (action.abortSignal.aborted) {
-                return;
-              }
-
-              this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
-              logger.error(`[${action.type}]:Action failed\n\n`, err);
-
-              if (!(err instanceof ActionCommandError)) {
-                return;
-              }
-
-              this.onAlert?.({
-                type: 'error',
-                title: 'Dev Server Failed',
-                description: err.header,
-                content: err.output,
-              });
-            });
-
-          /*
-           * adding a delay to avoid any race condition between 2 start actions
-           * i am up for a better approach
-           */
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          return;
+        case 'update': {
+          await this.#runUpdateAction(action);
+          break;
         }
       }
 
@@ -279,32 +253,65 @@ export class ActionRunner {
     }
   }
 
-  async #runStartAction(action: ActionState) {
-    if (action.type !== 'start') {
-      unreachable('Expected shell action');
+  async #runUpdateAction(action: ActionState) {
+    logger.debug('Trying to update');
+    if (action.type !== 'update') {
+      unreachable('Expected update action');
     }
 
-    if (!this.#shellTerminal) {
-      unreachable('Shell terminal not found');
+    const fs = await this.#aimpactFs;
+    let actionPath = action.filePath;
+    if (!action.filePath.startsWith('/')) {
+      // If the filePath is not absolute, we assume it's relative to the current working directory
+      actionPath = nodePath.join(await fs.workdir(), action.filePath);
+    }
+    const relativePath = nodePath.relative(await fs.workdir(), actionPath);
+
+    if ((await fs.fileExists(relativePath)) === false) {
+      logger.debug(`File ${relativePath} does not exists`);
+      return;
     }
 
-    const shell = this.#shellTerminal();
+    try {
+      const isBinary = isBinaryPath(action.filePath);
+      const encoding = isBinary ? 'base64' : 'utf-8';
+      const oldNewPair = parseOldNewPairs(action.content);
+      if (!oldNewPair.old) {
+        logger.error(`Reverted: Update actino have empt old string`);
+        return;
+      }
 
-    if (!shell) {
-      unreachable('Shell terminal not found');
+      const fileContent = await fs.readFile(relativePath, encoding);
+      if (!fileContent.search(oldNewPair.old)) {
+        logger.debug(`File ${relativePath} doesn't have old content`);
+      } else {
+        logger.debug(`File have content`);
+      }
+
+      let updatedContent: string;
+      if (action.occurrences === 'all') {
+        updatedContent = fileContent.replaceAll(oldNewPair.old, oldNewPair.new);
+      } else if (action.occurrences === 'nth' && action.n) {
+        let count = 0;
+        // replace only on some index
+        updatedContent = fileContent.replace(oldNewPair.old, (match) => {
+          count++;
+          if (count === action.n) {
+            return oldNewPair.new;
+          }
+          return match;
+        });
+      } else {
+        updatedContent = fileContent.replace(oldNewPair.old, oldNewPair.new);
+      }
+      console.log('updated content', updatedContent);
+      const buffer = Buffer.from(updatedContent, isBinary ? 'base64' : 'utf-8');
+
+      await fs.writeFile(relativePath, buffer, encoding);
+      logger.debug(`File updated ${relativePath}`);
+    } catch (error) {
+      logger.error(`Failed to update file ${relativePath}\n\n`, error);
     }
-
-    const resp = await shell.executeCommand(action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
-    logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
-
-    if (resp?.exitCode != 0) {
-      throw new ActionCommandError('Failed To Start Application', resp?.output || 'No Output Available');
-    }
-
-    return resp;
   }
 
   async #runFileAction(action: ActionState) {
@@ -314,7 +321,7 @@ export class ActionRunner {
 
     const fs = await this.#aimpactFs;
     let actionPath = action.filePath;
-    if (!action.filePath.startsWith('/')){
+    if (!action.filePath.startsWith('/')) {
       // If the filePath is not absolute, we assume it's relative to the current working directory
       actionPath = nodePath.join(await fs.workdir(), action.filePath);
     }
@@ -335,7 +342,7 @@ export class ActionRunner {
     }
 
     try {
-      const isBinary  = isBinaryPath(action.filePath);
+      const isBinary = isBinaryPath(action.filePath);
       const encoding = isBinary ? 'base64' : 'utf-8';
       const buffer = Buffer.from(action.content, isBinary ? 'base64' : 'utf-8');
       await fs.writeFile(relativePath, buffer, encoding);
@@ -428,7 +435,6 @@ export class ActionRunner {
       deployStatus: 'running',
       source: 'netlify',
     });
-
 
     return {
       path: buildResult.path!,

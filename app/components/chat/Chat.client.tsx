@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import type { Message, UIMessage } from 'ai';
+import { convertToCoreMessages, type Message, type UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -53,7 +53,7 @@ export function Chat() {
   if ((error as any)?.status === 404) {
     return <Page404 />;
   } else if ((error as any)?.status === 401) {
-    return <ErrorPage errorCode='401' errorText='Unauthorized' details='Connect wallet, sign in and reload page' />
+    return <ErrorPage errorCode="401" errorText="Unauthorized" details="Connect wallet, sign in and reload page" />;
   }
 
   return (
@@ -183,12 +183,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
-  const chatBody = useMemo(() => ({
-    files,
-    promptId,
-    contextOptimization: contextOptimizationEnabled,
-    authToken: Cookies.get('authToken'),
-  }), [files, promptId, contextOptimizationEnabled]);
+  const chatBody = useMemo(
+    () => ({
+      files,
+      promptId,
+      contextOptimization: contextOptimizationEnabled,
+      authToken: Cookies.get('authToken'),
+    }),
+    [files, promptId, contextOptimizationEnabled],
+  );
 
   const {
     messages,
@@ -272,7 +275,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     processSampledMessages({
-      messages,
+      messages: messages,
       initialMessages,
       isLoading,
       parseMessages,
@@ -527,7 +530,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     return () => {
-      debouncedCachePrompt.cancel?.();
+      // debouncedCachePrompt.cancel?.();
     };
   }, [debouncedCachePrompt]);
 
@@ -542,35 +545,38 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   };
 
   const enhancePromptCallback = useCallback(() => {
-    enhancePrompt(
-      input,
-      (input) => {
-        setInput(input);
-        scrollTextArea();
-      },
-    );
+    enhancePrompt(input, (input) => {
+      setInput(input);
+      scrollTextArea();
+    });
   }, [enhancePrompt, input, setInput]);
 
-  const handleInputChangeAndCache = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onTextareaChange(e);
-    debouncedCachePrompt(e);
-  }, [onTextareaChange, debouncedCachePrompt]);
+  const handleInputChangeAndCache = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onTextareaChange(e);
+      debouncedCachePrompt(e);
+    },
+    [onTextareaChange, debouncedCachePrompt],
+  );
 
   const clearAlertCallback = useCallback(() => {
     workbenchStore.clearAlert();
   }, []);
 
   const clearSupabaseAlertCallback = useCallback(() => {
-    workbenchStore.clearSupabaseAlert()
+    workbenchStore.clearSupabaseAlert();
   }, []);
 
   const clearDeployAlertCallback = useCallback(() => {
-    workbenchStore.clearDeployAlert()
+    workbenchStore.clearDeployAlert();
   }, []);
 
-  const onStreamingChangeCallback = useCallback((streaming: boolean) => {
-    streamingState.set(streaming);
-  }, [streamingState]);
+  const onStreamingChangeCallback = useCallback(
+    (streaming: boolean) => {
+      streamingState.set(streaming);
+    },
+    [streamingState],
+  );
 
   return (
     <>
@@ -593,10 +599,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         handleInputChange={handleInputChangeAndCache}
         handleStop={abort}
         /*
-        * description={description}
-        * importChat={importChat}
-        * exportChat={exportChat}
-        */
+         * description={description}
+         * importChat={importChat}
+         * exportChat={exportChat}
+         */
         messages={messages.map((message, i) => {
           if (message.role === 'user') {
             return message;
@@ -621,7 +627,31 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         data={chatData}
         showWorkbench={showWorkbench}
       />
-      <DaytonaCleanup/>
+      <button
+        onClick={async () => {
+          console.log('start')
+          const lastMessage = messages.findLast((message) => message.content.includes(' type="update"'));
+          console.log('message content');
+          console.log(lastMessage);
+          if (!lastMessage) {
+            console.error('message not found');
+            return;
+          }
+
+          setMessages([
+            ...messages,
+            {
+              id: lastMessage.id + '1',
+              role: 'assistant',
+              content: lastMessage.content + 'testing this',
+            },
+          ]);
+          
+        }}
+      >
+        Test
+      </button>
+      <DaytonaCleanup />
     </>
   );
 });

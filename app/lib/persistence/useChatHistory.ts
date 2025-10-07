@@ -249,7 +249,7 @@ export function useChatHistory() {
           key = key.replace(workdir, '');
         }
 
-        await fs.writeFile(key, value.content, { encoding: value.isBinary ? 'base64' : 'utf-8' });
+        await fs.writeFile(key, value.content, value.isBinary ? 'base64' : 'utf-8');
       }
     });
   }, []);

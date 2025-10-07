@@ -61,7 +61,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
     // console.log(artifact)
     if (actions.length !== 0 && artifact.type === 'bundled') {
       const finished = !actions.find(
-        (action) => action.status !== 'complete' && !(action.type === 'start' && action.status === 'running'),
+        (action) => action.status !== 'complete',
       );
 
       if (allActionFinished !== finished) {
@@ -98,9 +98,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
                 {/* Use the dynamic title here */}
                 {dynamicTitle}
               </div>
-              <div className="w-full w-full text-bolt-elements-textSecondary text-xs mt-0.5">
-                Click to open Workbench
-              </div>
+              <div className="w-full text-bolt-elements-textSecondary text-xs mt-0.5">Click to open Workbench</div>
             </div>
           </button>
           {artifact.type !== 'bundled' && <div className="bg-bolt-elements-artifacts-borderColor w-[1px]" />}
@@ -228,11 +226,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 <div className={classNames('text-lg', getIconColor(status))}>
                   {status === 'running' ? (
                     <>
-                      {type !== 'start' ? (
-                        <div className="i-svg-spinners:90-ring-with-bg"></div>
-                      ) : (
-                        <div className="i-ph:terminal-window-duotone"></div>
-                      )}
+                      <div className="i-ph:terminal-window-duotone"></div>
                     </>
                   ) : status === 'pending' ? (
                     <div className="i-ph:circle-duotone"></div>
@@ -256,19 +250,19 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                   <div className="flex items-center w-full min-h-[28px]">
                     <span className="flex-1">Run command</span>
                   </div>
-                ) : type === 'start' ? (
-                  <a
-                    onClick={(e) => {
-                      e.preventDefault();
-                      workbenchStore.currentView.set('preview');
-                    }}
-                    className="flex items-center w-full min-h-[28px]"
-                  >
-                    <span className="flex-1">Start Application</span>
-                  </a>
+                ) : type === 'update' ? (
+                  <div>
+                    Update{' '}
+                    <code
+                      className="bg-bolt-elements-artifacts-inlineCode-background text-bolt-elements-artifacts-inlineCode-text px-1.5 py-1 rounded-md text-bolt-elements-item-contentAccent hover:underline cursor-pointer"
+                      onClick={() => openArtifactInWorkbench(action.filePath)}
+                    >
+                      {action.filePath}
+                    </code>
+                  </div>
                 ) : null}
               </div>
-              {(type === 'shell' || type === 'start') && (
+              {type === 'shell' && (
                 <ShellCodeBlock
                   classsName={classNames('mt-1', {
                     'mb-3.5': !isLast,

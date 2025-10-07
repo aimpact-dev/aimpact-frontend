@@ -39,6 +39,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     contextOptimization: boolean;
     authToken: string;
   }>();
+  if (true) {
+    return true;
+  }
   let { messages } = body;
   const { files, promptId, contextOptimization, authToken } = body;
 

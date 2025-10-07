@@ -4,7 +4,6 @@ import { generateId } from './fileUtils';
 export interface ProjectCommands {
   type: string;
   setupCommand?: string;
-  startCommand?: string;
   followupMessage: string;
 }
 
@@ -37,7 +36,6 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
         return {
           type: 'Node.js',
           setupCommand: `${packageManager} install`,
-          startCommand: `${packageManager} run ${availableCommand}`,
           followupMessage: `Found "${availableCommand}" script in package.json. Running "npm run ${availableCommand}" after installation.`,
         };
       }
@@ -57,7 +55,6 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
   if (hasFile('index.html')) {
     return {
       type: 'Static',
-      startCommand: 'npx --yes serve',
       followupMessage: '',
     };
   }
@@ -66,7 +63,7 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
 }
 
 export function createCommandsMessage(commands: ProjectCommands): Message | null {
-  if (!commands.setupCommand && !commands.startCommand) {
+  if (!commands.setupCommand) {
     return null;
   }
 
@@ -75,12 +72,6 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
   if (commands.setupCommand) {
     commandString += `
 <boltAction type="shell">${commands.setupCommand}</boltAction>`;
-  }
-
-  if (commands.startCommand) {
-    commandString += `
-<boltAction type="start">${commands.startCommand}</boltAction>
-`;
   }
 
   return {
@@ -133,7 +124,7 @@ export function escapeBoltTags(input: string) {
 
 // We have this seperate function to simplify the restore snapshot process in to one single artifact.
 export function createCommandActionsString(commands: ProjectCommands): string {
-  if (!commands.setupCommand && !commands.startCommand) {
+  if (!commands.setupCommand) {
     // Return empty string if no commands
     return '';
   }
@@ -143,12 +134,6 @@ export function createCommandActionsString(commands: ProjectCommands): string {
   if (commands.setupCommand) {
     commandString += `
 <boltAction type="shell">${commands.setupCommand}</boltAction>`;
-  }
-
-  if (commands.startCommand) {
-    commandString += `
-<boltAction type="start">${commands.startCommand}</boltAction>
-`;
   }
 
   return commandString;

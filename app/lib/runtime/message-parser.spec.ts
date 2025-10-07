@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
+import { parseOldNewPairs, StreamingMessageParser, type ActionCallback, type ArtifactCallback } from './message-parser';
 
 interface ExpectedResult {
   output: string;
@@ -154,6 +154,39 @@ describe('StreamingMessageParser', () => {
       ],
     ])('should correctly parse chunks and strip out bolt artifacts (%#)', (input, expected) => {
       runTest(input, expected);
+    });
+  });
+
+  describe('parseOldNewPairs', () => {
+    it('parses CDATA old/new', () => {
+      const xml = `<boltAction>
+      <old><![CDATA[hello "world" & <tag>]]></old>
+      <new><![CDATA[new & stuff]]></new>
+    </boltAction>`;
+      expect(parseOldNewPairs(xml)).toEqual({ old: 'hello "world" & <tag>', new: 'new & stuff' });
+    });
+
+    it('handles split CDATA that represents a `]]>` inside content', () => {
+      const xml = `<boltAction>
+      <old><![CDATA[first "value"]]]><![CDATA[>rest]]></old>
+      <new><![CDATA[new & stuff]]></new>
+    </boltAction>`;
+      expect(parseOldNewPairs(xml)).toEqual({ old: 'first "value"]>rest', new: 'new & stuff' });
+    });
+
+    it('decodes XML entities when no CDATA present', () => {
+      const xml = `<boltAction>
+      <old>some &amp; encoded &lt;stuff&gt;</old>
+      <new>repl &amp; more</new>
+    </boltAction>`;
+      expect(parseOldNewPairs(xml)).toEqual({ old: 'some & encoded <stuff>', new: 'repl & more' });
+    });
+
+    it('pairs missing new/old with empty string fallback', () => {
+      const xml = `<boltAction>
+      <old><![CDATA[only-old]]></old>
+    </boltAction>`;
+      expect(parseOldNewPairs(xml)).toEqual({ old: 'only-old', new: '' });
     });
   });
 });

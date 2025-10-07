@@ -30,8 +30,8 @@ const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
 
 export interface File {
   type: 'file';
-  pending: boolean;
   content: string;
+  pending?: boolean;
   isBinary?: boolean;
   isLocked?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this file
@@ -39,7 +39,7 @@ export interface File {
 
 export interface Folder {
   type: 'folder';
-  pending: boolean;
+  pending?: boolean;
   isLocked?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this folder (for nested folders)
 }
@@ -560,6 +560,7 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
+      console.log('in save file')
       await fs.writeFile(relativePath, content, isBinary ? 'base64' : 'utf-8');
 
       if (!this.#modifiedFiles.has(filePath)) {

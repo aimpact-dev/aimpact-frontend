@@ -1,7 +1,7 @@
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { Template } from '~/types/template';
 import rawSnapshotsData from '~/template/snapshot.json';
-import type { FileMap, SaveFileMap } from '~/lib/stores/files';
+import type { SaveFileMap } from '~/lib/stores/files';
 
 interface Snapshot {
   files: SaveFileMap;
@@ -39,7 +39,6 @@ PROVIDER_LIST.forEach((provider) => {
 });
 
 // starter Templates
-
 export const STARTER_TEMPLATES: Template[] = [
   {
     name: 'vite-react-app',

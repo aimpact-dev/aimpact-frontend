@@ -2,6 +2,7 @@ import { atom, computed, map, type MapStore, type WritableAtom } from 'nanostore
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import type { FileMap, FilesStore } from './files';
 import { createScopedLogger } from '~/utils/logger';
+import { replaceIDs } from '@iconify/utils';
 
 export type EditorDocuments = Record<string, EditorDocument>;
 
@@ -79,7 +80,7 @@ export class EditorStore {
     });
   }
 
-  updateFile(filePath: string, newContent: string) {
+  updateFile(filePath: string, newContent: string, replaceString?: string, replaceIndex?: number) {
     const documents = this.documents.get();
     const documentState = documents[filePath];
 
@@ -102,7 +103,29 @@ export class EditorStore {
      */
 
     const currentContent = documentState.value;
-    const contentChanged = currentContent !== newContent;
+    const contentChanged = currentContent !== newContent || replaceString;
+    console.log('replaceString', replaceString);
+    if (replaceString) {
+      if (currentContent.search(replaceString)) {
+        console.log(`this file doesn't have this content`)
+        console.log(replaceString)
+      }
+      console.log(currentContent.includes(replaceString));
+      if (replaceIndex === -1) {
+        newContent = currentContent.replaceAll(replaceString, newContent);
+      } else {
+        let count = 0;
+        // replace only on some index
+        newContent = currentContent.replace(replaceString, (match) => {
+          count++;
+          if (count === replaceIndex) {
+            return newContent;
+          }
+          return match;
+        });
+      }
+    }
+    console.log('new content', newContent);
 
     if (contentChanged) {
       this.documents.setKey(filePath, {

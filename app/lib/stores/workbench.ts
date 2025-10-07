@@ -1,7 +1,7 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
-import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { parseOldNewPairs, type ActionCallbackData, type ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
@@ -151,7 +151,6 @@ export class WorkbenchStore {
     this.#terminalStore.attachAimpactTerminal(terminal);
   }
 
-
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
 
@@ -226,8 +225,8 @@ export class WorkbenchStore {
     if (document === undefined) {
       return;
     }
-    if(document.isBinary){
-      console.warn("Attempt to save changes in a binary file:", filePath, " Binary files should not be editable.");
+    if (document.isBinary) {
+      console.warn('Attempt to save changes in a binary file:', filePath, ' Binary files should not be editable.');
       return;
     }
 
@@ -290,12 +289,11 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
-
   /**
    * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
    * @param filePath
    */
-  pendLockForFile(filePath: string){
+  pendLockForFile(filePath: string) {
     this.#filesStore.pendLockForFile(filePath);
   }
 
@@ -353,7 +351,7 @@ export class WorkbenchStore {
     return this.#filesStore.isFolderLocked(folderPath);
   }
 
-  getFile(filePath: string){
+  getFile(filePath: string) {
     return this.#filesStore.getFile(filePath);
   }
 
@@ -572,6 +570,7 @@ export class WorkbenchStore {
       return;
     }
 
+    console.log('running action...');
     if (data.action.type === 'file') {
       const aimpactFs = await getAimpactFs();
       const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
@@ -603,6 +602,45 @@ export class WorkbenchStore {
       }
 
       if (!isStreaming) {
+        await artifact.runner.runAction(data);
+        this.resetAllFileModifications();
+      }
+    } else if (data.action.type === 'update') {
+      console.log('running update action');
+      console.log(data);
+      const aimpactFs = await getAimpactFs();
+      const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
+      const oldNewPair = parseOldNewPairs(data.action.content);
+
+      if (this.selectedFile.value !== fullPath) {
+        this.setSelectedFile(fullPath);
+      }
+
+      if (this.currentView.value !== 'code') {
+        this.currentView.set('code');
+      }
+
+      const doc = this.#editorStore.documents.get()[fullPath];
+
+      console.log('doc data', doc);
+      if (doc) {
+        await artifact.runner.runAction(data, isStreaming);
+        let replaceIndex: number;
+        if (data.action.occurrences === 'all') {
+          replaceIndex = -1;
+        } else if (data.action.occurrences === 'first') {
+          replaceIndex = 0;
+        } else {
+          replaceIndex = data.action.n ? data.action.n - 1 : 0;
+        }
+        if (oldNewPair.old) {
+          this.#editorStore.updateFile(fullPath, oldNewPair.new, oldNewPair.old, replaceIndex);
+        }
+      }
+
+      if (!isStreaming) {
+        console.log('save after streaming in update action');
+        await this.saveFile(fullPath);
         await artifact.runner.runAction(data);
         this.resetAllFileModifications();
       }
