@@ -10,7 +10,7 @@ import type {
 } from '~/lib/hooks/tanstack/useContractDeploy';
 
 // Change this const to control deploy failures imitation.
-const FAIL_DEPLOY_REQUEST: boolean = false;
+const FAIL_DEPLOY_REQUEST: boolean = true;
 
 const POST_REQUEST_DELAY_MS = 1000;
 const GET_REQUEST_DELAY_MS = 500;

@@ -10,7 +10,7 @@ import type {
 } from '~/lib/hooks/tanstack/useContractBuild';
 
 //Change this const to control build failures imitation.
-const FAIL_BUILD_REQUEST: boolean = true;
+const FAIL_BUILD_REQUEST: boolean = false;
 
 const POST_REQUEST_DELAY_MS = 1000;
 const GET_REQUEST_DELAY_MS = 500;

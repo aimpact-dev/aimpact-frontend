@@ -130,7 +130,10 @@ export default function SmartContractAccordion({
               <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
                 {contractBuildRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
               </div>
-              <Button onClick={fixBuild}>Fix with AI</Button>
+              <Button onClick={fixBuild}>
+                <span className="i-ph:wrench h-4 w-4 text-bolt-elements-item-contentAccent"></span>
+                Fix with AI
+              </Button>
               <Button onClick={buildContract}>
                 <span className="i-ph:hammer h-4 w-4 text-bolt-elements-item-contentAccent"></span> Rebuild
                 contract
@@ -217,7 +220,14 @@ export default function SmartContractAccordion({
                 <div className="max-h-[150px] modern-scrollbar bg-bolt-elements-background-depth-2 p-2 text-bolt-elements-item-contentDanger">
                   {contractDeployRequest.logs?.map((log, idx) => <p key={idx}>{log}</p>)}
                 </div>
-                <Button onClick={fixDeploy}>Fix with AI</Button>
+                <Button onClick={fixDeploy}>
+                  <span className="i-ph:wrench h-4 w-4 text-bolt-elements-item-contentAccent"></span>
+                  Fix with AI
+                </Button>
+                <Button onClick={deployContract}>
+                  <span className="i-ph:rocket-launch h-4 w-4 text-bolt-elements-item-contentAccent"></span>{' '}
+                  Redeploy contract
+                </Button>
               </>
             )}
           </AccordionContent>

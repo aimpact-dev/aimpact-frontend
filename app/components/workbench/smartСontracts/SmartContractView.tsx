@@ -361,7 +361,7 @@ export default function SmartContractView({ postMessage }: Props) {
     postMessage(`*Fix this anchor build error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`);
   }, []);
 
-  const deployContract = async () => {
+  const deployContract = useCallback(async () => {
     if (deployInProgress) {
       return;
     }
@@ -388,7 +388,7 @@ export default function SmartContractView({ postMessage }: Props) {
         toast.error('Smart contract deploy request failed with an unknown error.');
       }
     }
-  };
+  }, []);
 
   const fixDeploy = useCallback(() => {
     if (!contractDeployRequest || contractDeployRequest.status !== 'FAILED') return;
