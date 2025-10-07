@@ -11,7 +11,7 @@ export class MiscTerminalErrorProcessor implements LogProcessor {
     for (const part of logsParts) {
       const foundError = this.hasErrorPattern(part);
       if (foundError) {
-        workbenchStore.actionAlert.set (
+        workbenchStore.actionAlert.set(
           {
             type: 'error',
             title: 'Terminal error',

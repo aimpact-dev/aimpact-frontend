@@ -68,8 +68,10 @@ export default function SmartContractView({ postMessage }: Props) {
 
   const [buildInProgress, setBuildInProgress] = useState<boolean>(false);
   const buildRequestPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const [deployInProgress, setDeployInProgress] = useState<boolean>(false);
   const deployRequestPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const [openAccordion, setOpenAccordion] = useState<string | undefined>(undefined);
 
   const { mutateAsync: requestContractBuild } = usePostBuildRequest();
@@ -476,7 +478,7 @@ export default function SmartContractView({ postMessage }: Props) {
       }
     }
 
-    if (contractDeployment && contractBuild && contractDeployment.buildFinishTime !== contractBuild.builtAt) {
+    if (contractDeployment && contractBuild && contractDeployment.buildTime !== contractBuild.builtAt) {
       badges.push(
         <Badge key="deploy-outdated" variant="warning">
           Deploy outdated

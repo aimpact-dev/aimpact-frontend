@@ -43,7 +43,7 @@ function switchToCompleted() {
     network: currentRequest.network,
     deployedAt: new Date(),
     upgradeAuthorityPublicKey: 'mockupgradeauthoritykey',
-    buildFinishTime: new Date(),
+    buildTime: new Date(),
   };
 }
 

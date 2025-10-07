@@ -27,7 +27,7 @@ function switchToBuilding(){
   if(!currentRequest) return;
   currentRequest.status = 'BUILDING';
   if(FAIL_BUILD_REQUEST){
-    stateSwitchTimeout = setTimeout(()=>switchToFailed(), STATE_SWITCH_INTERVAL_MS);
+    stateSwitchTimeout = setTimeout(() => switchToFailed(), STATE_SWITCH_INTERVAL_MS);
   }
   else{
     stateSwitchTimeout = setTimeout(() => switchToCompleted(), STATE_SWITCH_INTERVAL_MS);
@@ -40,7 +40,7 @@ function switchToCompleted(){
   currentBuild = {
     programName: "Mock program",
     programId: "mockprogramid1234",
-    programIdl: {'address': 'mockprogramaddress'},
+    programIdl: {"address": "mockprogramaddress"},
     sizeBytes: 256,
     builtAt: new Date(),
     buildUrl: 'mockbuildurl',
@@ -136,3 +136,4 @@ export const usePostBuildRequest = () =>
       }
     },
   });
+

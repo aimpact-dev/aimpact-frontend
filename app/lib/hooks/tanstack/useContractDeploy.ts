@@ -27,7 +27,7 @@ export interface GetDeploymentResponse {
   network: SolanaNetwork;
   deployedAt: Date;
   upgradeAuthorityPublicKey: string;
-  buildFinishTime: Date;
+  buildTime: Date;
 }
 
 export const usePostDeployRequest = () =>
