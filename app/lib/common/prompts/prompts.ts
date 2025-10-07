@@ -14,7 +14,7 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Do not try to use solana and anchor cli tools, because those are not installed in the system
 - To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
 - Use frontend solana libraries to parse the IDL and integrate it into app
-- Always get the smart contract public key from IDL, key from declare_id! macro in lib.rs is overwritten on every deploy.`
+- When integrating smart contract into app always use the public key from IDL.`
 
   return ENABLE_SOLANA_PROMPT ? prompt : "";
 }

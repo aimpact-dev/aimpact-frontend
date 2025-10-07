@@ -10,29 +10,30 @@ import { toast } from 'react-toastify';
 import {
   type GetBuildRequestResponse,
   type GetBuildResponse,
-  // useGetBuild,
-  // useGetBuildRequest,
-  // usePostBuildRequest,
-} from '~/lib/hooks/tanstack/useContractBuild';
-import {
   useGetBuild,
   useGetBuildRequest,
   usePostBuildRequest,
-}from '~/lib/hooks/tanstack/mocks/useContractBuild';
+} from '~/lib/hooks/tanstack/useContractBuild';
+
 import { chatId } from '~/lib/persistence';
 import {
   type ContractDeployRequestStatus,
   type GetDeploymentResponse,
   type GetDeployRequestResponse,
-  // useGetDeployment,
-  // useGetDeployRequest,
-  // usePostDeployRequest,
-} from '~/lib/hooks/tanstack/useContractDeploy';
-import {
   useGetDeployment,
   useGetDeployRequest,
   usePostDeployRequest,
-} from '~/lib/hooks/tanstack/mocks/useContractDeploy';
+} from '~/lib/hooks/tanstack/useContractDeploy';
+// import {
+//   useGetBuild,
+//   useGetBuildRequest,
+//   usePostBuildRequest,
+// }from '~/lib/hooks/tanstack/mocks/useContractBuild';
+// import {
+//   useGetDeployment,
+//   useGetDeployRequest,
+//   usePostDeployRequest,
+// } from '~/lib/hooks/tanstack/mocks/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios from 'axios';
 import { getAimpactFs } from '~/lib/aimpactfs';
@@ -358,6 +359,7 @@ export default function SmartContractView({ postMessage }: Props) {
   }, []);
 
   const fixBuild = useCallback(() => {
+    console.log("Trying to fix build.");
     if (!contractBuildRequest || contractBuildRequest.status !== 'FAILED') return;
     const content = contractBuildRequest.logs?.join('\n');
     postMessage(`*Fix this anchor build error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`);
