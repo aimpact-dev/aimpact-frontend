@@ -13,7 +13,8 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Pop up a Phantom Wallet to confirm transactions for each action
 - Do not try to use solana and anchor cli tools, because those are not installed in the system
 - To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
-- Use frontend solana libraries to parse the IDL and integrate it into app
+- Use latest frontend solana libraries to parse the IDL and integrate it into app
+- Avoid using mocks for imitating smart contract behaviour, use actual calls to the smart contract
 - When integrating smart contract into app always use the public key from IDL.`
 
   return ENABLE_SOLANA_PROMPT ? prompt : "";

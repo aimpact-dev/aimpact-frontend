@@ -356,14 +356,13 @@ export default function SmartContractView({ postMessage }: Props) {
         }
       }
     }
-  }, []);
+  }, [buildInProgress]);
 
   const fixBuild = useCallback(() => {
-    console.log("Trying to fix build.");
     if (!contractBuildRequest || contractBuildRequest.status !== 'FAILED') return;
     const content = contractBuildRequest.logs?.join('\n');
     postMessage(`*Fix this anchor build error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`);
-  }, []);
+  }, [contractBuildRequest]);
 
   const deployContract = useCallback(async () => {
     if (deployInProgress) {
@@ -392,13 +391,13 @@ export default function SmartContractView({ postMessage }: Props) {
         toast.error('Smart contract deploy request failed with an unknown error.');
       }
     }
-  }, []);
+  }, [deployInProgress]);
 
   const fixDeploy = useCallback(() => {
     if (!contractDeployRequest || contractDeployRequest.status !== 'FAILED') return;
     const content = contractDeployRequest.logs?.join('\n');
     postMessage(`*Fix this anchor contract deploy error* \n\`\`\`${'sh'}\n${content}\n\`\`\`\n`);
-  }, []);
+  }, [contractDeployRequest]);
 
   const getStatusBadge = () => {
     if (!localAnchorProject) {
