@@ -7,7 +7,12 @@ import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { FlowingParticlesBackground } from '../ui/FlowingParticlesBackground';
 
-export default function ProgressCompilation({ data }: { data?: ProgressAnnotation[] }) {
+interface Props {
+  data: ProgressAnnotation[];
+  className: string;
+}
+
+export default function ProgressCompilation({ data, className }: Props) {
   const isStreaming = useStore(streamingState);
 
   const [progressList, setProgressList] = React.useState<ProgressAnnotation[]>([]);
@@ -42,9 +47,10 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
     <AnimatePresence>
       <div
         className={classNames(
-          'relative w-full max-w-chat mx-auto my-1 z-prompt',
+          'relative w-full max-w-chat mx-auto z-prompt',
           'rounded-lg border border-bolt-elements-borderColorActive/30 animate-pulse-glow overflow-hidden',
           'bg-bolt-elements-background-depth-2 p-1',
+          className,
         )}
       >
         <FlowingParticlesBackground />

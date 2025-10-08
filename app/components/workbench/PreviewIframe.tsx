@@ -1,5 +1,4 @@
-﻿import { FC, useEffect, useRef, useState } from 'react';
-import { ClipLoader } from 'react-spinners';
+﻿import { useEffect, useRef } from 'react';
 
 interface PreviewIframeProps {
   isPreviewLoading: boolean;
@@ -11,13 +10,13 @@ interface PreviewIframeProps {
 
 const RELOAD_TIMEOUT = 1000; // 1 second
 
-export const PreviewIframe: FC<PreviewIframeProps> = ({
+export const PreviewIframe = ({
   isPreviewLoading,
   setIsPreviewLoading,
   iframeRef,
   iframeUrl,
   onLoad,
-}) => {
+}: PreviewIframeProps) => {
   const loadedSuccessfullyRef = useRef(false);
   const loadCheckRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -27,7 +26,6 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
     }
     loadCheckRef.current = setTimeout(() => {
       if (!loadedSuccessfullyRef.current) {
-        console.log('Iframe did not load successfully within timeout, reloading iframe.');
         if (iframeRef.current && iframeUrl) {
           iframeRef.current.src = iframeUrl;
           setIsPreviewLoading(true);
@@ -46,7 +44,6 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.data && event.data.type === 'AIMPACT_PREVIEW_LOADED') {
-        console.log('Preview loaded message received.');
         loadedSuccessfullyRef.current = true;
       }
     }
@@ -58,7 +55,6 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
 
   useEffect(() => {
     if (isPreviewLoading) {
-      console.log('Iframe reloading, resetting loadedSuccessfully.');
       loadedSuccessfullyRef.current = false;
       cancelLoadCheck();
     }
@@ -74,7 +70,6 @@ export const PreviewIframe: FC<PreviewIframeProps> = ({
 
   const handleOnLoad = async () => {
     onLoad();
-    console.log('Setting reload timeout for iframe.');
     //Check if the iframe content was loaded successfully after timeout
     //We check if the iframe was loaded by listening to postMessage with type AIMPACT_PREVIEW_LOADED from its content
     scheduleLoadCheck();
