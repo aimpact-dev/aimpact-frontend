@@ -12,6 +12,21 @@ interface FileContent {
   path: string;
 }
 
+export function detectStartCommand(packageJson: Record<string, any>) {
+  const scripts = packageJson?.scripts || {};
+
+  // Check for preferred commands in priority order
+  const preferredCommands = ['dev', 'start', 'preview'];
+  const availableCommand = preferredCommands.find((cmd) => scripts[cmd]);
+  return availableCommand;
+}
+
+export function detectPackageManager(packageJson: Record<string, any>) {
+  let packageManager: string = packageJson?.packageManager || 'pnpm';
+  packageManager = packageManager.split('@')[0];
+  return packageManager;
+}
+
 export async function detectProjectCommands(files: FileContent[]): Promise<ProjectCommands> {
   const hasFile = (name: string) => files.some((f) => f.path.endsWith(name));
 
@@ -24,19 +39,14 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
 
     try {
       const packageJson = JSON.parse(packageJsonFile.content);
-      const scripts = packageJson?.scripts || {};
-      let packageManager: string = packageJson?.packageManager || "pnpm";
-      packageManager = packageManager.split("@")[0];
+      const packageManager = detectPackageManager(packageJson);
+      const startCommand = detectStartCommand(packageJson);
 
-      // Check for preferred commands in priority order
-      const preferredCommands = ['dev', 'start', 'preview'];
-      const availableCommand = preferredCommands.find((cmd) => scripts[cmd]);
-
-      if (availableCommand) {
+      if (startCommand) {
         return {
           type: 'Node.js',
-          setupCommand: `${packageManager} install`,
-          followupMessage: `Found "${availableCommand}" script in package.json. Running "npm run ${availableCommand}" after installation.`,
+          setupCommand: `${startCommand} install`,
+          followupMessage: `Found "${startCommand}" script in package.json. Running "${packageManager} run ${startCommand}" after installation.`,
         };
       }
 

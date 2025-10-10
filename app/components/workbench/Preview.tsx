@@ -49,7 +49,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(({ customText }: { customText?: string }) => {
+export const Preview = memo(({ customText, forcePreviewLoading }: { customText?: string; forcePreviewLoading: boolean }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -626,10 +626,10 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
       )}
       <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-2">
         <div className="flex items-center gap-2">
-          <Tooltip content="Reload page" side='bottom'>
+          <Tooltip content="Reload page" side="bottom">
             <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
           </Tooltip>
-          <Tooltip content="Send screenshot to chat" side='bottom'>
+          <Tooltip content="Send screenshot to chat" side="bottom">
             <IconButton
               icon="i-ph:selection"
               onClick={() => setIsSelectionMode(!isSelectionMode)}
@@ -639,7 +639,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <Tooltip content="Ports" side='bottom'>
+          <Tooltip content="Ports" side="bottom">
             <PortDropdown
               activePreviewIndex={activePreviewIndex}
               setActivePreviewIndex={setActivePreviewIndex}
@@ -680,11 +680,8 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Tooltip content="Change layout" side='bottom'>
-            <IconButton
-              icon="i-ph:devices"
-              onClick={toggleDeviceMode}
-            />
+          <Tooltip content="Change layout" side="bottom">
+            <IconButton icon="i-ph:devices" onClick={toggleDeviceMode} />
           </Tooltip>
 
           {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
@@ -693,13 +690,10 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
 
           {isDeviceModeOn && (
             <>
-              <Tooltip content={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'} side='bottom'>
-                <IconButton
-                  icon="i-ph:device-rotate"
-                  onClick={() => setIsLandscape(!isLandscape)}
-                />
+              <Tooltip content={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'} side="bottom">
+                <IconButton icon="i-ph:device-rotate" onClick={() => setIsLandscape(!isLandscape)} />
               </Tooltip>
-              <Tooltip content={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'} side='bottom'>
+              <Tooltip content={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'} side="bottom">
                 <IconButton
                   icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
                   onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
@@ -708,19 +702,13 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
             </>
           )}
 
-          <Tooltip content={isFullscreen ? 'Exit Full Screen' : 'Full Screen'} side='bottom'>
-            <IconButton
-              icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
-              onClick={toggleFullscreen}
-            />
+          <Tooltip content={isFullscreen ? 'Exit Full Screen' : 'Full Screen'} side="bottom">
+            <IconButton icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'} onClick={toggleFullscreen} />
           </Tooltip>
 
           <div className="flex items-center relative">
-            <Tooltip content="Window options" side='bottom'>
-              <IconButton
-                icon="i-ph:list"
-                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-              />
+            <Tooltip content="Window options" side="bottom">
+              <IconButton icon="i-ph:list" onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)} />
             </Tooltip>
 
             {isWindowSizeDropdownOpen && (
@@ -931,7 +919,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                       }}
                     />
                     <PreviewIframe
-                      isPreviewLoading={isPreviewLoading}
+                      isPreviewLoading={isPreviewLoading || forcePreviewLoading}
                       setIsPreviewLoading={setIsPreviewLoading}
                       iframeRef={iframeRef}
                       iframeUrl={iframeUrl}
@@ -941,7 +929,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                 </div>
               ) : (
                 <PreviewIframe
-                  isPreviewLoading={isPreviewLoading}
+                  isPreviewLoading={isPreviewLoading || forcePreviewLoading}
                   setIsPreviewLoading={setIsPreviewLoading}
                   iframeRef={iframeRef}
                   iframeUrl={iframeUrl}

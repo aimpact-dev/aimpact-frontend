@@ -560,7 +560,6 @@ export class FilesStore {
         unreachable('Expected content to be defined');
       }
 
-      console.log('in save file')
       await fs.writeFile(relativePath, content, isBinary ? 'base64' : 'utf-8');
 
       if (!this.#modifiedFiles.has(filePath)) {

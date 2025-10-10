@@ -5,7 +5,7 @@ import { parseOldNewPairs, type ActionCallbackData, type ArtifactCallbackData } 
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
-import { FilesStore, type FileMap } from './files';
+import { FilesStore, type Dirent, type File, type FileMap } from './files';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import fileSaver from 'file-saver';
@@ -21,6 +21,7 @@ import { getAimpactFs } from '~/lib/aimpactfs';
 import { BuildService } from '~/lib/services/buildService';
 import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
 import { getPortCatcher } from '~/utils/previewPortCatcher';
+import { detectPackageManager, detectStartCommand } from '~/utils/projectCommands';
 
 const { saveAs } = fileSaver;
 
@@ -509,13 +510,6 @@ export class WorkbenchStore {
             return;
           }
 
-          this.supabaseAlert.set(alert);
-        },
-        (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
-            return;
-          }
-
           this.deployAlert.set(alert);
         },
       ),
@@ -570,7 +564,6 @@ export class WorkbenchStore {
       return;
     }
 
-    console.log('running action...');
     if (data.action.type === 'file') {
       const aimpactFs = await getAimpactFs();
       const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
@@ -606,8 +599,6 @@ export class WorkbenchStore {
         this.resetAllFileModifications();
       }
     } else if (data.action.type === 'update') {
-      console.log('running update action');
-      console.log(data);
       const aimpactFs = await getAimpactFs();
       const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
       const oldNewPair = parseOldNewPairs(data.action.content);
@@ -622,7 +613,6 @@ export class WorkbenchStore {
 
       const doc = this.#editorStore.documents.get()[fullPath];
 
-      console.log('doc data', doc);
       if (doc) {
         await artifact.runner.runAction(data, isStreaming);
         let replaceIndex: number;
@@ -639,7 +629,6 @@ export class WorkbenchStore {
       }
 
       if (!isStreaming) {
-        console.log('save after streaming in update action');
         await this.saveFile(fullPath);
         await artifact.runner.runAction(data);
         this.resetAllFileModifications();
@@ -919,6 +908,50 @@ export class WorkbenchStore {
     } catch (error) {
       console.error('Error pushing to GitHub:', error);
       throw error; // Rethrow the error for further handling
+    }
+  }
+
+  getPackageJson(): File | null {
+    const files = this.files.get();
+
+    const packageJsonFileKey = Object.keys(files).find((key) => key.endsWith('package.json'));
+    if (!packageJsonFileKey) {
+      return null;
+    }
+
+    const packageJsonFile = files[packageJsonFileKey];
+    return !packageJsonFile || packageJsonFile.type !== 'file' ? null : packageJsonFile;
+  }
+
+  async startProject() {
+    const shell = this.getMainShell;
+    if (!shell) {
+      console.error('Shell is not initialized');
+    }
+
+    const packageJsonFile = this.getPackageJson();
+    if (!packageJsonFile) {
+      throw new Error('package.json not found')
+    }
+    const packageJson = JSON.parse(packageJsonFile.content);
+    const packageManager = detectPackageManager(packageJson);
+    const startCommandName = detectStartCommand(packageJson);
+    if (!packageManager || !startCommandName) {
+      console.error('Failed to get packageManager and/or start command');
+      return;
+    }
+
+    const previews = this.#previewsStore.previews;
+    if (previews.get().find((preview) => preview.ready)) {
+      console.debug('Preview already runned');
+      return;
+    }
+
+    const startCommand = `${packageManager} run ${startCommandName}`;
+    const resp = await shell.executeCommand(startCommand);
+    console.debug(`'${startCommand}' Shell Response: [exit code:${resp?.exitCode}]`);
+    if (resp?.exitCode != 0) {
+      throw new Error(`Failed To Start Application: ${resp?.output || 'No Output Available'}`);
     }
   }
 }

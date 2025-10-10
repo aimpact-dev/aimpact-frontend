@@ -51,7 +51,6 @@ export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
 
   const parseMessages = useCallback((messages: Message[], isLoading: boolean) => {
-    logger.debug('parsing started')
     let reset = false;
 
     if (import.meta.env.DEV && !isLoading) {

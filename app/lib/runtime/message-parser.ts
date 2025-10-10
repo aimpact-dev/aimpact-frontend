@@ -4,7 +4,6 @@ import type {
   BoltActionData,
   FileAction,
   ShellAction,
-  SupabaseAction,
   UpdateAction,
   UpdateActionOccurrences,
 } from '~/types/actions';
@@ -343,28 +342,7 @@ export class StreamingMessageParser {
       content: '',
     };
 
-    console.log('found new action', actionTag, actionType, actionAttributes);
-    if (actionType === 'supabase') {
-      const operation = this.#extractAttribute(actionTag, 'operation');
-
-      if (!operation || !['migration', 'query'].includes(operation)) {
-        logger.warn(`Invalid or missing operation for Supabase action: ${operation}`);
-        throw new Error(`Invalid Supabase operation: ${operation}`);
-      }
-
-      (actionAttributes as SupabaseAction).operation = operation as 'migration' | 'query';
-
-      if (operation === 'migration') {
-        const filePath = this.#extractAttribute(actionTag, 'filePath');
-
-        if (!filePath) {
-          logger.warn('Migration requires a filePath');
-          throw new Error('Migration requires a filePath');
-        }
-
-        (actionAttributes as SupabaseAction).filePath = filePath;
-      }
-    } else if (actionType === 'file') {
+    if (actionType === 'file') {
       const filePath = this.#extractAttribute(actionTag, 'filePath') as string;
 
       if (!filePath) {
@@ -387,7 +365,7 @@ export class StreamingMessageParser {
       (actionAttributes as UpdateAction).filePath = filePath;
       (actionAttributes as UpdateAction).occurrences = occurrences ?? 'all';
       (actionAttributes as UpdateAction).n = numberOfOccurrence ?? undefined;
-    } else if (!['shell', 'start'].includes(actionType)) {
+    } else if (!['shell'].includes(actionType)) {
       logger.warn(`Unknown action type '${actionType}'`);
     }
 

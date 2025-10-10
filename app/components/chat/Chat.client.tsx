@@ -137,10 +137,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const files = useStore(workbenchStore.files);
   const actionAlert = useStore(workbenchStore.alert);
   const deployAlert = useStore(workbenchStore.deployAlert);
-  const supabaseConn = useStore(supabaseConnection); // Add this line to get Supabase connection
-  const selectedProject = supabaseConn.stats?.projects?.find(
-    (project) => project.id === supabaseConn.selectedProjectId,
-  );
   const supabaseAlert = useStore(workbenchStore.supabaseAlert);
   const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
 
@@ -627,30 +623,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         data={chatData}
         showWorkbench={showWorkbench}
       />
-      <button
-        onClick={async () => {
-          console.log('start')
-          const lastMessage = messages.findLast((message) => message.content.includes(' type="update"'));
-          console.log('message content');
-          console.log(lastMessage);
-          if (!lastMessage) {
-            console.error('message not found');
-            return;
-          }
-
-          setMessages([
-            ...messages,
-            {
-              id: lastMessage.id + '1',
-              role: 'assistant',
-              content: lastMessage.content + 'testing this',
-            },
-          ]);
-          
-        }}
-      >
-        Test
-      </button>
       <DaytonaCleanup />
     </>
   );

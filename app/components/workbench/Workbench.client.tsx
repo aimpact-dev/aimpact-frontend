@@ -293,6 +293,7 @@ export const Workbench = memo(
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
     const customPreviewState = useRef('');
     const [waitForInstall, setWaitForInstall] = useState(false);
+    const [forcePreviewLoading, setForcePreviewLoading] = useState(false);
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
@@ -311,10 +312,20 @@ export const Workbench = memo(
     };
 
     useEffect(() => {
-      if (hasPreview) {
-        setSelectedView('preview');
+      console.log('new updated', hasPreview, selectedView);
+      if (selectedView !== 'preview') return;
+      if (hasPreview) return;
+      if (!workbenchStore.getPackageJson()) return;
+
+      try {
+        setForcePreviewLoading(true);
+        workbenchStore.startProject();
+      } catch (e) {
+        setForcePreviewLoading(false);
+        console.error(`Failed to run new preview`, e);
+        return;
       }
-    }, [hasPreview]);
+    }, [hasPreview, selectedView]);
 
     function sleep(ms: number) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -582,7 +593,11 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
                   >
-                    <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} isTabOpen={selectedView === 'diff'} />
+                    <DiffView
+                      fileHistory={fileHistory}
+                      setFileHistory={setFileHistory}
+                      isTabOpen={selectedView === 'diff'}
+                    />
                   </View>
                   <View
                     initial={{ x: '100%' }}
@@ -591,7 +606,7 @@ export const Workbench = memo(
                     <SmartContractView />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                    <Preview customText={customPreviewState.current} />
+                    <Preview customText={customPreviewState.current} forcePreviewLoading={forcePreviewLoading} />
                   </View>
                 </div>
               </div>

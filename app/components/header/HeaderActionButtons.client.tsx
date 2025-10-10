@@ -67,7 +67,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const clearDeployStatusInterval = () => {
     deployStatusInterval.current ? clearTimeout(deployStatusInterval.current) : undefined;
     deployStatusInterval.current = null;
-    console.log("Deploy status and interval", deployStatusInterval);
   };
 
 

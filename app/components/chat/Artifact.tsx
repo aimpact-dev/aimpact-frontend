@@ -37,12 +37,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
   const actions = useStore(
     computed(artifact.runner.actions, (actions) => {
       // Filter out Supabase actions except for migrations
-      // console.log("ACTIONS TO ADD:")
-      // console.log(actions)
-      return Object.values(actions).filter((action) => {
-        // Exclude actions with type 'supabase' or actions that contain 'supabase' in their content
-        return action.type !== 'supabase' && !(action.type === 'shell' && action.content?.includes('supabase'));
-      });
+      return Object.values(actions);
     }),
   );
 
@@ -56,9 +51,6 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
       setShowActions(true);
     }
 
-    // console.log("ACTIONS")
-    // console.log(actions)
-    // console.log(artifact)
     if (actions.length !== 0 && artifact.type === 'bundled') {
       const finished = !actions.find(
         (action) => action.status !== 'complete',

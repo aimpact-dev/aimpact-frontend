@@ -1,6 +1,6 @@
 import { path as nodePath } from '~/utils/path';
 import { map, type MapStore } from 'nanostores';
-import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
+import type { ActionAlert, BoltAction, DeployAlert, FileHistory } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import { parseOldNewPairs, type ActionCallbackData } from './message-parser';
@@ -9,7 +9,6 @@ import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import type { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { isBinaryPath } from '~/utils/fileExtensionUtils';
-import { ac } from 'vitest/dist/chunks/reporters.nr4dxCkA.js';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -74,7 +73,6 @@ export class ActionRunner {
   #shellTerminal: () => AimpactShell;
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
-  onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
 
@@ -83,14 +81,12 @@ export class ActionRunner {
     aimpactFsPromise: Promise<AimpactFs>,
     getShellTerminal: () => AimpactShell,
     onAlert?: (alert: ActionAlert) => void,
-    onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
   ) {
     this.#buildService = buildServicePromise;
     this.#aimpactFs = aimpactFsPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
-    this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
   }
 
@@ -162,8 +158,6 @@ export class ActionRunner {
 
     this.#updateAction(actionId, { status: 'running' });
 
-    logger.debug('executing action');
-    logger.debug(action);
     try {
       switch (action.type) {
         case 'shell': {
@@ -172,21 +166,6 @@ export class ActionRunner {
         }
         case 'file': {
           await this.#runFileAction(action);
-          break;
-        }
-        case 'supabase': {
-          try {
-            await this.handleSupabaseAction(action as SupabaseAction);
-          } catch (error: any) {
-            // Update action status
-            this.#updateAction(actionId, {
-              status: 'failed',
-              error: error instanceof Error ? error.message : 'Supabase action failed',
-            });
-
-            // Return early without re-throwing
-            return;
-          }
           break;
         }
         case 'build': {
@@ -254,7 +233,6 @@ export class ActionRunner {
   }
 
   async #runUpdateAction(action: ActionState) {
-    logger.debug('Trying to update');
     if (action.type !== 'update') {
       unreachable('Expected update action');
     }
@@ -282,11 +260,6 @@ export class ActionRunner {
       }
 
       const fileContent = await fs.readFile(relativePath, encoding);
-      if (!fileContent.search(oldNewPair.old)) {
-        logger.debug(`File ${relativePath} doesn't have old content`);
-      } else {
-        logger.debug(`File have content`);
-      }
 
       let updatedContent: string;
       if (action.occurrences === 'all') {
@@ -304,7 +277,6 @@ export class ActionRunner {
       } else {
         updatedContent = fileContent.replace(oldNewPair.old, oldNewPair.new);
       }
-      console.log('updated content', updatedContent);
       const buffer = Buffer.from(updatedContent, isBinary ? 'base64' : 'utf-8');
 
       await fs.writeFile(relativePath, buffer, encoding);
@@ -441,53 +413,6 @@ export class ActionRunner {
       exitCode: buildResult.exitCode!,
       output: buildResult.output!,
     };
-  }
-
-  async handleSupabaseAction(action: SupabaseAction) {
-    const { operation, content, filePath } = action;
-    logger.debug('[Supabase Action]:', { operation, filePath, content });
-
-    switch (operation) {
-      case 'migration':
-        if (!filePath) {
-          throw new Error('Migration requires a filePath');
-        }
-
-        // Show alert for migration action
-        this.onSupabaseAlert?.({
-          type: 'info',
-          title: 'Supabase Migration',
-          description: `Create migration file: ${filePath}`,
-          content,
-          source: 'supabase',
-        });
-
-        // Only create the migration file
-        await this.#runFileAction({
-          type: 'file',
-          filePath,
-          content,
-          changeSource: 'supabase',
-        } as any);
-        return { success: true };
-
-      case 'query': {
-        // Always show the alert and let the SupabaseAlert component handle connection state
-        this.onSupabaseAlert?.({
-          type: 'info',
-          title: 'Supabase Query',
-          description: 'Execute database query',
-          content,
-          source: 'supabase',
-        });
-
-        // The actual execution will be triggered from SupabaseChatAlert
-        return { pending: true };
-      }
-
-      default:
-        throw new Error(`Unknown operation: ${operation}`);
-    }
   }
 
   // Add this method declaration to the class

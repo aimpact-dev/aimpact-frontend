@@ -104,13 +104,7 @@ export class EditorStore {
 
     const currentContent = documentState.value;
     const contentChanged = currentContent !== newContent || replaceString;
-    console.log('replaceString', replaceString);
     if (replaceString) {
-      if (currentContent.search(replaceString)) {
-        console.log(`this file doesn't have this content`)
-        console.log(replaceString)
-      }
-      console.log(currentContent.includes(replaceString));
       if (replaceIndex === -1) {
         newContent = currentContent.replaceAll(replaceString, newContent);
       } else {
@@ -125,7 +119,6 @@ export class EditorStore {
         });
       }
     }
-    console.log('new content', newContent);
 
     if (contentChanged) {
       this.documents.setKey(filePath, {

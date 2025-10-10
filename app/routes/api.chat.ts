@@ -43,9 +43,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const { files, promptId, contextOptimization, authToken } = body;
 
   const apiKeys: Record<string, string> = {
-    OpenAI: getEnvVar(context, "OPENAI_API_KEY") as string,
-    Anthropic: getEnvVar(context, "ANTHROPIC_API_KEY") as string,
-    OpenRouter: getEnvVar(context, "OPEN_ROUTER_API_KEY") as string,
+    OpenAI: getEnvVar(context, 'OPENAI_API_KEY') as string,
+    Anthropic: getEnvVar(context, 'ANTHROPIC_API_KEY') as string,
+    OpenRouter: getEnvVar(context, 'OPEN_ROUTER_API_KEY') as string,
   };
   const providerSettings: Record<string, IProviderSetting> = providersSetings;
 
@@ -65,15 +65,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   }
 
   const userResponse = await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+    },
+  });
   if (!userResponse.ok) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
-  const user = (await userResponse.json()) as { id: string; messagesLeft: number, pendingMessages: number };
+  const user = (await userResponse.json()) as { id: string; messagesLeft: number; pendingMessages: number };
   const usableMessages = user.messagesLeft - user.pendingMessages;
   if (usableMessages <= 0) {
     throw new Response('No messages left', { status: 402 });
@@ -87,12 +87,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       },
     });
-  }
-  catch (err) {
+  } catch (err) {
     logger.error('Failed to increment pending messages:', err);
     throw new Response('Could not increment pending messages.', { status: 500 });
   }
-
 
   try {
     const totalMessageContent = messages.reduce((acc, message) => acc + message.content, '');
@@ -126,7 +124,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
           summary = await createSummary({
             messages: [...messages],
-            env: context.cloudflare?.env,
+            env: (context.cloudflare as any)?.env,
             apiKeys,
             providerSettings,
             promptId,
@@ -246,7 +244,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               logger.error('Failed to decrement messages:', err);
             }
 
-
             if (finishReason !== 'length') {
               dataStream.writeMessageAnnotation({
                 type: 'usage',
@@ -351,20 +348,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         })();
         result.mergeIntoDataStream(dataStream);
       },
-      onError: async (error: any) => {
+      onError: (error: any) => {
         // If we encountered an error during AI response we should decrement pending messages
-        try {
-          await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-            },
-          });
-        } catch (err) {
-          logger.error('Failed to decrement pending messages:', err);
-        }
-        logger.error('Before error (onError)');
+        fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/billing/decrement-pending-messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+        }).catch((error) => logger.error('Failed to decrement pending messages:', error));
+
         return `Custom error: ${error.message}`;
       },
     }).pipeThrough(
