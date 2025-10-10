@@ -5,8 +5,14 @@ import { streamingState } from '~/lib/stores/streaming';
 import type { ProgressAnnotation } from '~/types/context';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
+import { FlowingParticlesBackground } from '../ui/FlowingParticlesBackground';
 
-export default function ProgressCompilation({ data }: { data?: ProgressAnnotation[] }) {
+interface Props {
+  data: ProgressAnnotation[];
+  className: string;
+}
+
+export default function ProgressCompilation({ data, className }: Props) {
   const isStreaming = useStore(streamingState);
 
   const [progressList, setProgressList] = React.useState<ProgressAnnotation[]>([]);
@@ -41,17 +47,18 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
     <AnimatePresence>
       <div
         className={classNames(
-          'bg-bolt-elements-background-depth-2',
-          'border border-bolt-elements-borderColor',
-          'shadow-lg rounded-lg  relative w-full max-w-chat mx-auto z-prompt',
-          'p-1',
+          'relative w-full max-w-chat mx-auto z-prompt',
+          'rounded-lg border border-bolt-elements-borderColorActive/30 animate-pulse-glow overflow-hidden',
+          'bg-bolt-elements-background-depth-2 p-1',
+          className,
         )}
       >
+        <FlowingParticlesBackground />
+
         <div
           className={classNames(
-            'bg-bolt-elements-item-backgroundAccent',
-            'p-1 rounded-lg text-bolt-elements-item-contentAccent',
-            'flex ',
+            'relative z-10',
+            'bg-bolt-elements-item-backgroundAccent p-1 rounded-lg text-bolt-elements-item-contentAccent flex',
           )}
         >
           <div className="flex-1">
@@ -64,21 +71,22 @@ export default function ProgressCompilation({ data }: { data?: ProgressAnnotatio
                   exit={{ height: '0px' }}
                   transition={{ duration: 0.15 }}
                 >
-                  {progressList.map((x, i) => {
-                    return <ProgressItem key={i} progress={x} />;
-                  })}
+                  {progressList.map((x, i) => (
+                    <ProgressItem key={i} progress={x} />
+                  ))}
                 </motion.div>
               ) : (
                 <ProgressItem progress={progressList.slice(-1)[0]} />
               )}
             </AnimatePresence>
           </div>
+
           <motion.button
             initial={{ width: 0 }}
             animate={{ width: 'auto' }}
             exit={{ width: 0 }}
             transition={{ duration: 0.15, ease: cubicEasingFn }}
-            className=" p-1 rounded-lg bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-artifacts-backgroundHover"
+            className="p-1 rounded-lg bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-artifacts-backgroundHover"
             onClick={() => setExpanded((v) => !v)}
           >
             <div className={expanded ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'}></div>

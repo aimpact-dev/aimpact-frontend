@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { ky } from 'query';
 import { client } from '~/lib/api/backend/api';
@@ -30,6 +30,13 @@ export type Project = {
 
 export type ProjectWithOwner = Project & {
   projectOwnerAddress: string;
+};
+
+export type UpdateProjectInfoPayload = {
+  name?: string;
+  description?: string;
+  category?: string;
+  featured?: string;
 };
 
 export const useProjectsQuery = (
@@ -65,6 +72,32 @@ export const useProjectsQuery = (
       }
 
       return data;
+    },
+  });
+};
+
+export const useUpdateProjectInfoMutation = (id: string, jwtToken?: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: UpdateProjectInfoPayload) => {
+      const headers: Record<string, string> = {};
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+      const res = await ky.post(`projects/${id}/update`, {
+        json: payload,
+        headers,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to update project');
+      }
+
+      return res.json<ProjectWithOwner>();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['project', id] });
     },
   });
 };

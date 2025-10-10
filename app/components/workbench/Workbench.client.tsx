@@ -27,6 +27,7 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
+import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -36,24 +37,29 @@ interface WorkspaceProps {
     gitUrl?: string;
   };
   updateChatMestaData?: (metadata: any) => void;
+  postMessage: (message: string) => void;
 }
 
 const viewTransition = { ease: cubicEasingFn };
 
-const sliderOptions: SliderOptions<WorkbenchViewType> = {
-  left: {
+const sliderOptions: SliderOptions<WorkbenchViewType> = [
+  {
     value: 'code',
     text: 'Code',
   },
-  middle: {
+  {
     value: 'diff',
     text: 'Diff',
   },
-  right: {
+  {
+    value: 'contracts',
+    text: 'Smart Contracts',
+  },
+  {
     value: 'preview',
     text: 'Preview',
   },
-};
+];
 
 const workbenchVariants = {
   closed: {
@@ -279,7 +285,7 @@ const FileModifiedDropdown = memo(
 );
 
 export const Workbench = memo(
-  ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData }: WorkspaceProps) => {
+  ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
     const [isSyncing, setIsSyncing] = useState(false);
@@ -312,12 +318,12 @@ export const Workbench = memo(
     }, [hasPreview]);
 
     function sleep(ms: number) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+      return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     async function getRunCommand(artifact: ArtifactState) {
       const actions = artifact.runner.actions.get();
-      const runCommand = Object.values(actions).findLast(a => a.content === 'pnpm run dev');
+      const runCommand = Object.values(actions).findLast((a) => a.content === 'pnpm run dev');
 
       return runCommand;
     }
@@ -329,9 +335,9 @@ export const Workbench = memo(
       let runCommand: ActionState | undefined;
       const cooldown = 1 * 1000;
       const unsubscribe = artifact.runner.actions.subscribe((state, prevState, key) => {
-        const commands = Object.values(state)
-        const installCmd = commands.find(a => a.content === 'pnpm install');
-        runCommand = commands.find(a => a.content === 'pnpm run dev');
+        const commands = Object.values(state);
+        const installCmd = commands.find((a) => a.content === 'pnpm install');
+        runCommand = commands.find((a) => a.content === 'pnpm run dev');
         // console.log(installCmd, installCmd?.status, installCmd?.status === 'complete');
         if (installCmd?.status === 'complete') {
           // console.log('command executed');
@@ -357,7 +363,7 @@ export const Workbench = memo(
         customPreviewState.current = 'Running...';
         const artifact = workbenchStore.firstArtifact;
         if (!artifact) return;
-        const actionCommand = 'pnpm run dev';  // for now it's constant. need to change it, but it's complex
+        const actionCommand = 'pnpm run dev'; // for now it's constant. need to change it, but it's complex
         const abortController = new AbortController();
         let runCommand: ActionState | undefined;
 
@@ -378,7 +384,7 @@ export const Workbench = memo(
             },
             abortSignal: abortController.signal,
             content: actionCommand,
-            type: "shell",
+            type: 'shell',
           });
           customPreviewState.current = '';
         }
@@ -387,10 +393,10 @@ export const Workbench = memo(
       // if (!hasPreview && selectedView === 'preview') {
       //   func();
       // }
-      if(!hasPreview){
+      if (!hasPreview) {
         customPreviewState.current = 'No preview available.';
       }
-    }, [selectedView])
+    }, [selectedView]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
@@ -411,8 +417,7 @@ export const Workbench = memo(
     const onFileSave = useCallback(() => {
       workbenchStore
         .saveCurrentDocument()
-        .then(() => {
-        })
+        .then(() => {})
         .catch(() => {
           toast.error('Failed to update file content');
         });
@@ -469,8 +474,9 @@ export const Workbench = memo(
                   {selectedView === 'code' && (
                     <div className="flex items-center gap-2 overflow-y-auto">
                       <PanelHeaderButton
-                        className={classNames("mr-1 text-sm flex items-center gap-2", {
-                          "bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent": isAutoSaveEnabled
+                        className={classNames('mr-1 text-sm flex items-center gap-2', {
+                          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+                            isAutoSaveEnabled,
                         })}
                         onClick={() => setIsAutoSaveEnabled((v) => !v)}
                         aria-pressed={isAutoSaveEnabled}
@@ -545,7 +551,7 @@ export const Workbench = memo(
                   {selectedView === 'diff' && (
                     <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
                   )}
-                  <Tooltip content="Close" side='left'>
+                  <Tooltip content="Close" side="left">
                     <IconButton
                       icon="i-ph:x-circle"
                       className="-mr-1"
@@ -577,7 +583,17 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
                   >
-                    <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} actionRunner={actionRunner} />
+                    <DiffView
+                      fileHistory={fileHistory}
+                      setFileHistory={setFileHistory}
+                      isTabOpen={selectedView === 'diff'}
+                    />
+                  </View>
+                  <View
+                    initial={{ x: '100%' }}
+                    animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
+                  >
+                    <SmartContractView postMessage={postMessage} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
                     <Preview customText={customPreviewState.current} />
@@ -610,7 +626,7 @@ export const Workbench = memo(
               }
             }}
           />
-          <RuntimeErrorListener/>
+          <RuntimeErrorListener />
         </motion.div>
       )
     );

@@ -6,7 +6,6 @@ import { HeaderActionButtons } from './HeaderActionButtons.client';
 import DepositButton from '../chat/DepositButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
-import { type CSSProperties, type PropsWithChildren, type ReactElement, type MouseEvent } from 'react';
 import { Button } from '~/components/ui/Button';
 import { userInfo } from '~/lib/hooks/useAuth';
 import GetMessagesButton from '../chat/GetMessagesButton';
@@ -33,7 +32,7 @@ export function Header() {
       })}
     >
       <div className="flex gap-2.5">
-        <a className="flex items-center gap-2 cursor-pointer" href="/projects">
+        <a href="/projects">
           <Button variant="default" className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]">
             View all projects
           </Button>

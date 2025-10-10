@@ -139,7 +139,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (promptEnhanced) {
         toast.success('Prompt enhanced!');
       }
-    }, [promptEnhanced])
+    }, [promptEnhanced]);
 
     useEffect(() => {
       if (data) {
@@ -184,7 +184,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         return () => {
           recognition.stop();
-        }
+        };
       }
     }, []);
 
@@ -200,7 +200,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           })
           .catch((error) => {
             console.error('Error fetching model list:', error);
-          })
+          });
       }
     }, [providerList, provider]);
 
@@ -220,7 +220,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
       if (!isAuthorized) {
-        toast.warning("You cannot use chat. Connect your wallet and log in.");
+        toast.warning('You cannot use chat. Connect your wallet and log in.');
         return;
       }
 
@@ -366,7 +366,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   )}
                 </div>
                 <ScrollToBottom />
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                {progressAnnotations && <ProgressCompilation data={progressAnnotations} className="my-1" />}
                 <div
                   className={classNames(
                     'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor w-full max-w-chat mx-auto z-prompt',
@@ -425,7 +425,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div
                     className={classNames(
                       'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg transition-all duration-150',
-                      ...((!isAuthorized || !userInfoData?.messagesLeft) ? ['blur-[2px] pointer-events-none select-none'] : [])
+                      ...(!isAuthorized || !userInfoData?.messagesLeft
+                        ? ['blur-[2px] pointer-events-none select-none']
+                        : []),
                     )}
                   >
                     <textarea
@@ -580,17 +582,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                   {(!isAuthorized || !userInfoData?.messagesLeft) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg z-10">
-                      {
-                        !isAuthorized ? (
-                          <div className="flex flex-col items-center justify-center">
-                            <CustomWalletButton />
-                          </div>
-                        ) : (
-                          <span className="text-white text-sm font-medium text-center px-4">
-                            You have no messages left. Get more to continue chatting.
-                          </span>
-                        )
-                      }
+                      {!isAuthorized ? (
+                        <div className="flex flex-col items-center justify-center">
+                          <CustomWalletButton />
+                        </div>
+                      ) : (
+                        <span className="text-white text-sm font-medium text-center px-4">
+                          You have no messages left. Get more to continue chatting.
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -604,7 +604,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </div>
               )} */}
               <div className="flex flex-col gap-5">
-                {!chatStarted && !isDisabled &&
+                {!chatStarted &&
+                  !isDisabled &&
                   ExamplePrompts((event, messageInput) => {
                     if (isStreaming) {
                       handleStop?.();
@@ -623,11 +624,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 actionRunner={actionRunner ?? ({} as ActionRunner)}
                 chatStarted={chatStarted}
                 isStreaming={isStreaming}
+                postMessage={(message: string | undefined) => {
+                  sendMessage?.({} as any, message);
+                }}
               />
             )}
           </ClientOnly>
         </div>
-        {!showWorkbench && <Footer positionClass='absolute' />}
+        {!showWorkbench && <Footer positionClass="absolute" />}
       </div>
     );
 

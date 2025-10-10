@@ -2,6 +2,7 @@ import { captureRemixErrorBoundaryError } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
+import '@unocss/reset/tailwind.css';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
@@ -19,7 +20,6 @@ import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import '@unocss/reset/tailwind.css';
-import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
 
 import 'virtual:uno.css';
 import { workbenchStore } from './lib/stores/workbench';
@@ -40,7 +40,6 @@ export const links: LinksFunction = () => [
     type: 'image/svg+xml',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },
-  { rel: 'stylesheet', href: tailwindReset },
   { rel: 'stylesheet', href: globalStyles },
   { rel: 'stylesheet', href: xtermStyles },
   {
@@ -103,7 +102,6 @@ function Providers({ children }: { children: React.ReactNode }) {
             </RefCodeProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
-          <DaytonaCleanup />
         </Suspense>
       )}
     </ClientOnly>
