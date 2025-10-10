@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from '@remix-run/react';
+import { useNavigate, useParams } from '@remix-run/react';
 import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -8,6 +8,7 @@ import { useGetIcpDeploy } from '~/lib/hooks/tanstack/useDeploy';
 import { useEffect, useMemo, useState } from 'react';
 import { useUpdateProjectInfoMutation } from 'query/use-project-query';
 import { formatUrl } from '~/utils/urlUtils';
+import { EventBanner } from '~/components/ui/EventBanner';
 
 export default function Project() {
   const params = useParams();
@@ -19,12 +20,18 @@ export default function Project() {
     );
   }
   const auth = useAuth();
+  const navigate = useNavigate();
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
 
   const updateProjectMutation = useUpdateProjectInfoMutation(params.id, auth?.jwtToken);
   const isOwner = useMemo(() => {
-    return !!(auth && auth.isAuthorized && connected && publicKey?.toBase58() === projectQuery.data?.projectOwnerAddress);
+    return !!(
+      auth &&
+      auth.isAuthorized &&
+      connected &&
+      publicKey?.toBase58() === projectQuery.data?.projectOwnerAddress
+    );
   }, [auth, connected, publicKey, projectQuery.data?.projectOwnerAddress]);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -90,11 +97,12 @@ export default function Project() {
 
   return (
     <div className="min-h-screen w-full bg-black text-gray-100 flex flex-col">
+      <EventBanner />
       <header className="bg-gradient-to-r from-gray-900 to-black p-8 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex items-center gap-6">
-          <a href="/" className="mr-4">
+          <button onClick={() => navigate('/')} className="mr-4">
             <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-12 w-auto" />
-          </a>
+          </button>
           {project.image && (
             <img
               src={project.image}
@@ -145,7 +153,7 @@ export default function Project() {
                         className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
                         href={`/chat/${project.id}`}
                       >
-                        <div className='i-ph:code w-5 h-5' />
+                        <div className="i-ph:code w-5 h-5" />
                         Edit project
                       </a>
                       <button
@@ -155,7 +163,7 @@ export default function Project() {
                           setErrorMsg(null);
                         }}
                       >
-                        <div className='i-ph:pencil w-5 h-5' />
+                        <div className="i-ph:pencil w-5 h-5" />
                         Edit project info
                       </button>
                     </div>

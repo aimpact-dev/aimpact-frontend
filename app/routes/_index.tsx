@@ -8,6 +8,7 @@ import UserPooling from '~/components/chat/UserPooling';
 import OnlyDesktopMessage from '~/components/common/OnlyDesktopMessage';
 import { Header } from '~/components/header/Header';
 import BackgroundRays from '~/components/ui/BackgroundRays';
+import { EventBanner } from '~/components/ui/EventBanner';
 
 export const meta: MetaFunction = () => {
   return [
@@ -31,8 +32,8 @@ export default function Index() {
   useEffect(() => {
     const mobile = detectMobileScreen();
     setIsMobile(mobile);
-  }, [])
-  
+  }, []);
+
   return (
     <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
       <BackgroundRays />
