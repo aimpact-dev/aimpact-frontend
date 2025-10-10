@@ -1,6 +1,6 @@
 import type { Change } from 'diff';
 
-export type ActionType = 'file' | 'shell' | 'supabase' | 'update';
+export type ActionType = 'file' | 'shell' | 'supabase' | 'update' | 'buildContract';
 
 export interface BaseAction {
   content: string;
@@ -23,6 +23,10 @@ export interface UpdateAction extends BaseAction {
   n?: number;
 }
 
+export interface BuildContractAction extends BaseAction {
+  type: 'buildContract';
+}
+
 export interface BuildAction extends BaseAction {
   type: 'build';
 }
@@ -34,7 +38,7 @@ export interface SupabaseAction extends BaseAction {
   projectId?: string;
 }
 
-export type BoltAction = FileAction | ShellAction | BuildAction | UpdateAction | SupabaseAction;
+export type BoltAction = FileAction | ShellAction | BuildAction | UpdateAction | SupabaseAction | BuildContractAction;
 
 export type BoltActionData = BoltAction | BaseAction;
 

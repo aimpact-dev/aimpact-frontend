@@ -1,12 +1,12 @@
 import type {
   ActionType,
   BoltAction,
-  BoltActionData,
+  BoltActionData, BuildContractAction,
   FileAction,
   ShellAction,
   SupabaseAction,
   UpdateAction,
-  UpdateActionOccurrences,
+  UpdateActionOccurrences
 } from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
@@ -387,11 +387,11 @@ export class StreamingMessageParser {
       (actionAttributes as UpdateAction).filePath = filePath;
       (actionAttributes as UpdateAction).occurrences = occurrences ?? 'all';
       (actionAttributes as UpdateAction).n = numberOfOccurrence ?? undefined;
-    } else if (!['shell', 'start'].includes(actionType)) {
+    } else if (!['shell', 'start', 'buildContract'].includes(actionType)) {
       logger.warn(`Unknown action type '${actionType}'`);
     }
 
-    return actionAttributes as FileAction | UpdateAction | ShellAction;
+    return actionAttributes as FileAction | UpdateAction | ShellAction | BuildContractAction;
   }
 
   #extractAttribute(tag: string, attributeName: string): string | undefined {

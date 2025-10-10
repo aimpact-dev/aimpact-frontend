@@ -10,6 +10,9 @@ import type { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { isBinaryPath } from '~/utils/fileExtensionUtils';
 import { ac } from 'vitest/dist/chunks/reporters.nr4dxCkA.js';
+import { validateAnchorProject } from '../smartContracts/anchorProjectUtils';
+import { ContractBuildService } from '~/lib/smartContracts/contractBuildService';
+import { chatId } from '~/lib/persistence';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -37,6 +40,13 @@ export type ActionStateUpdate =
   | (Omit<BaseActionUpdate, 'status'> & { status: 'failed'; error: string });
 
 type ActionsMap = MapStore<Record<string, ActionState>>;
+
+class ContractValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ContractValidationError';
+  }
+}
 
 class ActionCommandError extends Error {
   readonly _output: string;
@@ -200,6 +210,10 @@ export class ActionRunner {
           await this.#runUpdateAction(action);
           break;
         }
+        case 'buildContract': {
+          await this.#runBuildContractAction(action);
+          break;
+        }
       }
 
       this.#updateAction(actionId, {
@@ -212,6 +226,16 @@ export class ActionRunner {
 
       this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
       logger.error(`[${action.type}]:Action failed\n\n`, error);
+
+      if(error instanceof ContractValidationError){
+        this.onAlert?.({
+          type: 'error',
+          title: 'Anchor project is invalid',
+          description: 'Cannot build smart contract, the validation have failed',
+          content: error.message,
+        });
+        return;
+      }
 
       if (!(error instanceof ActionCommandError)) {
         return;
@@ -232,6 +256,7 @@ export class ActionRunner {
   async runShellAction(action: ActionState) {
     return this.#runShellAction(action);
   }
+
   async #runShellAction(action: ActionState) {
     if (action.type !== 'shell') {
       unreachable('Expected shell action');
@@ -312,6 +337,25 @@ export class ActionRunner {
     } catch (error) {
       logger.error(`Failed to update file ${relativePath}\n\n`, error);
     }
+  }
+
+  async #runBuildContractAction(action: ActionState){
+    logger.debug('Trying to build contract');
+    if (action.type !== 'buildContract') {
+      unreachable('Expected build contract action');
+    }
+
+    const validationResult = validateAnchorProject();
+    if(validationResult.status !== 'VALID'){
+      throw new ContractValidationError(validationResult.message);
+    }
+
+    const buildService = new ContractBuildService();
+    const projectId = chatId.get();
+    if(!projectId){
+      throw new Error('Cannot build smart contract, project id is undefined.');
+    }
+    await buildService.requestContractBuild(projectId);
   }
 
   async #runFileAction(action: ActionState) {

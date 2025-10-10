@@ -22,7 +22,7 @@ const messageParser = new StreamingMessageParser({
     onActionOpen: (data) => {
       logger.trace('onActionOpen', data.action);
 
-      // we only add shell actions when when the close tag got parsed because only then we have the content
+      // we only add shell actions when the close tag got parsed because only then we have the content
       if (data.action.type === 'file' || data.action.type === 'update') {
         workbenchStore.addAction(data);
       }
