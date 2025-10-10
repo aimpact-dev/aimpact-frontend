@@ -207,7 +207,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
           let { status } = action;
           const isLast = index === actions.length - 1;
 
-          if (!isStreaming && type !== 'shell' && status === 'running') {
+          if (!isStreaming && type !== 'shell' && type !== 'buildContract' && status === 'running') {
             status = 'failed';
           }
 
@@ -226,9 +226,13 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 <div className={classNames('text-lg', getIconColor(status))}>
                   {status === 'running' ? (
                     <>
-                      <div className="i-ph:terminal-window-duotone"></div>
+                      {type === 'shell' ? (
+                        <div className="i-ph:terminal-window-duotone"></div>
+                      ) : (
+                        <div className="i-ph:circle-notch-duotone scale-98 animate-spin text-bolt-elements-item-contentDefault"></div>
+                      )}
                     </>
-                  ) : status === 'pending' ? (
+                  )  : status === 'pending' ? (
                     <div className="i-ph:circle-duotone"></div>
                   ) : status === 'complete' ? (
                     <div className="i-ph:check"></div>
@@ -259,6 +263,10 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                     >
                       {action.filePath}
                     </code>
+                  </div>
+                ) : type === 'buildContract' ? (
+                  <div className="flex items-center w-full min-h-[28px]">
+                    <span className="flex-1">Request contract build</span>
                   </div>
                 ) : null}
               </div>
