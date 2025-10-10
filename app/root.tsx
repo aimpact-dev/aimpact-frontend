@@ -19,6 +19,7 @@ import { RefCodeProvider } from './lib/hooks/useRefCode';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
+import '@unocss/reset/tailwind.css';
 
 import 'virtual:uno.css';
 import { workbenchStore } from './lib/stores/workbench';

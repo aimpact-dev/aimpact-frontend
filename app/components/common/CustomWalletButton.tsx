@@ -39,7 +39,7 @@ export default function CustomWalletButton() {
         'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black/50',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         'inline-flex items-center justify-center',
-        'h-10 px-4',
+        'px-4',
         'text-sm',
         'bg-gray-500 bg-opacity-10',
         'border border-bolt-elements-borderColor',
@@ -62,12 +62,11 @@ export default function CustomWalletButton() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '8px 8px',
+          padding: '6px',
         }}
-        
       >
         {!connected && 'Connect Wallet'}
       </WalletMultiButton>
-  </div>
+    </div>
   );
 }
