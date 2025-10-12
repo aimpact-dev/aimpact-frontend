@@ -66,6 +66,13 @@ export const FileTree = memo(
     });
 
     useEffect(() => {
+      console.log("Files on mount: ", files);
+      return () => {
+        console.log("FileTree component unmount.");
+      }
+    }, []);
+
+    useEffect(() => {
       if (collapsed) {
         setCollapsedFolders(new Set(fileList.filter((item) => item.kind === 'folder').map((item) => item.fullPath)));
         return;

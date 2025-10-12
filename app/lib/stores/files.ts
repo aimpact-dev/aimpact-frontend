@@ -215,6 +215,10 @@ export class FilesStore {
     });
   }
 
+  clearFiles(){
+    this.files.set({});
+  }
+
   /**
    * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
    * @param filePath

@@ -82,6 +82,20 @@ export class WorkbenchStore {
     }
   }
 
+  /**
+   * Set all states of nanostores to default.
+   */
+  dispose(){
+    this.artifacts.set({});
+    this.showWorkbench.set(false);
+    this.currentView.set('code');
+    this.unsavedFiles.set(new Set<string>());
+    this.actionAlert.set(undefined);
+    this.supabaseAlert.set(undefined);
+    this.deployAlert.set(undefined);
+    this.#filesStore.clearFiles();
+  }
+
   addToExecutionQueue(callback: () => Promise<void>) {
     this.#globalExecutionQueue = this.#globalExecutionQueue.then(() => callback());
   }
@@ -895,6 +909,6 @@ export function getWorkbenchStore(){
 }
 
 export function disposeWorkbenchStore(){
-  console.log("Disposing workbench");
+  workbench?.dispose()
   workbench = null;
 }
