@@ -1,5 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { ky } from 'query';
+import { client } from '~/lib/api/backend/api';
 
 interface AppDeployments {
   provider: string;
@@ -13,7 +15,7 @@ interface ProjectsResponse {
     pageSize: number;
     total: number;
   };
-};
+}
 
 export type Project = {
   id: string;
@@ -23,11 +25,18 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  appDeployments?: AppDeployments[],
+  appDeployments?: AppDeployments[];
 };
 
 export type ProjectWithOwner = Project & {
   projectOwnerAddress: string;
+};
+
+export type UpdateProjectInfoPayload = {
+  name?: string;
+  description?: string;
+  category?: string;
+  featured?: string;
 };
 
 export type OwnershipFilter = 'all' | 'owned';
@@ -37,7 +46,14 @@ export type ProjectFilters = OwnershipFilter | DeploymentPlatform | StatusFilter
 
 const deploymentPlatforms: DeploymentPlatform[] = ['S3', 'Akash', 'ICP'];
 
-export const useProjectsQuery = (page: number, pageSize: number, filters: ProjectFilters[], sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+export const useProjectsQuery = (
+  page: number,
+  pageSize: number,
+  filters: ProjectFilters[],
+  sortBy: 'createdAt' | 'updatedAt' | 'name',
+  sortDirection: 'ASC' | 'DESC',
+  jwtToken?: string,
+) => {
   const ownership: OwnershipFilter = filters.includes('owned') ? 'owned' : 'all';
 
   const provider = deploymentPlatforms.find((p) => filters.includes(p));
@@ -55,7 +71,7 @@ export const useProjectsQuery = (page: number, pageSize: number, filters: Projec
   }
 
   return useQuery<ProjectsResponse>({
-    queryKey: ['projects', {page, pageSize, ownership, statusFilters, provider,  sortBy, sortDirection}],
+    queryKey: ['projects', { page, pageSize, ownership, statusFilters, provider, sortBy, sortDirection }],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -71,8 +87,8 @@ export const useProjectsQuery = (page: number, pageSize: number, filters: Projec
           sortBy,
           sortOrder: sortDirection,
         },
-        headers: requestHeaders
-      })
+        headers: requestHeaders,
+      });
       const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
@@ -80,6 +96,32 @@ export const useProjectsQuery = (page: number, pageSize: number, filters: Projec
       }
 
       return data;
+    },
+  });
+};
+
+export const useUpdateProjectInfoMutation = (id: string, jwtToken?: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: UpdateProjectInfoPayload) => {
+      const headers: Record<string, string> = {};
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
+      const res = await ky.post(`projects/${id}/update`, {
+        json: payload,
+        headers,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to update project');
+      }
+
+      return res.json<ProjectWithOwner>();
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['project', id] });
     },
   });
 };
@@ -127,6 +169,21 @@ export const useDeploymentQuery = (projectId: string | undefined, provider: 's3'
 
       const data = await res.json<{ url: string }>();
       return data.url;
+    },
+  });
+};
+
+export interface SetProjectTokenPayload {
+  tokenAddress: string;
+}
+
+export const useSetProjectToken = (id: string) => {
+  return useMutation<{}, AxiosError, SetProjectTokenPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<{}>(`projects/${id}/add-token`, {
+        json: payload,
+      });
+      return data;
     },
   });
 };

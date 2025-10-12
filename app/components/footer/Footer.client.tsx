@@ -63,7 +63,7 @@ export default function Footer({ positionClass }: FooterProps) {
 
         <div className="flex gap-2 text-4xl margin-0 p-0 flex-col pointer-events-auto">
           <Tooltip content="Subscribe on X">
-            <a href="https://x.com/ostolex" target="_blank">
+            <a href="https://x.com/aimpact_dev" target="_blank">
               <IconButton>
                 <div className="i-ph:x-logo text-gray-400 hover:text-purple-400" />
               </IconButton>

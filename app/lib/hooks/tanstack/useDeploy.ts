@@ -15,6 +15,10 @@ export interface IcpDeployResponse {
   createdAt: string;
 }
 
+export interface AkashDeployResponse {
+  url: string;
+}
+
 export interface S3DeployResponse {
   url: string;
 }
@@ -31,10 +35,7 @@ export interface PostDeployPayload {
 export const useGetIcpDeploy = () =>
   useMutation<IcpDeployResponse, AxiosError, string>({
     mutationFn: async (projectId) => {
-      const { data } = await client.get<IcpDeployResponse>(
-        '/deploy-app/icp-deployment',
-        { params: { projectId } }
-      );
+      const { data } = await client.get<IcpDeployResponse>('/deploy-app/icp-deployment', { params: { projectId } });
       return data;
     },
   });
@@ -42,10 +43,7 @@ export const useGetIcpDeploy = () =>
 export const usePostIcpDeploy = () =>
   useMutation<PostDeployResponse, AxiosError, PostDeployPayload>({
     mutationFn: async (payload) => {
-      const { data } = await client.post<PostDeployResponse>(
-        '/deploy-app/icp-deployment',
-        payload
-      );
+      const { data } = await client.post<PostDeployResponse>('/deploy-app/icp-deployment', payload);
       return data;
     },
   });
@@ -53,10 +51,7 @@ export const usePostIcpDeploy = () =>
 export const useGetS3Deploy = () =>
   useMutation<S3DeployResponse, AxiosError, string>({
     mutationFn: async (projectId) => {
-      const { data } = await client.get<S3DeployResponse>(
-        '/deploy-app/s3-deployment',
-        { params: { projectId } }
-      );
+      const { data } = await client.get<S3DeployResponse>('/deploy-app/s3-deployment', { params: { projectId } });
       return data;
     },
   });
@@ -64,10 +59,23 @@ export const useGetS3Deploy = () =>
 export const usePostS3Deploy = () =>
   useMutation<PostDeployResponse, AxiosError, PostDeployPayload>({
     mutationFn: async (payload) => {
-      const { data } = await client.post<PostDeployResponse>(
-        '/deploy-app/s3-deployment',
-        payload
-      );
+      const { data } = await client.post<PostDeployResponse>('/deploy-app/s3-deployment', payload);
+      return data;
+    },
+  });
+
+export const useGetAkashDeploy = () =>
+  useMutation<AkashDeployResponse, AxiosError, string>({
+    mutationFn: async (projectId) => {
+      const { data } = await client.get<AkashDeployResponse>('/deploy-app/akash-deployment', { params: { projectId } });
+      return data;
+    },
+  });
+
+export const usePostAkashDeploy = () =>
+  useMutation<PostDeployResponse, AxiosError, PostDeployPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<PostDeployResponse>('/deploy-app/akash-deployment', payload);
       return data;
     },
   });

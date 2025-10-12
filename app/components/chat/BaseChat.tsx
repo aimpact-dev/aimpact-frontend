@@ -344,7 +344,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   )}
                 </div>
                 <ScrollToBottom />
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                {progressAnnotations && <ProgressCompilation data={progressAnnotations} className="my-1" />}
                 <div
                   className={classNames(
                     'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor w-full max-w-chat mx-auto z-prompt',
@@ -582,6 +582,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 actionRunner={actionRunner ?? ({} as ActionRunner)}
                 chatStarted={chatStarted}
                 isStreaming={isStreaming}
+                postMessage={(message: string | undefined) => {
+                  sendMessage?.({} as any, message);
+                }}
               />
             )}
           </ClientOnly>

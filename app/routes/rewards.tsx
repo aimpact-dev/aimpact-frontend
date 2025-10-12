@@ -4,7 +4,7 @@ import Navbar from "~/components/dashboard/navbar";
 import Footer from "~/components/footer/Footer.client";
 import ReferralsTab from "~/components/rewards/referralsTab";
 import SharingTab from "~/components/rewards/sharingTab";
-import { useRewardsApi, type WithdrawRewardsResponse } from "~/lib/api-hooks/useRewardsApi";
+import { useRewardsApi, type WithdrawRewardsResponse } from "~/lib/hooks/api-hooks/useRewardsApi";
 import { useAuth, userInfo } from "~/lib/hooks/useAuth";
 // import { createSampler } from "~/utils/sampler";
 import { classNames } from "~/utils/classNames";

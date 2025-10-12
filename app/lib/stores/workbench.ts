@@ -36,7 +36,7 @@ export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
 
-export type WorkbenchViewType = 'code' | 'diff' | 'preview';
+export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'contracts';
 
 export class WorkbenchStore {
   #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
