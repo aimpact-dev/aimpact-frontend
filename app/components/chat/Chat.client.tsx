@@ -28,7 +28,6 @@ import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTempla
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
-import { supabaseConnection } from '~/lib/stores/supabase';
 import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
@@ -150,7 +149,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       processSampledMessages.cancel?.();
 
       // Stop any ongoing chat requests
-      if (isLoading) {
+      if (status === 'streaming') {
         stop();
       }
 
@@ -191,7 +190,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const {
     messages,
-    isLoading,
+    status,
     input,
     handleInputChange,
     setInput,
@@ -273,11 +272,11 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     processSampledMessages({
       messages: messages,
       initialMessages,
-      isLoading,
+      isLoading: status == 'streaming',
       parseMessages,
       storeMessageHistory,
     });
-  }, [messages, isLoading, parseMessages]);
+  }, [messages, status, parseMessages]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -335,7 +334,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
-    if (isLoading) {
+    if (status === 'streaming') {
       abort();
       return;
     }
@@ -582,7 +581,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         input={input}
         showChat={showChat}
         chatStarted={chatStarted}
-        isStreaming={isLoading || fakeLoading}
+        isStreaming={status === 'streaming' || fakeLoading}
         onStreamingChange={onStreamingChangeCallback}
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}

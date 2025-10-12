@@ -28,6 +28,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from './SmartContractView';
+import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -294,6 +295,38 @@ export const Workbench = memo(
     const customPreviewState = useRef('');
     const [waitForInstall, setWaitForInstall] = useState(false);
     const [forcePreviewLoading, setForcePreviewLoading] = useState(false);
+
+    const { takeSnapshot } = useChatHistory();
+    const chatIdx = useStore(lastChatIdx);
+    const chatSummary = useStore(lastChatSummary);
+    const [lastSnapshotTime, setLastSnapshotTime] = useState<number | null>(null);
+    const [activeSnapshotPromise, setActiveSnapshotPromise] = useState<Promise<void> | null>(null);
+
+    useEffect(() => {
+      // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
+      const removeSubscribe = workbenchStore.files.subscribe((files) => {
+        if (!chatIdx) return;
+
+        if (!lastSnapshotTime || !activeSnapshotPromise || Date.now() - lastSnapshotTime > 5000) {
+          takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, chatSummary);
+          setLastSnapshotTime(Date.now());
+        } else {
+          const func = takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, chatSummary);
+          setActiveSnapshotPromise(func);
+          func
+            .then(() => {
+              setLastSnapshotTime(Date.now());
+            })
+            .finally(() => {
+              setActiveSnapshotPromise(null);
+            });
+        }
+      });
+
+      return () => {
+        removeSubscribe();
+      };
+    }, [workbenchStore.files, chatIdx, chatSummary]);
 
     // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 

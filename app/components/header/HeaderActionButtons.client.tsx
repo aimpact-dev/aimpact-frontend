@@ -288,7 +288,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex mr-1">
-      <Tooltip content={(isSaving && "Saving...") || (!activePreview && "Run a project before saving") || (isStreaming && "Wait until streaming ends") || "Save current project"} side='bottom'>
+      {/* <Tooltip content={(isSaving && "Saving...") || (!activePreview && "Run a project before saving") || (isStreaming && "Wait until streaming ends") || "Save current project"} side='bottom'>
         <Button
           active
           onClick={handleSaveSnapshot}
@@ -307,7 +307,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             </>
           )}
         </Button>
-      </Tooltip>
+      </Tooltip> */}
 
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 mr-4 text-sm h-full">
