@@ -9,7 +9,6 @@ export const BUILD_COMMANDS: string[] = packageManagers.flatMap((manager) =>
   buildCommands.map((cmd) => `${manager} ${cmd}`),
 );
 
-console.log(PREVIEW_COMMANDS, BUILD_COMMANDS);
 if (!PREVIEW_COMMANDS.length || !BUILD_COMMANDS.length) {
   throw new Error('Commands are not initalized');
 }

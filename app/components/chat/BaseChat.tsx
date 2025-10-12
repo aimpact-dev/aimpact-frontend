@@ -24,7 +24,6 @@ import { toast } from 'react-toastify';
 import type { ActionAlert, SupabaseAlert, DeployAlert } from '~/types/actions';
 import DeployChatAlert from '~/components/deploy/DeployAlert';
 import ChatAlert from './ChatAlert';
-import type { ModelInfo } from '~/lib/modules/llm/types';
 import ProgressCompilation from './ProgressCompilation';
 import type { ProgressAnnotation } from '~/types/context';
 import type { ActionRunner } from '~/lib/runtime/action-runner';
@@ -52,8 +51,6 @@ interface BaseChatProps {
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
-  model?: string;
-  setModel?: (model: string) => void;
   provider?: ProviderInfo;
   setProvider?: (provider: ProviderInfo) => void;
   providerList?: ProviderInfo[];
@@ -86,7 +83,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatStarted = false,
       isStreaming = false,
       onStreamingChange,
-      model,
       provider,
       providerList,
       input = '',
@@ -116,8 +112,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     ref,
   ) => {
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
-    const [modelList, setModelList] = useState<ModelInfo[]>([]);
-    const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -139,7 +133,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (promptEnhanced) {
         toast.success('Prompt enhanced!');
       }
-    }, [promptEnhanced])
+    }, [promptEnhanced]);
 
     useEffect(() => {
       if (data) {
@@ -184,25 +178,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         return () => {
           recognition.stop();
-        }
+        };
       }
     }, []);
-
-    useEffect(() => {
-      if (typeof window !== 'undefined') {
-        let parsedApiKeys: Record<string, string> | undefined = {};
-
-        fetch('/api/models')
-          .then((response) => response.json())
-          .then((data) => {
-            const typedData = data as { modelList: ModelInfo[] };
-            setModelList(typedData.modelList);
-          })
-          .catch((error) => {
-            console.error('Error fetching model list:', error);
-          })
-      }
-    }, [providerList, provider]);
 
     const startListening = () => {
       if (recognition) {
@@ -220,7 +198,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
       if (!isAuthorized) {
-        toast.warning("You cannot use chat. Connect your wallet and log in.");
+        toast.warning('You cannot use chat. Connect your wallet and log in.');
         return;
       }
 
@@ -366,7 +344,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   )}
                 </div>
                 <ScrollToBottom />
-                {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                {progressAnnotations && <ProgressCompilation data={progressAnnotations} className="my-1" />}
                 <div
                   className={classNames(
                     'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor w-full max-w-chat mx-auto z-prompt',
@@ -425,7 +403,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div
                     className={classNames(
                       'relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg transition-all duration-150',
-                      ...((!isAuthorized || !userInfoData?.messagesLeft) ? ['blur-[2px] pointer-events-none select-none'] : [])
+                      ...(!isAuthorized || !userInfoData?.messagesLeft
+                        ? ['blur-[2px] pointer-events-none select-none']
+                        : []),
                     )}
                   >
                     <textarea
@@ -546,26 +526,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           disabled={isStreaming || isDisabled}
                         />
                         {chatStarted && <ClientOnly>{() => <ExportChatButton exportChat={exportChat} />}</ClientOnly>}
-                        <IconButton
-                          title="Model Settings"
-                          className={classNames('transition-all flex items-center gap-1', {
-                            'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                              isModelSettingsCollapsed,
-                            'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                              !isModelSettingsCollapsed,
-                          })}
-                          onClick={() => setIsModelSettingsCollapsed(!isModelSettingsCollapsed)}
-                          disabled={!providerList || providerList.length === 0 || isDisabled}
-                        >
-                          <div className={`i-ph:caret-${isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                          {isModelSettingsCollapsed ? (
-                            <span className="text-xs">
-                              {modelList.find((val) => val.name === model)?.label || model}
-                            </span>
-                          ) : (
-                            <span />
-                          )}
-                        </IconButton>
                       </div>
                       {input.length > 3 ? (
                         <div className="text-xs text-bolt-elements-textTertiary">
@@ -580,17 +540,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                   {(!isAuthorized || !userInfoData?.messagesLeft) && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg z-10">
-                      {
-                        !isAuthorized ? (
-                          <div className="flex flex-col items-center justify-center">
-                            <CustomWalletButton />
-                          </div>
-                        ) : (
-                          <span className="text-white text-sm font-medium text-center px-4">
-                            You have no messages left. Get more to continue chatting.
-                          </span>
-                        )
-                      }
+                      {!isAuthorized ? (
+                        <div className="flex flex-col items-center justify-center">
+                          <CustomWalletButton />
+                        </div>
+                      ) : (
+                        <span className="text-white text-sm font-medium text-center px-4">
+                          You have no messages left. Get more to continue chatting.
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -604,7 +562,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </div>
               )} */}
               <div className="flex flex-col gap-5">
-                {!chatStarted && !isDisabled &&
+                {!chatStarted &&
+                  !isDisabled &&
                   ExamplePrompts((event, messageInput) => {
                     if (isStreaming) {
                       handleStop?.();
@@ -623,11 +582,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 actionRunner={actionRunner ?? ({} as ActionRunner)}
                 chatStarted={chatStarted}
                 isStreaming={isStreaming}
+                postMessage={(message: string | undefined) => {
+                  sendMessage?.({} as any, message);
+                }}
               />
             )}
           </ClientOnly>
         </div>
-        {!showWorkbench && <Footer positionClass='absolute' />}
+        {!showWorkbench && <Footer positionClass="absolute" />}
       </div>
     );
 
@@ -641,7 +603,7 @@ function ScrollToBottom() {
   return (
     !isAtBottom && (
       <button
-        className="absolute z-50 top-[0%] translate-y-[-100%] text-4xl rounded-lg left-[50%] translate-x-[-50%] px-1.5 py-0.5 flex items-center gap-2 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
+        className="absolute z-50 top-[0%] translate-y-[-100%] rounded-lg left-[50%] translate-x-[-50%] px-1.5 py-0.5 flex items-center gap-2 bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm"
         onClick={() => scrollToBottom()}
       >
         Go to last message

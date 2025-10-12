@@ -155,8 +155,8 @@ export class RemoteSandbox implements AimpactSandbox {
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('uploadFile', args, authToken);
-    if (!response.ok) {
-      throw new Error(`Failed to upload file: ${response.statusText}`);
+    if(!response.ok){
+      throw new Error(`Failed to upload file: ${response.statusText}. Response text: ${await response.text()}`);
     }
   }
 

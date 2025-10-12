@@ -27,7 +27,7 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
-import SmartContractView from './SmartContractView';
+import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 
 interface WorkspaceProps {
@@ -38,6 +38,7 @@ interface WorkspaceProps {
     gitUrl?: string;
   };
   updateChatMestaData?: (metadata: any) => void;
+  postMessage: (message: string) => void;
 }
 
 const viewTransition = { ease: cubicEasingFn };
@@ -285,7 +286,7 @@ const FileModifiedDropdown = memo(
 );
 
 export const Workbench = memo(
-  ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData }: WorkspaceProps) => {
+  ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
     const [isSyncing, setIsSyncing] = useState(false);
@@ -636,7 +637,7 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
                   >
-                    <SmartContractView />
+                    <SmartContractView postMessage={postMessage} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
                     <Preview customText={customPreviewState.current} forcePreviewLoading={forcePreviewLoading} />
