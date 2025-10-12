@@ -27,7 +27,6 @@ const deploymentFilters: { key: DeploymentPlatform; label: string; color: string
 ];
 
 const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectFiltersProps) => {
-  console.log(activeFilters);
   const toggleFilter = (filter: ProjectFilters) => {
     onFilterChange((prev: ProjectFilters[]) => {
       if (filter === 'all' || filter === 'owned') {
