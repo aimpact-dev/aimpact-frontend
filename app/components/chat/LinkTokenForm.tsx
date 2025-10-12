@@ -173,7 +173,7 @@ export default function DeployLinkedTokenForm({
                     navigator.clipboard.writeText(field.value);
                     toast.success('Link copied!');
                   }}
-                  className="cursor-pointer"
+                  className="cursor-pointer text-bolt-elements-textSecondary"
                 />
               </FormControl>
               <FormMessage />

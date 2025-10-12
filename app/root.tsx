@@ -6,7 +6,7 @@ import '@unocss/reset/tailwind.css';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import React, { Suspense, useEffect, useState, type FC, type PropsWithChildren } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -22,10 +22,7 @@ import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 import '@unocss/reset/tailwind.css';
 
 import 'virtual:uno.css';
-import { workbenchStore } from './lib/stores/workbench';
 import LoadingScreen from './components/common/LoadingScreen';
-import { useMemoryMonitor } from './lib/hooks/useMemoryMonitor';
-import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then((mod) => ({

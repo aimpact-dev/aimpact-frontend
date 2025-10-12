@@ -385,7 +385,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                     navigator.clipboard.writeText(field.value);
                     toast.success('Link copied!');
                   }}
-                  className="cursor-not-allowed text-gray-400"
+                  className="cursor-pointer text-bolt-elements-textSecondary"
                 />
               </FormControl>
               <FormMessage />

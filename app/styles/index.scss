@@ -7,6 +7,8 @@
 @use 'components/editor.scss';
 @use 'components/toast.scss';
 
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+
 * {
   border-color: var(--border);
 }
@@ -15,11 +17,14 @@ html,
 body {
   height: 100%;
   width: 100%;
+
+  font-family: "Geist", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-style: normal;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-
   background-color: var(--background);
   color: var(--foreground);
 }

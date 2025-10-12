@@ -1,12 +1,14 @@
 'use client';
 
-import { useParams } from '@remix-run/react';
+import { useNavigate, useParams } from '@remix-run/react';
 import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useUpdateProjectInfoMutation } from 'query/use-project-query';
 import { formatUrl } from '~/utils/urlUtils';
+import LoadingScreen from '~/components/common/LoadingScreen';
+import { Tooltip } from '~/components/chat/Tooltip';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import { classNames } from '~/utils/classNames';
 import { twMerge } from 'tailwind-merge';
@@ -28,9 +30,16 @@ export default function Project() {
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
 
+  const navigate = useNavigate();
+
   const updateProjectMutation = useUpdateProjectInfoMutation(params.id, auth?.jwtToken);
   const isOwner = useMemo(() => {
-    return !!(auth && auth.isAuthorized && connected && publicKey?.toBase58() === projectQuery.data?.projectOwnerAddress);
+    return !!(
+      auth &&
+      auth.isAuthorized &&
+      connected &&
+      publicKey?.toBase58() === projectQuery.data?.projectOwnerAddress
+    );
   }, [auth, connected, publicKey, projectQuery.data?.projectOwnerAddress]);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -79,12 +88,8 @@ export default function Project() {
     }
   }, [projectQuery.data, isEditing]);
 
-  if (projectQuery.isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen w-screen text-center text-gray-400 bg-black">
-        Loading...
-      </div>
-    );
+  if (projectQuery.isLoading || projectQuery.isPending) {
+    return <LoadingScreen />;
   }
 
   if (projectQuery.isError) {
@@ -108,10 +113,13 @@ export default function Project() {
   return (
     <div className="min-h-screen w-full bg-black text-gray-100 flex flex-col">
       <header className="bg-gradient-to-r from-gray-900 to-black p-8 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto flex items-center gap-6">
-          <a href="/" className="mr-4">
-            <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-12 w-auto" />
-          </a>
+        <div className="flex flex-col max-w-7xl mx-auto">
+          <div>
+            <a href="/" className="mr-4">
+              <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-8 w-auto" />
+            </a>
+          </div>
+
           {project.image && (
             <img
               src={project.image}
@@ -119,14 +127,21 @@ export default function Project() {
               className="w-20 h-20 rounded-lg object-cover border border-gray-700 shadow-lg"
             />
           )}
-          <div>
+          <div className="flex gap-6 group">
             {!isEditing ? (
-              <h1 className="text-4xl font-bold flex items-center gap-2 text-white">{project.name}</h1>
+              <button className="flex gap-3" onClick={() => navigate(`/projects`)}>
+                <div className="inline-flex justify-center items-center bg-bolt-elements-button-primary-background rounded-md p-2 transition-colors duration-200 group-hover:bg-bolt-elements-button-primary-backgroundHover">
+                  <div className="i-ph:arrow-left h-5 w-5 color-accent-500"></div>
+                </div>
+                <h1 className="text-3xl font-bold flex items-center gap-2 text-white transition-colors duration-300 group-hover:text-accent-500">
+                  {project.name}
+                </h1>
+              </button>
             ) : (
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="text-4xl font-bold bg-gray-800 text-white border border-gray-700 rounded px-3 py-1 w-full max-w-xl"
+                className="text-3xl font-bold bg-gray-800 text-white border border-gray-700 rounded px-3 w-full"
                 placeholder="Project name"
               />
             )}
@@ -159,20 +174,20 @@ export default function Project() {
                   {!isEditing ? (
                     <div className="flex gap-2">
                       <a
-                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300"
+                        className="flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
                         href={`/chat/${project.id}`}
                       >
-                        <div className='i-ph:code w-5 h-5' />
+                        <div className="i-ph:code w-5 h-5" />
                         Edit project
                       </a>
                       <button
-                        className="flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
+                        className="flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
                         onClick={() => {
                           setIsEditing(true);
                           setErrorMsg(null);
                         }}
                       >
-                        <div className='i-ph:pencil w-5 h-5' />
+                        <div className="i-ph:pencil w-5 h-5" />
                         Edit project info
                       </button>
                     </div>

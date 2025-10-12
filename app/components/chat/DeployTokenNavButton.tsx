@@ -30,7 +30,7 @@ export default function DeployTokenNavButton({ projectId, disabled = false }: De
           disabled={disabled}
           className="border border-[#5c5c5c40] space-x-0"
         >
-          Launch Token<span className="color-green-300 -ml-0.5 text-xs">new!</span>
+          Launch Token <span className="color-green-300 -ml-0.5 text-xs">new!</span>
         </Button>
       </Tooltip>
 
