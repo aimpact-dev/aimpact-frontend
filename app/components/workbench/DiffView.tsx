@@ -1,6 +1,6 @@
 import { memo, useMemo, useState, useEffect, useCallback } from 'react';
 import { useStore } from '@nanostores/react';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import type { FileMap } from '~/lib/stores/files';
 import type { EditorDocument } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { diffLines, type Change } from 'diff';
@@ -624,10 +624,10 @@ interface DiffViewProps {
 }
 
 export const DiffView = memo(({ fileHistory, setFileHistory, isTabOpen }: DiffViewProps) => {
-  const files = useStore(workbenchStore.files) as FileMap;
-  const selectedFile = useStore(workbenchStore.selectedFile);
-  const currentDocument = useStore(workbenchStore.currentDocument) as EditorDocument;
-  const unsavedFiles = useStore(workbenchStore.unsavedFiles);
+  const files = useStore(getWorkbenchStore().files) as FileMap;
+  const selectedFile = useStore(getWorkbenchStore().selectedFile);
+  const currentDocument = useStore(getWorkbenchStore().currentDocument) as EditorDocument;
+  const unsavedFiles = useStore(getWorkbenchStore().unsavedFiles);
 
   useEffect(() => {
     if (selectedFile && currentDocument) {

@@ -1,6 +1,6 @@
 ﻿import  { type CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
@@ -32,11 +32,11 @@ export class EditorScriptsInjector implements CommandPreprocessor {
     const scriptContent = await loadContentFromScripts(EVENTS_SCRIPT_FILE_NAME);
     const scriptContentWithOrigin = addOriginToReporterScript(scriptContent);
     await fs.writeFile(EVENTS_SCRIPT_FILE_NAME, scriptContentWithOrigin);
-    workbenchStore.pendLockForFile(path.join(workdir, EVENTS_SCRIPT_FILE_NAME));
+    getWorkbenchStore().pendLockForFile(path.join(workdir, EVENTS_SCRIPT_FILE_NAME));
 
     const pluginContent = await loadContentFromScripts(EVENTS_PLUGIN_FILE_NAME);
     await fs.writeFile(EVENTS_PLUGIN_FILE_NAME, pluginContent);
-    workbenchStore.pendLockForFile(path.join(workdir, EVENTS_PLUGIN_FILE_NAME));
+    getWorkbenchStore().pendLockForFile(path.join(workdir, EVENTS_PLUGIN_FILE_NAME));
 
     try{
       const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');

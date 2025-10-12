@@ -885,4 +885,16 @@ export class WorkbenchStore {
   }
 }
 
-export const workbenchStore = new WorkbenchStore();
+let workbench: WorkbenchStore | null = null;
+
+export function getWorkbenchStore(){
+  if(!workbench){
+    workbench = new WorkbenchStore();
+  }
+  return workbench;
+}
+
+export function disposeWorkbenchStore(){
+  console.log("Disposing workbench");
+  workbench = null;
+}

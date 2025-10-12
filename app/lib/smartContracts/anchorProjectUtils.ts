@@ -1,4 +1,4 @@
-﻿import { workbenchStore } from '~/lib/stores/workbench';
+﻿import { getWorkbenchStore } from '~/lib/stores/workbench';
 import type { FileMap } from '~/lib/stores/files';
 import { path } from '~/utils/path';
 
@@ -40,7 +40,7 @@ const EXPECTED_PROGRAM_FILES: string[] = [
 
 
 export function validateAnchorProject(): AnchorValidationResult {
-  const files = workbenchStore.files.get();
+  const files = getWorkbenchStore().files.get();
   const anchorRootAbsolutePath = path.join(WORK_DIR, ANCHOR_ROOT_DIR_NAME);
   if(!(anchorRootAbsolutePath in files)){
     return {
@@ -139,7 +139,7 @@ export function getAnchorProjectSnapshot(validate: boolean = false): AnchorProje
       throw new Error("Cannot take a snapshot of the anchor project, validation has failed with message: " + validationResult.message);
     }
   }
-  const files = workbenchStore.files.get();
+  const files = getWorkbenchStore().files.get();
 
   //Getting anchor project files
   const snapshotFiles: FileMap = {};

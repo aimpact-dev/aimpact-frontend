@@ -7,7 +7,7 @@ import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import {
   DEFAULT_MINI_MODEL,
   DEFAULT_MINI_PROVIDER,
@@ -33,6 +33,7 @@ import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 import { ZenfsCleanup } from '~/components/common/ZenfsCleanup';
+import { WorkbenchCleanup } from '~/components/common/WorkbenchCleanup';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -48,7 +49,7 @@ export function Chat() {
 
   const title = useStore(description);
   useEffect(() => {
-    workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
+    getWorkbenchStore().setReloadedMessages(initialMessages.map((m) => m.id));
   }, [initialMessages]);
 
   if ((error as any)?.status === 404) {
@@ -135,14 +136,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [imageDataList, setImageDataList] = useState<string[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [fakeLoading, setFakeLoading] = useState(false);
-  const files = useStore(workbenchStore.files);
-  const actionAlert = useStore(workbenchStore.alert);
-  const deployAlert = useStore(workbenchStore.deployAlert);
+  const files = useStore(getWorkbenchStore().files);
+  const actionAlert = useStore(getWorkbenchStore().alert);
+  const deployAlert = useStore(getWorkbenchStore().deployAlert);
   const supabaseConn = useStore(supabaseConnection); // Add this line to get Supabase connection
   const selectedProject = supabaseConn.stats?.projects?.find(
     (project) => project.id === supabaseConn.selectedProjectId,
   );
-  const supabaseAlert = useStore(workbenchStore.supabaseAlert);
+  const supabaseAlert = useStore(getWorkbenchStore().supabaseAlert);
   const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
 
   /*
@@ -180,7 +181,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   });
 
   const { showChat } = useStore(chatStore);
-  const showWorkbench = useStore(workbenchStore.showWorkbench);
+  const showWorkbench = useStore(getWorkbenchStore().showWorkbench);
 
   const [animationScope, animate] = useAnimate();
 
@@ -292,7 +293,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const abort = () => {
     stop();
     chatStore.setKey('aborted', true);
-    workbenchStore.abortAllActions();
+    getWorkbenchStore().abortAllActions();
 
     logStore.logProvider('Chat response aborted', {
       component: 'Chat',
@@ -458,7 +459,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       setMessages(messages.slice(0, -1));
     }
 
-    const modifiedFiles = workbenchStore.getModifiedFiles();
+    const modifiedFiles = getWorkbenchStore().getModifiedFiles();
 
     chatStore.setKey('aborted', false);
 
@@ -478,7 +479,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         ] as any,
       });
 
-      workbenchStore.resetAllFileModifications();
+      getWorkbenchStore().resetAllFileModifications();
     } else {
       append({
         role: 'user',
@@ -558,15 +559,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, [onTextareaChange, debouncedCachePrompt]);
 
   const clearAlertCallback = useCallback(() => {
-    workbenchStore.clearAlert();
+    getWorkbenchStore().clearAlert();
   }, []);
 
   const clearSupabaseAlertCallback = useCallback(() => {
-    workbenchStore.clearSupabaseAlert()
+    getWorkbenchStore().clearSupabaseAlert()
   }, []);
 
   const clearDeployAlertCallback = useCallback(() => {
-    workbenchStore.clearDeployAlert()
+    getWorkbenchStore().clearDeployAlert()
   }, []);
 
   const onStreamingChangeCallback = useCallback((streaming: boolean) => {
@@ -624,6 +625,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       />
       <DaytonaCleanup/>
       <ZenfsCleanup/>
+      <WorkbenchCleanup/>
     </>
   );
 });

@@ -4,7 +4,7 @@ import { computed } from 'nanostores';
 import { memo, useEffect, useRef, useState } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
 import type { ActionState } from '~/lib/runtime/action-runner';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { WORK_DIR } from '~/utils/constants';
@@ -31,7 +31,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
   const [showActions, setShowActions] = useState(false);
   const [allActionFinished, setAllActionFinished] = useState(false);
 
-  const artifacts = useStore(workbenchStore.artifacts);
+  const artifacts = useStore(getWorkbenchStore().artifacts);
   const artifact = artifacts[messageId];
 
   const actions = useStore(
@@ -82,10 +82,10 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
           : 'Creating Project...' // Title during initial creation
       : artifact?.title; // Fallback to original title for non-bundled or if artifact is missing
 
-  const [showWorkbench, setShowWorkbench] = useState(workbenchStore.showWorkbench.get());
+  const [showWorkbench, setShowWorkbench] = useState(getWorkbenchStore().showWorkbench.get());
 
   useEffect(() => {
-    const unsubscribe = workbenchStore.showWorkbench.subscribe((value) => {
+    const unsubscribe = getWorkbenchStore().showWorkbench.subscribe((value) => {
       setShowWorkbench(value);
     });
     return () => unsubscribe();
@@ -94,7 +94,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
   const toggleWorkbench = () => {
     const newValue = !showWorkbench;
     setShowWorkbench(newValue);
-    workbenchStore.showWorkbench.set(newValue);
+    getWorkbenchStore().showWorkbench.set(newValue);
   };
 
   return (
@@ -203,11 +203,11 @@ const actionVariants = {
 };
 
 function openArtifactInWorkbench(filePath: any) {
-  if (workbenchStore.currentView.get() !== 'code') {
-    workbenchStore.currentView.set('code');
+  if (getWorkbenchStore().currentView.get() !== 'code') {
+    getWorkbenchStore().currentView.set('code');
   }
 
-  workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
+  getWorkbenchStore().setSelectedFile(`${WORK_DIR}/${filePath}`);
 }
 
 const ActionList = memo(({ actions }: ActionListProps) => {
@@ -272,7 +272,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                   <a
                     onClick={(e) => {
                       e.preventDefault();
-                      workbenchStore.currentView.set('preview');
+                      getWorkbenchStore().currentView.set('preview');
                     }}
                     className="flex items-center w-full min-h-[28px]"
                   >

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import type { TextSearchOptions, TextSearchOnProgressCallback } from '@webcontainer/api';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import { WORK_DIR } from '~/utils/constants';
 import { debounce } from '~/utils/debounce';
@@ -167,7 +167,7 @@ export function Search() {
   }, [searchQuery, debouncedSearch]);
 
   const handleResultClick = (filePath: string, line?: number) => {
-    workbenchStore.setSelectedFile(filePath);
+    getWorkbenchStore().setSelectedFile(filePath);
 
     /*
      * Adjust line number to be 0-based if it's defined
@@ -175,7 +175,7 @@ export function Search() {
      */
     const adjustedLine = typeof line === 'number' ? Math.max(0, line - 1) : undefined;
 
-    workbenchStore.setCurrentDocumentScrollPosition({ line: adjustedLine, column: 0 });
+    getWorkbenchStore().setCurrentDocumentScrollPosition({ line: adjustedLine, column: 0 });
   };
 
   return (

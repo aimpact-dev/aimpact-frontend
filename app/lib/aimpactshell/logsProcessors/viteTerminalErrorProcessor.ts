@@ -1,5 +1,5 @@
 import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 
 const VITE_SEARCH_PATTERN = '[vite]';
 
@@ -10,7 +10,7 @@ export class ViteTerminalErrorProcessor implements LogProcessor {
       const foundError = part.toLowerCase().includes('error');
       const foundVite = part.toLowerCase().includes(VITE_SEARCH_PATTERN);
       if (foundError && foundVite) {
-        workbenchStore.actionAlert.set (
+        getWorkbenchStore().actionAlert.set (
           {
             type: 'error',
             title: 'Vite error in console',

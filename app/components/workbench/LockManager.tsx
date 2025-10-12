@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
@@ -22,7 +22,7 @@ export function LockManager() {
       const items: LockedItem[] = [];
 
       // Get all files and folders from the workbench store
-      const allFiles = workbenchStore.files.get();
+      const allFiles = getWorkbenchStore().files.get();
 
       // Check each file/folder for locks
       Object.entries(allFiles).forEach(([path, item]) => {
@@ -115,9 +115,9 @@ export function LockManager() {
 
       if (item) {
         if (item.type === 'file') {
-          workbenchStore.unlockFile(path);
+          getWorkbenchStore().unlockFile(path);
         } else {
-          workbenchStore.unlockFolder(path);
+          getWorkbenchStore().unlockFolder(path);
         }
 
         unlockedCount++;
@@ -234,9 +234,9 @@ export function LockManager() {
                   className="flex items-center px-1 py-0.5 text-xs rounded bg-transparent hover:bg-bolt-elements-background-depth-3"
                   onClick={() => {
                     if (item.type === 'file') {
-                      workbenchStore.unlockFile(item.path);
+                      getWorkbenchStore().unlockFile(item.path);
                     } else {
-                      workbenchStore.unlockFolder(item.path);
+                      getWorkbenchStore().unlockFolder(item.path);
                     }
 
                     toast.success(`${item.path.replace('/home/project/', '')} unlocked`);

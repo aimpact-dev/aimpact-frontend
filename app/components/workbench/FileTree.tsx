@@ -5,7 +5,7 @@ import { createScopedLogger, renderLogger } from '~/utils/logger';
 import * as ContextMenu from '@radix-ui/react-context-menu';
 import type { FileHistory } from '~/types/actions';
 import { type Change, diffLines } from 'diff';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { toast } from 'react-toastify';
 import { path } from '~/utils/path';
 import { Tooltip } from '../chat/Tooltip';
@@ -313,7 +313,7 @@ function FileContextMenu({
   const fileName = useMemo(() => path.basename(fullPath), [fullPath]);
 
   const isFolder = useMemo(() => {
-    const files = workbenchStore.files.get();
+    const files = getWorkbenchStore().files.get();
     const fileEntry = files[fullPath];
 
     return !fileEntry || fileEntry.type === 'folder';
@@ -336,7 +336,7 @@ function FileContextMenu({
   }, []);
 
   const removeFilesFromPath = useCallback((path: string) => {
-    if (workbenchStore.getFile(path) !== undefined) {
+    if (getWorkbenchStore().getFile(path) !== undefined) {
       return path.substring(0, path.lastIndexOf('/')) + '/';
     }
     return path;
@@ -363,7 +363,7 @@ function FileContextMenu({
             const binaryContent = new Uint8Array(arrayBuffer);
 
             logger.debug('File path in drop:', filePath);
-            const success = await workbenchStore.createFile(filePath, binaryContent);
+            const success = await getWorkbenchStore().createFile(filePath, binaryContent);
 
             if (success) {
               toast.success(`File ${file.name} uploaded successfully`);
@@ -384,7 +384,7 @@ function FileContextMenu({
 
   const handleCreateFile = async (fileName: string) => {
     const newFilePath = path.join(targetPath, fileName);
-    const success = await workbenchStore.createFile(newFilePath, '');
+    const success = await getWorkbenchStore().createFile(newFilePath, '');
 
     if (success) {
       toast.success('File created successfully');
@@ -397,7 +397,7 @@ function FileContextMenu({
 
   const handleCreateFolder = async (folderName: string) => {
     const newFolderPath = path.join(targetPath, folderName);
-    const success = await workbenchStore.createFolder(newFolderPath);
+    const success = await getWorkbenchStore().createFolder(newFolderPath);
 
     if (success) {
       toast.success('Folder created successfully');
@@ -417,9 +417,9 @@ function FileContextMenu({
       let success;
 
       if (isFolder) {
-        success = await workbenchStore.deleteFolder(fullPath);
+        success = await getWorkbenchStore().deleteFolder(fullPath);
       } else {
-        success = await workbenchStore.deleteFile(fullPath);
+        success = await getWorkbenchStore().deleteFile(fullPath);
       }
 
       if (success) {
@@ -440,7 +440,7 @@ function FileContextMenu({
         return;
       }
 
-      const success = workbenchStore.lockFile(fullPath);
+      const success = getWorkbenchStore().lockFile(fullPath);
 
       if (success) {
         onIsLockedChange(true);
@@ -461,7 +461,7 @@ function FileContextMenu({
         return;
       }
 
-      const success = workbenchStore.unlockFile(fullPath);
+      const success = getWorkbenchStore().unlockFile(fullPath);
 
       if (success) {
         onIsLockedChange(false);
@@ -482,7 +482,7 @@ function FileContextMenu({
         return;
       }
 
-      const success = workbenchStore.lockFolder(fullPath);
+      const success = getWorkbenchStore().lockFolder(fullPath);
 
       if (success) {
         toast.success(`Folder locked successfully`);
@@ -502,7 +502,7 @@ function FileContextMenu({
         return;
       }
 
-      const success = workbenchStore.unlockFolder(fullPath);
+      const success = getWorkbenchStore().unlockFolder(fullPath);
 
       if (success) {
         toast.success(`Folder unlocked successfully`);
@@ -610,7 +610,7 @@ function FileContextMenu({
 
 function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativePath, onClick }: FolderProps) {
   // Check if the folder is locked
-  const [isLocked, setIsLocked] = useState(() => workbenchStore.isFolderLocked(folder.fullPath).isLocked);
+  const [isLocked, setIsLocked] = useState(() => getWorkbenchStore().isFolderLocked(folder.fullPath).isLocked);
 
   return (
     <FileContextMenu
@@ -656,7 +656,7 @@ interface PendingNodeProps {
 }
 
 function Pending({ node, onClick, onCopyPath, onCopyRelativePath, selected }: PendingNodeProps) {
-  const [isLocked, setIsLocked] = useState(() => workbenchStore.isFolderLocked(node.fullPath).isLocked);
+  const [isLocked, setIsLocked] = useState(() => getWorkbenchStore().isFolderLocked(node.fullPath).isLocked);
   return (
     <FileContextMenu
       onCopyPath={onCopyPath}
@@ -705,7 +705,7 @@ function File({
   const { depth, name, fullPath } = file;
 
   // Check if the file is locked
-  const [isLocked, setIsLocked] = useState(() => workbenchStore.isFileLocked(fullPath).locked);
+  const [isLocked, setIsLocked] = useState(() => getWorkbenchStore().isFileLocked(fullPath).locked);
 
   const fileModifications = fileHistory[fullPath];
 

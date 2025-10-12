@@ -4,7 +4,7 @@ import { parse } from '@babel/parser';
 import { path } from '~/utils/path';
 import { VITE_CONFIG_FILE } from '~/lib/aimpactshell/commandPreprocessors/constants';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 
 export class ViteConfigSyntaxChecker implements CommandPreprocessor {
   private readonly aimpactFs: Promise<AimpactFs>;
@@ -29,7 +29,7 @@ export class ViteConfigSyntaxChecker implements CommandPreprocessor {
         return Promise.resolve(command);
       } else {
         // For other errors, alert the user
-        workbenchStore.actionAlert.set (
+        getWorkbenchStore().actionAlert.set (
           {
             type: 'error',
             title: 'Error reading vite.config.ts',
@@ -51,7 +51,7 @@ export class ViteConfigSyntaxChecker implements CommandPreprocessor {
     } catch(err){
       // Extract a user-friendly error message
       const errorMessage = (err && typeof err === 'object' && 'message' in err) ? (err as Error).message : String(err);
-      workbenchStore.actionAlert.set (
+      getWorkbenchStore().actionAlert.set (
         {
           type: 'error',
           title: 'Syntax Error in vite.config.ts',

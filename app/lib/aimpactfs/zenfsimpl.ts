@@ -466,12 +466,25 @@ export class ZenfsImpl extends AimpactFs {
     return this.homeDir;
   }
 
+  /**
+   * This function turns every path into a path inside a home dir.
+   * If home dir is /home/project and input like /home/project/whatever is given,
+   * then this function returns /home/project/whatever.
+   * If whatever/smth is given as input, then this function returns /home/project/whatever/smth.
+   * If /absolute/example is given, then this function returns /home/project/absolute/example.
+   *
+   * This function is needed to make sure that no file or directory is created outside the home dir.
+   * @param path
+   */
   toLocalPath(path: string): string {
-    if (!path.startsWith('/')) {
-      //Add workdir
-      path = this.homeDir + '/' + path;
+    if(path.startsWith(this.homeDir)) {
+      return path;
     }
-    return path;
+    else if (!path.startsWith('/')) {
+      //Add workdir
+      path = '/' + path;
+    }
+    return this.homeDir + path;
   }
 
   /**

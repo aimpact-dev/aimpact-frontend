@@ -9,7 +9,7 @@ import { getLocalStorage } from '~/lib/persistence';
 import { classNames } from '~/utils/classNames';
 import type { GitHubUserResponse } from '~/types/GitHub';
 import { logStore } from '~/lib/stores/logs';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { extractRelativePath } from '~/utils/diff';
 import { formatSize } from '~/utils/formatSize';
 import type { FileMap, File } from '~/lib/stores/files';
@@ -240,7 +240,7 @@ export function PushToGitHubDialog({ isOpen, onClose, onPush }: PushToGitHubDial
       setCreatedRepoUrl(repoUrl);
 
       // Get list of pushed files
-      const files = workbenchStore.files.get();
+      const files = getWorkbenchStore().files.get();
       const filesList = Object.entries(files as FileMap)
         .filter(([, dirent]) => dirent?.type === 'file' && !dirent.isBinary)
         .map(([path, dirent]) => ({

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { atom } from 'nanostores';
 import { generateId, type JSONValue, type Message } from 'ai';
 import { toast } from 'react-toastify';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
 import { openDatabase, duplicateChat, createChatFromMessages, type IChatMetadata } from './db';
 import type { FileMap } from '~/lib/stores/files';
@@ -279,7 +279,7 @@ export function useChatHistory() {
         return;
       }
 
-      const { firstArtifact } = workbenchStore;
+      const { firstArtifact } = getWorkbenchStore();
       messages = messages.filter((m) => !m.annotations?.includes('no-store'));
 
       let _chatId = chatId.get();
@@ -356,7 +356,7 @@ export function useChatHistory() {
           ).then(async () => {
             lastChatIdx.set(messages[messages.length - 1].id);
             lastChatSummary.set(chatSummary);
-            return takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), finalChatId, chatSummary);
+            return takeSnapshot(messages[messages.length - 1].id, getWorkbenchStore().files.get(), finalChatId, chatSummary);
           });
 
           await settingProjectWorkaroundPromise.current;

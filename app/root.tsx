@@ -21,10 +21,7 @@ import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 import 'virtual:uno.css';
-import { workbenchStore } from './lib/stores/workbench';
 import LoadingScreen from './components/common/LoadingScreen';
-import { useMemoryMonitor } from './lib/hooks/useMemoryMonitor';
-import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then((mod) => ({

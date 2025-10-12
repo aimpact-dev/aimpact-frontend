@@ -1,6 +1,6 @@
 ﻿import  { type LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
-import { workbenchStore } from '~/lib/stores/workbench';
-import { ErrorInfo } from '~/utils/errorInfo';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
+import type { ErrorInfo } from '~/utils/errorInfo';
 
 const ERROR_MARKER = '[Runtime Error]';
 
@@ -52,7 +52,7 @@ export class RuntimeErrorProcessor implements LogProcessor {
       return;
     }
 
-    workbenchStore.actionAlert.set (
+    getWorkbenchStore().actionAlert.set (
       {
         type: 'preview',
         title: 'Runtime Error',

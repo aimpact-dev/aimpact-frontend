@@ -20,7 +20,8 @@ export function getAimpactFs(){
 
 export async function cleanupZenfs(){
   if(zenfsImpl) {
-    await zenfsImpl.rm('/', {force: true, recursive: true});
+    const workDir = await zenfsImpl.workdir();
+    await zenfsImpl.rm(workDir, {force: true, recursive: true});
     zenfsImpl = null;
   }
 }

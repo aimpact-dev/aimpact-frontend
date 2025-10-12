@@ -2,7 +2,7 @@ import { memo, Fragment } from 'react';
 import { Markdown } from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
 
@@ -17,11 +17,11 @@ interface AssistantMessageProps {
 function openArtifactInWorkbench(filePath: string) {
   filePath = normalizedFilePath(filePath);
 
-  if (workbenchStore.currentView.get() !== 'code') {
-    workbenchStore.currentView.set('code');
+  if (getWorkbenchStore().currentView.get() !== 'code') {
+    getWorkbenchStore().currentView.set('code');
   }
 
-  workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
+  getWorkbenchStore().setSelectedFile(`${WORK_DIR}/${filePath}`);
 }
 
 function normalizedFilePath(path: string) {

@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import useViewport from '~/lib/hooks';
 import { chatStore } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
@@ -31,10 +31,10 @@ const providerToIconSlug: Record<DeployProviders, string> = {
 }
 
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
-  const showWorkbench = useStore(workbenchStore.showWorkbench);
+  const showWorkbench = useStore(getWorkbenchStore().showWorkbench);
   const { showChat } = useStore(chatStore);
   const [activePreviewIndex] = useState(0);
-  const previews = useStore(workbenchStore.previews);
+  const previews = useStore(getWorkbenchStore().previews);
   const activePreview = previews[activePreviewIndex];
   const [isDeploying, setIsDeploying] = useState(false);
   const isSmallViewport = useViewport(1024);
@@ -74,7 +74,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   useEffect(() => {
     if (!buildService.current) {
       buildService.current = new BuildService(
-        Promise.resolve(workbenchStore.getMainShell),
+        Promise.resolve(getWorkbenchStore().getMainShell),
         getSandbox(),
         getAimpactFs()
       );
@@ -277,7 +277,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
     setIsSaving(true);
 
     try {
-      await takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, chatSummary);
+      await takeSnapshot(chatIdx, getWorkbenchStore().files.get(), undefined, chatSummary);
       toast.success('Project saved.');
     } catch (error) {
       toast.error('Failed to save project.');
@@ -390,7 +390,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
                 chatStore.setKey('showChat', true);
               }
 
-              workbenchStore.showWorkbench.set(!showWorkbench);
+              getWorkbenchStore().showWorkbench.set(!showWorkbench);
             }}
           >
             <div className="i-ph:code-bold" />

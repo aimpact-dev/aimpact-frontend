@@ -1,5 +1,5 @@
 ﻿import type { LogProcessor } from '~/lib/aimpactshell/logsProcessors/logProcessor';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 
 export class MiscTerminalErrorProcessor implements LogProcessor {
   private hasErrorPattern(input: string): boolean {
@@ -11,7 +11,7 @@ export class MiscTerminalErrorProcessor implements LogProcessor {
     for (const part of logsParts) {
       const foundError = this.hasErrorPattern(part);
       if (foundError) {
-        workbenchStore.actionAlert.set(
+        getWorkbenchStore().actionAlert.set(
           {
             type: 'error',
             title: 'Terminal error',

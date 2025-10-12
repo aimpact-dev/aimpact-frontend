@@ -1,6 +1,6 @@
 ﻿import { useEffect } from 'react';
 import type { ErrorInfo } from '~/utils/errorInfo';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { getWorkbenchStore } from '~/lib/stores/workbench';
 
 
 export function RuntimeErrorListener() {
@@ -11,7 +11,7 @@ export function RuntimeErrorListener() {
         event.data.type === 'AIMPACT_RUNTIME_ERROR'
       ) {
         const errorInfo: ErrorInfo = event.data.data;
-        workbenchStore.actionAlert.set (
+        getWorkbenchStore().actionAlert.set (
           {
             type: 'preview',
             title: 'Runtime Error',

@@ -16,7 +16,7 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
-import { workbenchStore, type ArtifactState, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { getWorkbenchStore, type ArtifactState, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
@@ -295,20 +295,20 @@ export const Workbench = memo(
     const customPreviewState = useRef('');
     const [waitForInstall, setWaitForInstall] = useState(false);
 
-    // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
+    // const modifiedFiles = Array.from(useStore(getWorkbenchStore.unsavedFiles).keys());
 
-    const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
-    const showWorkbench = useStore(workbenchStore.showWorkbench);
-    const selectedFile = useStore(workbenchStore.selectedFile);
-    const currentDocument = useStore(workbenchStore.currentDocument);
-    const unsavedFiles = useStore(workbenchStore.unsavedFiles);
-    const files = useStore(workbenchStore.files);
-    const selectedView = useStore(workbenchStore.currentView);
+    const hasPreview = useStore(computed(getWorkbenchStore().previews, (previews) => previews.length > 0));
+    const showWorkbench = useStore(getWorkbenchStore().showWorkbench);
+    const selectedFile = useStore(getWorkbenchStore().selectedFile);
+    const currentDocument = useStore(getWorkbenchStore().currentDocument);
+    const unsavedFiles = useStore(getWorkbenchStore().unsavedFiles);
+    const files = useStore(getWorkbenchStore().files);
+    const selectedView = useStore(getWorkbenchStore().currentView);
 
     const isSmallViewport = useViewport(1024);
 
     const setSelectedView = (view: WorkbenchViewType) => {
-      workbenchStore.currentView.set(view);
+      getWorkbenchStore().currentView.set(view);
     };
 
     useEffect(() => {
@@ -361,7 +361,7 @@ export const Workbench = memo(
     useEffect(() => {
       const func = async () => {
         customPreviewState.current = 'Running...';
-        const artifact = workbenchStore.firstArtifact;
+        const artifact = getWorkbenchStore().firstArtifact;
         if (!artifact) return;
         const actionCommand = 'pnpm run dev'; // for now it's constant. need to change it, but it's complex
         const abortController = new AbortController();
@@ -399,23 +399,23 @@ export const Workbench = memo(
     }, [selectedView]);
 
     useEffect(() => {
-      workbenchStore.setDocuments(files);
+      getWorkbenchStore().setDocuments(files);
     }, [files]);
 
     const onEditorChange = useCallback<OnEditorChange>((update) => {
-      workbenchStore.setCurrentDocumentContent(update.content);
+      getWorkbenchStore().setCurrentDocumentContent(update.content);
     }, []);
 
     const onEditorScroll = useCallback<OnEditorScroll>((position) => {
-      workbenchStore.setCurrentDocumentScrollPosition(position);
+      getWorkbenchStore().setCurrentDocumentScrollPosition(position);
     }, []);
 
     const onFileSelect = useCallback((filePath: string | undefined) => {
-      workbenchStore.setSelectedFile(filePath);
+      getWorkbenchStore().setSelectedFile(filePath);
     }, []);
 
     const onFileSave = useCallback(() => {
-      workbenchStore
+      getWorkbenchStore()
         .saveCurrentDocument()
         .then(() => {})
         .catch(() => {
@@ -424,7 +424,7 @@ export const Workbench = memo(
     }, []);
 
     const onFileReset = useCallback(() => {
-      workbenchStore.resetCurrentDocument();
+      getWorkbenchStore().resetCurrentDocument();
     }, []);
 
     const handleSyncFiles = useCallback(async () => {
@@ -432,7 +432,7 @@ export const Workbench = memo(
 
       try {
         const directoryHandle = await window.showDirectoryPicker();
-        await workbenchStore.syncFiles(directoryHandle);
+        await getWorkbenchStore().syncFiles(directoryHandle);
         toast.success('Files synced successfully');
       } catch (error) {
         console.error('Error syncing files:', error);
@@ -443,8 +443,8 @@ export const Workbench = memo(
     }, []);
 
     const handleSelectFile = useCallback((filePath: string) => {
-      workbenchStore.setSelectedFile(filePath);
-      workbenchStore.currentView.set('diff');
+      getWorkbenchStore().setSelectedFile(filePath);
+      getWorkbenchStore().currentView.set('diff');
     }, []);
 
     return (
@@ -494,7 +494,7 @@ export const Workbench = memo(
                       <PanelHeaderButton
                         className="mr-1 text-sm"
                         onClick={() => {
-                          workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
+                          getWorkbenchStore().toggleTerminal(!getWorkbenchStore().showTerminal.get());
                         }}
                       >
                         <div className="i-ph:terminal" />
@@ -523,7 +523,7 @@ export const Workbench = memo(
                               'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
                             )}
                             onClick={() => {
-                              workbenchStore.downloadZip();
+                              getWorkbenchStore().downloadZip();
                             }}
                           >
                             <div className="flex items-center gap-2">
@@ -557,7 +557,7 @@ export const Workbench = memo(
                       className="-mr-1"
                       size="xl"
                       onClick={() => {
-                        workbenchStore.showWorkbench.set(false);
+                        getWorkbenchStore().showWorkbench.set(false);
                       }}
                     />
                   </Tooltip>
@@ -609,7 +609,7 @@ export const Workbench = memo(
               try {
                 console.log('Dialog onPush called with isPrivate =', isPrivate);
                 const commitMessage = prompt('Please enter a commit message:', 'Initial commit') || 'Initial commit';
-                const repoUrl = await workbenchStore.pushToGitHub(repoName, commitMessage, username, token, isPrivate);
+                const repoUrl = await getWorkbenchStore().pushToGitHub(repoName, commitMessage, username, token, isPrivate);
 
                 if (updateChatMestaData && !metadata?.gitUrl) {
                   updateChatMestaData({
