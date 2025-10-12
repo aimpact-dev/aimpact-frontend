@@ -14,6 +14,7 @@ export function getSandbox(): Promise<AimpactSandbox> {
 export function cleanup() {
   if(sandbox) {
     sandbox.dispose();
+    sandbox = null;
   }
 }
 

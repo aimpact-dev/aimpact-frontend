@@ -32,6 +32,7 @@ import { supabaseConnection } from '~/lib/stores/supabase';
 import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
+import { ZenfsCleanup } from '~/components/common/ZenfsCleanup';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -622,6 +623,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         showWorkbench={showWorkbench}
       />
       <DaytonaCleanup/>
+      <ZenfsCleanup/>
     </>
   );
 });
