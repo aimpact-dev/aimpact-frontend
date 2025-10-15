@@ -1,0 +1,274 @@
+{
+    "title": "Terms of Service",
+    "lastUpdated": "October 13th, 2025",
+    "intro": [
+      "Welcome to AImpact.dev (\"AImpact,\" \"we,\" \"our,\" or \"us\").",
+      "These Terms of Service (\"Terms\") govern your access to and use of AImpact.dev, our related services, AI systems, blockchain integrations, and associated applications (collectively, the \"Service\").",
+      "By accessing or using AImpact, you agree to these Terms. If you do not agree, you must not use the Service."
+    ],
+    "sections": [
+      {
+        "heading": "1. Overview of the Service",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "AImpact provides AI-powered tools that enable users to:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Generate, deploy, and manage decentralized applications (\"dApps\") and smart contracts;",
+              "Launch digital tokens through a third-party provider;",
+              "Automate marketing and fundraising activities via AI agents and connected third-party services;",
+              "Access hosting, analytics, and related development tools."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "The Service may integrate with third-party blockchains (e.g., Solana), infrastructure providers (e.g., AWS, Akash), and marketing or automation platforms (e.g., n8n, Twitter API, etc.)."
+          },
+          {
+            "type": "paragraph",
+            "value": "AImpact provides these tools \"as is\" and does not operate or control the blockchains, smart contracts, or third-party platforms used by users."
+          }
+        ]
+      },
+      {
+        "heading": "2. Eligibility",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "You must:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Be at least 18 years old (or the age of legal majority in your jurisdiction);",
+              "Have the full right, power, and authority to enter into these Terms;",
+              "Not be located in, or a resident of, any jurisdiction where using the Service would violate local laws or sanctions."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "By using AImpact, you represent and warrant that you meet these requirements."
+          }
+        ]
+      },
+      {
+        "heading": "3. User Accounts",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "To use certain features, you may need to create an account. You agree to:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Keep your credentials secure and confidential;",
+              "Be responsible for all activity under your account."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "We reserve the right to suspend or terminate accounts suspected of violating these Terms."
+          }
+        ]
+      },
+      {
+        "heading": "4. Use of the Service",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "You agree to use the Service only for lawful purposes and in accordance with these Terms. You must not:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Use the Service for fraud, scams, or any illegal activity;",
+              "Upload or deploy malicious code, smart contracts, or data;",
+              "Violate intellectual property rights of others;",
+              "Interfere with, damage, or disrupt the Service or its infrastructure;",
+              "Attempt to bypass payment, access controls, or usage limits."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "We may restrict or remove access to any content or project that violates these rules."
+          }
+        ]
+      },
+      {
+        "heading": "5. AI-Generated and User-Generated Content",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "AImpact uses AI to assist you in generating text, code, visuals, and other outputs (\"AI Outputs\"). You are solely responsible for:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Reviewing, testing, and verifying all AI Outputs before use;",
+              "Ensuring compliance with applicable laws, rules, and intellectual property rights."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "AImpact does not guarantee that AI Outputs will be accurate, lawful, or suitable for production deployment."
+          },
+          {
+            "type": "paragraph",
+            "value": "By using AImpact, you grant us a non-exclusive, worldwide, royalty-free license to use your generated projects for marketing, analytics, and partnership purposes, unless you explicitly opt out in writing."
+          }
+        ]
+      },
+      {
+        "heading": "6. Smart Contracts, Tokens, and Blockchain Risk",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "You acknowledge that:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Deploying smart contracts and tokens carries financial and security risks;",
+              "Blockchain transactions are irreversible and public;",
+              "AImpact does not control or guarantee blockchain network operations, liquidity, or token value;",
+              "You are solely responsible for auditing and verifying any smart contracts generated through AImpact before deployment."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "AImpact shall not be liable for any loss of assets, reputation, or revenues resulting from blockchain transactions or AI-generated code."
+          }
+        ]
+      },
+      {
+        "heading": "7. Third-Party Services",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "AImpact integrates with third-party services for hosting, deployment, payments, and marketing. We do not control or endorse these providers and are not responsible for their actions, terms, or data practices. Your use of third-party services is subject to their own terms and privacy policies."
+          }
+        ]
+      },
+      {
+        "heading": "8. Intellectual Property",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "All rights in AImpact's software, design, trademarks, and AI models remain the exclusive property of AImpact or its licensors. You may not copy, distribute, or modify AImpact's underlying systems without our written consent."
+          }
+        ]
+      },
+      {
+        "heading": "9. Disclaimer of Warranties",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "To the maximum extent permitted by law, AImpact provides the Service \"as is\" and \"as available.\" We make no warranties, express or implied, regarding:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Accuracy, reliability, or completeness of AI-generated outputs;",
+              "Continuous, error-free, or secure operation;",
+              "Suitability for any particular purpose."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "You use AImpact at your own risk."
+          }
+        ]
+      },
+      {
+        "heading": "10. Limitation of Liability",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "To the maximum extent permitted by law:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "AImpact, its affiliates, officers, employees, and partners shall not be liable for any indirect, incidental, consequential, or punitive damages, including but not limited to loss of profits, data, or reputation;",
+              "The total liability of AImpact shall not exceed the total fees paid by you for the Service in the preceding one (1) month."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "11. Indemnification",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "You agree to indemnify and hold harmless AImpact, its affiliates, and personnel from any claims, damages, or losses arising out of:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Your use or misuse of the Service;",
+              "Your AI-generated or user-generated content;",
+              "Your violation of these Terms or applicable law."
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "12. Termination",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "We may suspend or terminate your access to AImpact at any time if you:"
+          },
+          {
+            "type": "list",
+            "value": [
+              "Breach these Terms;",
+              "Violate applicable laws;",
+              "Harm the Service, users, or third parties."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "value": "Upon termination, your right to use the Service ceases immediately."
+          }
+        ]
+      },
+      {
+        "heading": "13. Changes to the Terms",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "We may modify these Terms at any time by posting the updated version on our website. Your continued use of the Service after such changes constitutes your acceptance of the revised Terms."
+          }
+        ]
+      },
+      {
+        "heading": "14. Governing Law",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "These Terms are governed by and construed in accordance with the laws of Estonia, without regard to its conflict of law principles. All disputes shall be resolved in the competent courts of Tallinn, Estonia."
+          }
+        ]
+      },
+      {
+        "heading": "15. Contact Us",
+        "content": [
+          {
+            "type": "paragraph",
+            "value": "For questions, legal notices, or data requests, please contact:"
+          },
+          {
+            "type": "contact",
+            "value": {
+              "email": "support@aimpact.dev",
+              "website": "https://aimpact.dev"
+            }
+          }
+        ]
+      }
+    ]
+  }
