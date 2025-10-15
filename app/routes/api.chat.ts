@@ -29,6 +29,22 @@ export async function action(args: ActionFunctionArgs) {
   return chatAction(args);
 }
 
+async function mockDataStream(responseMessage: string) {
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(`t:${responseMessage}`);
+      controller.close();
+    },
+  });
+
+  return createDataStream({
+    execute(dataStream) {
+      dataStream.merge(stream);
+    },
+  })
+}
+
+
 const logger = createScopedLogger('api.chat');
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
@@ -208,7 +224,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             message: 'Code Files Selected',
           } satisfies ProgressAnnotation);
 
-          // logger.debug('Code Files Selected');
+          logger.debug('Code Files Selected');
         }
 
         const options: StreamingOptions = {

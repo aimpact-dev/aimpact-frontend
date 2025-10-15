@@ -232,6 +232,10 @@ export class ActionRunner {
     }
   }
 
+  normalizeString(s: string) {
+    return s.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+  }
+
   async #runUpdateAction(action: ActionState) {
     if (action.type !== 'update') {
       unreachable('Expected update action');
@@ -262,12 +266,19 @@ export class ActionRunner {
       const fileContent = await fs.readFile(relativePath, encoding);
 
       let updatedContent: string;
+      const oldNorm = this.normalizeString(oldNewPair.old);
+      const fileNorm = this.normalizeString(fileContent);
+      if (!fileNorm.includes(oldNorm)) {
+        logger.debug("Warning! File content doesn't inclides <old /> text. Nothing to replace");
+      } else {
+        logger.debug('<old /> in fileContent, all is okay.');
+      }
       if (action.occurrences === 'all') {
-        updatedContent = fileContent.replaceAll(oldNewPair.old, oldNewPair.new);
+        updatedContent = fileNorm.replaceAll(oldNorm, oldNewPair.new);
       } else if (action.occurrences === 'nth' && action.n) {
         let count = 0;
         // replace only on some index
-        updatedContent = fileContent.replace(oldNewPair.old, (match) => {
+        updatedContent = fileNorm.replace(oldNorm, (match) => {
           count++;
           if (count === action.n) {
             return oldNewPair.new;
@@ -275,7 +286,7 @@ export class ActionRunner {
           return match;
         });
       } else {
-        updatedContent = fileContent.replace(oldNewPair.old, oldNewPair.new);
+        updatedContent = fileNorm.replace(oldNorm, oldNewPair.new);
       }
       const buffer = Buffer.from(updatedContent, isBinary ? 'base64' : 'utf-8');
 

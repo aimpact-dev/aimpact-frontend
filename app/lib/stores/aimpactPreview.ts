@@ -35,7 +35,6 @@ export class AimpactPreviewStore {
     this.previews.set([]);
     const sandbox = await this.sandbox;
     const url = await sandbox.getPreviewLink(port);
-    console.log('Preview URL:', url.url);
     const previewInfo: PreviewInfo = {
       port: port,
       ready: true,

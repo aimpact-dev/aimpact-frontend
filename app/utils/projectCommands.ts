@@ -17,8 +17,14 @@ export function detectStartCommand(packageJson: Record<string, any>) {
 
   // Check for preferred commands in priority order
   const preferredCommands = ['dev', 'start', 'preview'];
-  const availableCommand = preferredCommands.find((cmd) => scripts[cmd]);
-  return availableCommand;
+  let command: string | null = null;
+  for (const preferredCmd of preferredCommands) {
+    if (preferredCommands.find((cmd) => scripts[cmd])) {
+      command = preferredCmd;
+      break;
+    }
+  }
+  return command;
 }
 
 export function detectPackageManager(packageJson: Record<string, any>) {
@@ -27,6 +33,12 @@ export function detectPackageManager(packageJson: Record<string, any>) {
   return packageManager;
 }
 
+/**
+ *
+ * @param files List of all project files to find a package.json
+ * @returns Setup command
+ * @deprecated use detectStartCommand instead
+ */
 export async function detectProjectCommands(files: FileContent[]): Promise<ProjectCommands> {
   const hasFile = (name: string) => files.some((f) => f.path.endsWith(name));
 
@@ -40,15 +52,6 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
     try {
       const packageJson = JSON.parse(packageJsonFile.content);
       const packageManager = detectPackageManager(packageJson);
-      const startCommand = detectStartCommand(packageJson);
-
-      if (startCommand) {
-        return {
-          type: 'Node.js',
-          setupCommand: `${startCommand} install`,
-          followupMessage: `Found "${startCommand}" script in package.json. Running "${packageManager} run ${startCommand}" after installation.`,
-        };
-      }
 
       return {
         type: 'Node.js',

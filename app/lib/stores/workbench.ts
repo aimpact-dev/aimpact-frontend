@@ -911,7 +911,7 @@ export class WorkbenchStore {
     }
   }
 
-  getPackageJson(): File | null {
+  getPackageJsonDirent(): File | null {
     const files = this.files.get();
 
     const packageJsonFileKey = Object.keys(files).find((key) => key.endsWith('package.json'));
@@ -923,22 +923,28 @@ export class WorkbenchStore {
     return !packageJsonFile || packageJsonFile.type !== 'file' ? null : packageJsonFile;
   }
 
-  async startProject() {
-    const shell = this.getMainShell;
-    if (!shell) {
-      console.error('Shell is not initialized');
+  getPackageJson(): { content: Record<string, any>; packageManager: string } {
+    const packageJsonFile = this.getPackageJsonDirent();
+    let content: Record<any, string> | null = null;
+    if (packageJsonFile) {
+      try {
+        content = JSON.parse(packageJsonFile.content);
+      } catch (e) {
+        console.error(e);
+      }
     }
 
-    const packageJsonFile = this.getPackageJson();
-    if (!packageJsonFile) {
-      throw new Error('package.json not found')
+    if (!content) {
+      throw new Error('package.json not found or it is incorrect');
     }
-    const packageJson = JSON.parse(packageJsonFile.content);
-    const packageManager = detectPackageManager(packageJson);
-    const startCommandName = detectStartCommand(packageJson);
-    if (!packageManager || !startCommandName) {
-      console.error('Failed to get packageManager and/or start command');
-      return;
+    return { content, packageManager: detectPackageManager(content) };
+  }
+
+  async startProject(actionRunenr: ActionRunner) {
+    const packageJson = this.getPackageJson();
+    const startCommandName = detectStartCommand(packageJson.content);
+    if (!packageJson.packageManager || !startCommandName) {
+      throw new Error('Failed to get packageManager and/or start command');
     }
 
     const previews = this.#previewsStore.previews;
@@ -947,12 +953,18 @@ export class WorkbenchStore {
       return;
     }
 
-    const startCommand = `${packageManager} run ${startCommandName}`;
-    const resp = await shell.executeCommand(startCommand);
-    console.debug(`'${startCommand}' Shell Response: [exit code:${resp?.exitCode}]`);
-    if (resp?.exitCode != 0) {
-      throw new Error(`Failed To Start Application: ${resp?.output || 'No Output Available'}`);
-    }
+    const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
+    const abortController = new AbortController();
+    actionRunenr.runShellAction({
+      status: 'pending',
+      executed: false,
+      abort: () => {
+        abortController.abort();
+      },
+      abortSignal: abortController.signal,
+      content: startCommand,
+      type: 'shell',
+    });
   }
 }
 

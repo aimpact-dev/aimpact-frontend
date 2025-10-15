@@ -345,102 +345,69 @@ export const Workbench = memo(
       workbenchStore.currentView.set(view);
     };
 
-    useEffect(() => {
-      console.log('new updated', hasPreview, selectedView);
-      if (selectedView !== 'preview') return;
-      if (hasPreview) return;
-      if (!workbenchStore.getPackageJson()) return;
-
-      try {
-        setForcePreviewLoading(true);
-        workbenchStore.startProject();
-      } catch (e) {
-        setForcePreviewLoading(false);
-        console.error(`Failed to run new preview`, e);
-        return;
-      }
-    }, [hasPreview, selectedView]);
-
     function sleep(ms: number) {
       return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    async function getRunCommand(artifact: ArtifactState) {
-      const actions = artifact.runner.actions.get();
-      const runCommand = Object.values(actions).findLast((a) => a.content === 'pnpm run dev');
-
-      return runCommand;
     }
 
     async function waitForInstallCmd(artifact: ArtifactState) {
       setWaitForInstall(true);
       let tries = 0;
-      let isCompleted: boolean;
-      let runCommand: ActionState | undefined;
+      let isCompleted: boolean = false;
+      const packageJson = workbenchStore.getPackageJson();
+      const installCmd = `${packageJson.packageManager} install`;
       const cooldown = 1 * 1000;
-      const unsubscribe = artifact.runner.actions.subscribe((state, prevState, key) => {
+      const unsubscribe = artifact.runner.actions.subscribe((state) => {
         const commands = Object.values(state);
-        const installCmd = commands.find((a) => a.content === 'pnpm install');
-        runCommand = commands.find((a) => a.content === 'pnpm run dev');
-        // console.log(installCmd, installCmd?.status, installCmd?.status === 'complete');
-        if (installCmd?.status === 'complete') {
-          // console.log('command executed');
+        const installCmdAction = commands.find((a) => a.content.endsWith(installCmd));
+        if (installCmdAction?.status === 'complete') {
           isCompleted = true;
         }
       });
 
-      isCompleted = false;
-      while (tries <= 20) {
+      while (tries <= 10) {
         if (isCompleted) {
           unsubscribe();
-          return { status: true, runCommand };
+          return { status: true };
         }
         await sleep(cooldown);
       }
 
       customPreviewState.current = 'Failed to run project';
-      return { status: false, runCommand };
+      return { status: false };
     }
 
     useEffect(() => {
+      if (hasPreview) return;
       const func = async () => {
         customPreviewState.current = 'Running...';
-        const artifact = workbenchStore.firstArtifact;
-        if (!artifact) return;
-        const actionCommand = 'pnpm run dev'; // for now it's constant. need to change it, but it's complex
-        const abortController = new AbortController();
-        let runCommand: ActionState | undefined;
+        const artifacts = Object.values(workbenchStore.artifacts.get());
+        const artifact = artifacts.find((a) => !!a.runner);
+        if (!artifact) return { customMsg: false };
 
         if (!waitForInstall) {
           customPreviewState.current = 'Wait for install...';
-          const installResult = await waitForInstallCmd(artifact);
-          runCommand = installResult.runCommand;
-        } else {
-          runCommand = await getRunCommand(artifact);
+          await waitForInstallCmd(artifact);
         }
 
-        if (!hasPreview && (!runCommand || (runCommand.status === 'complete' && runCommand.executed === true))) {
-          artifact?.runner.runShellAction({
-            status: 'pending',
-            executed: false,
-            abort: () => {
-              abortController.abort();
-            },
-            abortSignal: abortController.signal,
-            content: actionCommand,
-            type: 'shell',
-          });
-          customPreviewState.current = '';
+        if (!hasPreview && selectedView === 'preview') {
+          try {
+            workbenchStore.startProject(artifact.runner);
+          } catch (e) {
+            console.error(e);
+            customPreviewState.current = 'Failed to run preview. Maybe your project structure is not supported';
+            return { customMsg: true };
+          }
         }
+
+        return { customMsg: false };
       };
 
-      // if (!hasPreview && selectedView === 'preview') {
-      //   func();
-      // }
-      if (!hasPreview) {
-        customPreviewState.current = 'No preview available.';
-      }
-    }, [selectedView]);
+      func().then((res) => {
+        if (!hasPreview && !res?.customMsg) {
+          customPreviewState.current = 'No preview available.';
+        }
+      });
+    }, [selectedView, hasPreview]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
