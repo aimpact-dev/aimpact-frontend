@@ -439,10 +439,3 @@ function navigateChat(nextId: string) {
   window.history.replaceState({}, '', url);
 }
 
-export function clearChatHistoryStores(){
-  chatId.set(undefined);
-  lastChatIdx.set(undefined);
-  lastChatSummary.set(undefined);
-  description.set(undefined);
-  chatMetadata.set(undefined);
-}

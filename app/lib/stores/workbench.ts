@@ -87,13 +87,14 @@ export class WorkbenchStore {
    */
   dispose(){
     this.artifacts.set({});
-    this.showWorkbench.set(false);
+    this.showWorkbench.set(true);
     this.currentView.set('code');
     this.unsavedFiles.set(new Set<string>());
     this.actionAlert.set(undefined);
     this.supabaseAlert.set(undefined);
     this.deployAlert.set(undefined);
     this.#filesStore.clearFiles();
+    this.#previewsStore.previews.set([]);
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {

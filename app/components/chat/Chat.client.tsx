@@ -31,9 +31,10 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
-import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
-import { ZenfsCleanup } from '~/components/common/ZenfsCleanup';
-import { WorkbenchCleanup } from '~/components/common/WorkbenchCleanup';
+import { DaytonaCleanup } from '~/components/common/cleanup/DaytonaCleanup';
+import { ZenfsCleanup } from '~/components/common/cleanup/ZenfsCleanup';
+import { WorkbenchCleanup } from '~/components/common/cleanup/WorkbenchCleanup';
+import { ChatStoresCleanup } from '~/components/common/cleanup/ChatStoresCleanup';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -261,6 +262,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
   const isMounted = useRef(true);
+
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -626,6 +628,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       <DaytonaCleanup/>
       <ZenfsCleanup/>
       <WorkbenchCleanup/>
+      <ChatStoresCleanup/>
     </>
   );
 });

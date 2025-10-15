@@ -312,12 +312,6 @@ export const Workbench = memo(
     };
 
     useEffect(() => {
-      return () => {
-        getWorkbenchStore().dispose();
-      }
-    }, []);
-
-    useEffect(() => {
       if (hasPreview) {
         setSelectedView('preview');
       }
