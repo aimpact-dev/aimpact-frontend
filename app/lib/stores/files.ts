@@ -133,7 +133,7 @@ export class FilesStore {
       const lockedFolders = lockedItems.filter((item) => item.isFolder);
 
       if (lockedItems.length === 0) {
-        logger.info(`No locked items found for chat ID: ${currentChatId}`);
+        // logger.info(`No locked items found for chat ID: ${currentChatId}`);
         return;
       }
 
@@ -247,7 +247,7 @@ export class FilesStore {
     // Persist to localStorage with chat ID
     addLockedFile(currentChatId, filePath);
 
-    logger.info(`File locked: ${filePath} for chat: ${currentChatId}`);
+    // logger.info(`File locked: ${filePath} for chat: ${currentChatId}`);
 
     return true;
   }

@@ -222,7 +222,7 @@ export class ActionRunner {
     }
 
     const resp = await shell.executeCommand(action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+      logger.debug(`[${action.type}]:Aborting Action\n\n`, JSON.stringify(action));
       action.abort();
     });
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);

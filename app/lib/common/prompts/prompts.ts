@@ -41,6 +41,7 @@ Daytona has the ability to run a web server but requires to use an npm package (
   - Always define dependencies in \`package.json\`.
   - Prefer to use \`pnpm\` for better performance.
   - Always run \`pnpm install\` or modifying \`package.json\`. This is the first step before any other action.
+  - Prefer to import using relative paths. It has less potential errors
 
 **Code Quality:** Write clean, modular code. Split features into smaller, reusable files and connect them with imports.
 **UI Defaults:**

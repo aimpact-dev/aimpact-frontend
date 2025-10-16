@@ -76,30 +76,23 @@ export function useChatHistory() {
 
               const rewindId = searchParams.get('rewindTo');
 
-              let startingIdx = -1;
-              const endingIdx = rewindId
+              let useProjectImport = false;
+              const endingIndex = rewindId
                 ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
-                : storedMessages.messages.length;
+                : storedMessages.messages.length - 1;
               const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
 
-              if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
-                startingIdx = snapshotIndex;
-              }
-
-              if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id == rewindId) {
-                startingIdx = -1;
-              }
-
-              let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
               let archivedMessages: Message[] = [];
-
-              if (startingIdx >= 0) {
-                archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
+              if (snapshotIndex >= 0 && snapshotIndex < endingIndex) {
+                useProjectImport = true;
+                archivedMessages = storedMessages.messages.slice(0, snapshotIndex + 1);
               }
 
+              let filteredMessages = storedMessages.messages.slice(useProjectImport ? snapshotIndex : 0, endingIndex + 1);
+              
               setArchivedMessages(archivedMessages);
-
-              if (startingIdx > 0) {
+              
+              if (useProjectImport) {
                 const files = Object.entries(validSnapshot?.files || {})
                   .map(([key, value]) => {
                     if (value?.type !== 'file') {
@@ -160,13 +153,6 @@ export function useChatHistory() {
                         : []),
                     ],
                   },
-
-                  // Remove the separate user and assistant messages for commands
-                  /*
-                   *...(commands !== null // This block is no longer needed
-                   *  ? [ ... ]
-                   *  : []),
-                   */
                   ...filteredMessages,
                 ];
                 restoreSnapshot(mixedId);

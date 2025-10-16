@@ -157,7 +157,7 @@ export function addLockedItem(chatId: string, path: string, isFolder: boolean = 
   // Save the updated list (this will update the cache and maps)
   saveLockedItems(filteredItems);
 
-  logger.info(`Added locked ${isFolder ? 'folder' : 'file'}: ${path} for chat: ${chatId}`);
+  // logger.info(`Added locked ${isFolder ? 'folder' : 'file'}: ${path} for chat: ${chatId}`);
 }
 
 /**

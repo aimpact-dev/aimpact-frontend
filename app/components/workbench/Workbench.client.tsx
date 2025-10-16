@@ -29,6 +29,7 @@ import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
+import { getSandbox } from '~/lib/daytona';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -349,13 +350,43 @@ export const Workbench = memo(
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
-    async function waitForInstallCmd(artifact: ArtifactState) {
-      setWaitForInstall(true);
+    async function waitForInstallCmd() {
+      const artifacts = Object.values(workbenchStore.artifacts.get());
+      if (!artifacts.length) return { status: false, customMsg: false };
+
+      let packageJson: { content: Record<string, any>; packageManager: string } | null = null;
       let tries = 0;
-      let isCompleted: boolean = false;
-      const packageJson = workbenchStore.getPackageJson();
+
+      while (tries <= 15) {
+        await sleep(2000);
+        try {
+          packageJson = workbenchStore.getPackageJson();
+          break;
+        } catch (e) {
+          continue;
+        } finally {
+          tries++;
+        }
+      }
+      if (!packageJson) {
+        customPreviewState.current = 'package.json not found';
+        return { status: false, customMsg: true };
+      }
+
       const installCmd = `${packageJson.packageManager} install`;
-      const cooldown = 1 * 1000;
+      let artifact: ArtifactState | null = null;
+      for (const a of artifacts) {
+        if (!a.runner) continue;
+        const actions = Object.values(a.runner.actions.get());
+        const installCmdAction = actions.find((action) => action.content.endsWith(installCmd));
+        if (!installCmdAction) {
+          continue;
+        }
+        artifact = a;
+      }
+      if (!artifact) return { status: false, customMsg: false };
+
+      let isCompleted: boolean = false;
       const unsubscribe = artifact.runner.actions.subscribe((state) => {
         const commands = Object.values(state);
         const installCmdAction = commands.find((a) => a.content.endsWith(installCmd));
@@ -364,32 +395,40 @@ export const Workbench = memo(
         }
       });
 
-      while (tries <= 10) {
+      tries = 0;
+      while (tries <= 15) {
         if (isCompleted) {
           unsubscribe();
-          return { status: true };
+          return { status: true, customMsg: false };
         }
-        await sleep(cooldown);
+        await sleep(2000);
+        tries++;
       }
 
-      customPreviewState.current = 'Failed to run project';
-      return { status: false };
+      return { status: false, customMsg: false };
     }
 
     useEffect(() => {
       if (hasPreview) return;
-      const func = async () => {
+      if (selectedView !== 'preview') return;
+      const func = async (): Promise<{ customMsg: boolean }> => {
         customPreviewState.current = 'Running...';
         const artifacts = Object.values(workbenchStore.artifacts.get());
-        const artifact = artifacts.find((a) => !!a.runner);
+        if (!artifacts.length) return { customMsg: false };
+
+        const artifact = Object.values(artifacts).find((a) => a.runner);
         if (!artifact) return { customMsg: false };
 
+        let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
         if (!waitForInstall) {
           customPreviewState.current = 'Wait for install...';
-          await waitForInstallCmd(artifact);
+          setWaitForInstall(true);
+          waitForInstallRes = await waitForInstallCmd();
+          setWaitForInstall(false);
         }
 
         if (!hasPreview && selectedView === 'preview') {
+          customPreviewState.current = 'Running...';
           try {
             workbenchStore.startProject(artifact.runner);
           } catch (e) {
@@ -399,11 +438,11 @@ export const Workbench = memo(
           }
         }
 
-        return { customMsg: false };
+        return { customMsg: waitForInstallRes?.customMsg || false };
       };
 
       func().then((res) => {
-        if (!hasPreview && !res?.customMsg) {
+        if (!hasPreview && !res.customMsg) {
           customPreviewState.current = 'No preview available.';
         }
       });

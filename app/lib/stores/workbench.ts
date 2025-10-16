@@ -955,8 +955,9 @@ export class WorkbenchStore {
 
     const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
     const abortController = new AbortController();
-    actionRunenr.runShellAction({
-      status: 'pending',
+    await getSandbox();
+    await actionRunenr.runShellAction({
+      status: 'running',
       executed: false,
       abort: () => {
         abortController.abort();
