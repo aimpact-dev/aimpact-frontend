@@ -124,11 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkCreds().then(() => {
-      /*
-       * console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
-       * console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
-       * console.log(`Public Key: ${publicKey}`);
-       */
+       // console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
+       // console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
+       // console.log(`Public Key: ${publicKey}`);
     });
   }, [publicKey, connected, signMessage, disconnect]);
 
@@ -199,4 +197,9 @@ export function useAuth() {
   }
 
   return context;
+}
+
+// For usage outside of React components
+export function getAuthTokenFromCookies(): string | undefined {
+  return Cookies.get('authToken');
 }

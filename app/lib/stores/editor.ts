@@ -35,6 +35,7 @@ export class EditorStore {
   setDocuments(files: FileMap) {
     const previousDocuments = this.documents.value;
 
+    logger.info('Setting documents with files:', files);
     this.documents.set(
       Object.fromEntries<EditorDocument>(
         Object.entries(files)
@@ -50,6 +51,7 @@ export class EditorStore {
               {
                 value: dirent.content,
                 filePath,
+                isBinary: dirent.isBinary,
                 scroll: previousDocument?.scroll,
               },
             ] as [string, EditorDocument];

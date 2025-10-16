@@ -7,7 +7,6 @@ import { diffLines, type Change } from 'diff';
 import { getHighlighter } from 'shiki';
 import '~/styles/diff-view.css';
 import { diffFiles, extractRelativePath } from '~/utils/diff';
-import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { FileHistory } from '~/types/actions';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { themeStore } from '~/lib/stores/theme';
@@ -621,10 +620,10 @@ const InlineDiffComparison = memo(({ beforeCode, afterCode, filename, language }
 interface DiffViewProps {
   fileHistory: Record<string, FileHistory>;
   setFileHistory: React.Dispatch<React.SetStateAction<Record<string, FileHistory>>>;
-  actionRunner: ActionRunner;
+  isTabOpen: boolean;
 }
 
-export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) => {
+export const DiffView = memo(({ fileHistory, setFileHistory, isTabOpen }: DiffViewProps) => {
   const files = useStore(workbenchStore.files) as FileMap;
   const selectedFile = useStore(workbenchStore.selectedFile);
   const currentDocument = useStore(workbenchStore.currentDocument) as EditorDocument;
@@ -633,6 +632,9 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
   useEffect(() => {
     if (selectedFile && currentDocument) {
       const file = files[selectedFile];
+      if(file && file.type === 'file' && file.isBinary){
+        return;
+      }
 
       if (!file || !('content' in file)) {
         return;
@@ -711,6 +713,18 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
       }
     }
   }, [selectedFile, currentDocument?.value, files, setFileHistory, unsavedFiles]);
+
+  if(!isTabOpen){
+    return (<div></div>);
+  }
+
+  if(currentDocument && currentDocument.isBinary){
+    return (
+      <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
+        Diff view is not available for binary files
+      </div>
+    );
+  }
 
   if (!selectedFile || !currentDocument) {
     return (

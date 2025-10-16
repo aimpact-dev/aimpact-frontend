@@ -57,11 +57,123 @@
       }
     }
   },
+  "vite-solana-app": {
+    "files": {
+      "/home/project/index.html": {
+        "type": "file",
+        "content": "<!doctype html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"UTF-8\" />\r\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\r\n    <title>Vite + React + TS</title>\r\n  </head>\r\n  <body>\r\n    <div id=\"root\"></div>\r\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\r\n  </body>\r\n</html>\r\n"
+      },
+      "/home/project/package.json": {
+        "type": "file",
+        "content": "{\r\n  \"name\": \"vite-template\",\r\n  \"private\": true,\r\n  \"version\": \"0.0.1\",\r\n  \"type\": \"module\",\r\n  \"scripts\": {\r\n    \"dev\": \"vite\",\r\n    \"build\": \"tsc -b && vite build\",\r\n    \"preview\": \"vite preview\"\r\n  },\r\n  \"dependencies\": {\r\n    \"@coral-xyz/anchor\": \"^0.31.1\",\r\n    \"@tailwindcss/vite\": \"^4.1.11\",\r\n    \"clsx\": \"^2.1.1\",\r\n    \"lucide-react\": \"^0.525.0\",\r\n    \"react\": \"^19.1.0\",\r\n    \"react-dom\": \"^19.1.0\",\r\n    \"recharts\": \"^3.1.0\",\r\n    \"tailwind-merge\": \"^3.3.0\",\r\n    \"tailwindcss\": \"^4.1.7\",\r\n    \"tw-animate-css\": \"^1.3.0\",\r\n    \"vite-plugin-node-polyfills\": \"0.24.0\"\r\n  },\r\n  \"devDependencies\": {\r\n    \"@types/node\": \"^22.15.21\",\r\n    \"@types/react\": \"^19.1.2\",\r\n    \"@types/react-dom\": \"^19.1.2\",\r\n    \"@vitejs/plugin-react\": \"^4.7.0\",\r\n    \"autoprefixer\": \"^10.4.21\",\r\n    \"globals\": \"^16.3.0\",\r\n    \"postcss\": \"^8.5.3\",\r\n    \"typescript\": \"~5.8.3\",\r\n    \"vite\": \"^6.3.5\"\r\n  },\r\n  \"packageManager\": \"pnpm@10.10.0\"\r\n}\r\n"
+      },
+      "/home/project/src": {
+        "type": "folder"
+      },
+      "/home/project/src/App.tsx": {
+        "type": "file",
+        "content": "function App() {\r\n\r\n  return (\r\n    <>\r\n      <div className=\"flex items-center justify-center w-screen h-screen\">\r\n        <h1 className='text-gray-300'>Hello world</h1>\r\n      </div>\r\n    </>\r\n  )\r\n}\r\n\r\nexport default App;\r\n"
+      },
+      "/home/project/src/index.css": {
+        "type": "file",
+        "content": "@import \"tailwindcss\";\r\n/* @import \"tw-animate-css\"; */\r\n"
+      },
+      "/home/project/src/main.tsx": {
+        "type": "file",
+        "content": "import { StrictMode } from 'react'\r\nimport { createRoot } from 'react-dom/client'\r\nimport './index.css'\r\nimport App from './App'\r\n\r\ncreateRoot(document.getElementById('root')!).render(\r\n  <StrictMode>\r\n    <App />\r\n  </StrictMode>\r\n)\r\n"
+      },
+      "/home/project/src/utils": {
+        "type": "folder"
+      },
+      "/home/project/src/utils/utils.ts": {
+        "type": "file",
+        "content": "import { clsx, type ClassValue } from \"clsx\"\r\nimport { twMerge } from \"tailwind-merge\"\r\n\r\nexport function cn(...inputs: ClassValue[]) {\r\n  return twMerge(clsx(inputs))\r\n}\r\n"
+      },
+      "/home/project/src/vite-env.d.ts": {
+        "type": "file",
+        "content": "/// <reference types=\"vite/client\" />\r\n"
+      },
+      "/home/project/src-anchor": {
+        "type": "folder"
+      },
+      "/home/project/src-anchor/.prettierignore": {
+        "type": "file",
+        "content": ".anchor\r\n.DS_Store\r\ntarget\r\nnode_modules\r\ndist\r\nbuild\r\ntest-ledger\r\n"
+      },
+      "/home/project/src-anchor/Anchor.toml": {
+        "type": "file",
+        "content": "[toolchain]\r\npackage_manager = \"yarn\"\r\n\r\n[features]\r\nresolution = true\r\nskip-lint = false\r\n\r\n[programs.localnet]\r\nsrc = \"9Q6Cjj1ZfeJmf7Ec17Yq8NU3fNronYoVmvkrcGR1NtmD\"\r\n\r\n[registry]\r\nurl = \"https://api.apr.dev\"\r\n\r\n[provider]\r\ncluster = \"localnet\"\r\nwallet = \"~/.config/solana/id.json\"\r\n\r\n[scripts]\r\ntest = \"yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts\"\r\n"
+      },
+      "/home/project/src-anchor/Cargo.toml": {
+        "type": "file",
+        "content": "[workspace]\r\nmembers = [\r\n    \"programs/*\"\r\n]\r\nresolver = \"2\"\r\n\r\n[profile.release]\r\noverflow-checks = true\r\nlto = \"fat\"\r\ncodegen-units = 1\r\n[profile.release.build-override]\r\nopt-level = 3\r\nincremental = false\r\ncodegen-units = 1\r\n"
+      },
+      "/home/project/src-anchor/migrations": {
+        "type": "folder"
+      },
+      "/home/project/src-anchor/migrations/deploy.ts": {
+        "type": "file",
+        "content": "// Migrations are an early feature. Currently, they're nothing more than this\r\n// single deploy script that's invoked from the CLI, injecting a provider\r\n// configured from the workspace's Anchor.toml.\r\n\r\nimport * as anchor from \"@coral-xyz/anchor\";\r\n\r\nmodule.exports = async function (provider: anchor.AnchorProvider) {\r\n  // Configure client to use the provider.\r\n  anchor.setProvider(provider);\r\n\r\n  // Add your deploy script here.\r\n};\r\n"
+      },
+      "/home/project/src-anchor/package.json": {
+        "type": "file",
+        "content": "{\r\n  \"license\": \"ISC\",\r\n  \"scripts\": {\r\n    \"lint:fix\": \"prettier */*.js \\\"*/**/*{.js,.ts}\\\" -w\",\r\n    \"lint\": \"prettier */*.js \\\"*/**/*{.js,.ts}\\\" --check\"\r\n  },\r\n  \"dependencies\": {\r\n    \"@coral-xyz/anchor\": \"^0.31.1\"\r\n  },\r\n  \"devDependencies\": {\r\n    \"chai\": \"^4.3.4\",\r\n    \"mocha\": \"^9.0.3\",\r\n    \"ts-mocha\": \"^10.0.0\",\r\n    \"@types/bn.js\": \"^5.1.0\",\r\n    \"@types/chai\": \"^4.3.0\",\r\n    \"@types/mocha\": \"^9.0.0\",\r\n    \"typescript\": \"^5.7.3\",\r\n    \"prettier\": \"^2.6.2\"\r\n  }\r\n}\r\n"
+      },
+      "/home/project/src-anchor/programs": {
+        "type": "folder"
+      },
+      "/home/project/src-anchor/programs/src": {
+        "type": "folder"
+      },
+      "/home/project/src-anchor/programs/src/Cargo.toml": {
+        "type": "file",
+        "content": "[package]\r\nname = \"src\"\r\nversion = \"0.1.0\"\r\ndescription = \"Created with Anchor\"\r\nedition = \"2021\"\r\n\r\n[lib]\r\ncrate-type = [\"cdylib\", \"lib\"]\r\nname = \"src\"\r\n\r\n[features]\r\ndefault = []\r\ncpi = [\"no-entrypoint\"]\r\nno-entrypoint = []\r\nno-idl = []\r\nno-log-ix-name = []\r\nidl-build = [\"anchor-lang/idl-build\"]\r\n\r\n\r\n[dependencies]\r\nanchor-lang = \"0.31.1\"\r\n\r\n"
+      },
+      "/home/project/src-anchor/programs/src/src": {
+        "type": "folder"
+      },
+      "/home/project/src-anchor/programs/src/src/lib.rs": {
+        "type": "file",
+        "content": "use anchor_lang::prelude::*;\r\n\r\ndeclare_id!(\"9Q6Cjj1ZfeJmf7Ec17Yq8NU3fNronYoVmvkrcGR1NtmD\");\r\n\r\n#[program]\r\npub mod src {\r\n    use super::*;\r\n\r\n    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {\r\n        msg!(\"Greetings from: {:?}\", ctx.program_id);\r\n        Ok(())\r\n    }\r\n}\r\n\r\n#[derive(Accounts)]\r\npub struct Initialize {}\r\n"
+      },
+      "/home/project/src-anchor/programs/src/Xargo.toml": {
+        "type": "file",
+        "content": "[target.bpfel-unknown-unknown.dependencies.std]\r\nfeatures = []\r\n"
+      },
+      "/home/project/src-anchor/tests": {
+        "type": "folder"
+      },
+      "/home/project/src-anchor/tests/src.ts": {
+        "type": "file",
+        "content": "import * as anchor from \"@coral-xyz/anchor\";\r\nimport { Program } from \"@coral-xyz/anchor\";\r\nimport { Src } from \"../target/types/src\";\r\n\r\ndescribe(\"src\", () => {\r\n  // Configure the client to use the local cluster.\r\n  anchor.setProvider(anchor.AnchorProvider.env());\r\n\r\n  const program = anchor.workspace.src as Program<Src>;\r\n\r\n  it(\"Is initialized!\", async () => {\r\n    // Add your test here.\r\n    const tx = await program.methods.initialize().rpc();\r\n    console.log(\"Your transaction signature\", tx);\r\n  });\r\n});\r\n"
+      },
+      "/home/project/src-anchor/tsconfig.json": {
+        "type": "file",
+        "content": "{\r\n  \"compilerOptions\": {\r\n    \"types\": [\"mocha\", \"chai\"],\r\n    \"typeRoots\": [\"./node_modules/@types\"],\r\n    \"lib\": [\"es2015\"],\r\n    \"module\": \"commonjs\",\r\n    \"target\": \"es6\",\r\n    \"esModuleInterop\": true\r\n  }\r\n}\r\n"
+      },
+      "/home/project/tsconfig.app.json": {
+        "type": "file",
+        "content": "{\r\n  \"compilerOptions\": {\r\n    \"tsBuildInfoFile\": \"./node_modules/.tmp/tsconfig.app.tsbuildinfo\",\r\n    \"target\": \"ES2020\",\r\n    \"useDefineForClassFields\": true,\r\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\r\n    \"module\": \"ESNext\",\r\n    \"skipLibCheck\": true,\r\n\r\n    /* Bundler mode */\r\n    \"moduleResolution\": \"bundler\",\r\n    \"allowImportingTsExtensions\": true,\r\n    \"verbatimModuleSyntax\": false,\r\n    \"moduleDetection\": \"force\",\r\n    \"noEmit\": true,\r\n    \"jsx\": \"react-jsx\",\r\n\r\n    /* Linting */\r\n    \"strict\": true,\r\n    \"noUnusedLocals\": false,\r\n    \"noUnusedParameters\": false,\r\n    \"erasableSyntaxOnly\": false,\r\n    \"noFallthroughCasesInSwitch\": true,\r\n    \"noUncheckedSideEffectImports\": true,\r\n    \"baseUrl\": \".\",\r\n    \"paths\": {\r\n      \"@/*\": [\"./*\"]\r\n    }\r\n  },\r\n  \"include\": [\"src\"]\r\n}\r\n"
+      },
+      "/home/project/tsconfig.json": {
+        "type": "file",
+        "content": "{\r\n  \"files\": [],\r\n  \"references\": [\r\n    { \"path\": \"./tsconfig.app.json\" },\r\n    { \"path\": \"./tsconfig.node.json\" }\r\n  ],\r\n  \"compilerOptions\": {\r\n    \"baseUrl\": \".\",\r\n    \"paths\": {\r\n      \"@/*\": [\"./*\"]\r\n    }\r\n  }\r\n}\r\n"
+      },
+      "/home/project/tsconfig.node.json": {
+        "type": "file",
+        "content": "{\r\n  \"compilerOptions\": {\r\n    \"tsBuildInfoFile\": \"./node_modules/.tmp/tsconfig.node.tsbuildinfo\",\r\n    \"target\": \"ES2022\",\r\n    \"lib\": [\"ES2023\"],\r\n    \"module\": \"ESNext\",\r\n    \"skipLibCheck\": true,\r\n\r\n    /* Bundler mode */\r\n    \"moduleResolution\": \"bundler\",\r\n    \"allowImportingTsExtensions\": true,\r\n    \"verbatimModuleSyntax\": false,\r\n    \"moduleDetection\": \"force\",\r\n    \"noEmit\": true,\r\n\r\n    /* Linting */\r\n    \"strict\": true,\r\n    \"noUnusedLocals\": true,\r\n    \"noUnusedParameters\": true,\r\n    \"erasableSyntaxOnly\": false,\r\n    \"noFallthroughCasesInSwitch\": true,\r\n    \"noUncheckedSideEffectImports\": true,\r\n  },\r\n  \"include\": [\"vite.config.ts\"]\r\n}\r\n"
+      },
+      "/home/project/vite.config.ts": {
+        "type": "file",
+        "content": "/// <reference types=\"vite/client\" />\r\n\r\nimport { defineConfig } from 'vite'\r\nimport react from '@vitejs/plugin-react'\r\nimport tailwindcss from '@tailwindcss/vite'\r\nimport { fileURLToPath } from 'node:url';\r\nimport { nodePolyfills } from \"vite-plugin-node-polyfills\";\r\n\r\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\r\n\r\n// https://vite.dev/config/\r\nexport default defineConfig({\r\n  plugins: [react(), tailwindcss(), nodePolyfills()],\r\n  resolve: {\r\n    alias: {\r\n      \"@\": __dirname\r\n    },\r\n  },\r\n})\r\n"
+      }
+    }
+  },
   "vite-threejs-app": {
     "files": {
       "/home/project/index.html": {
         "type": "file",
-        "content": "<!DOCTYPE html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"UTF-8\" />\r\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/threejs-icon.svg\" />\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\r\n    <title>Vite + Three.js</title>\r\n  </head>\r\n  <body>\r\n    <canvas id=\"scene\"></canvas>\r\n    <script type=\"module\" src=\"/src/scene.ts\"></script>\r\n  </body>\r\n</html>\r\n"
+        "content": "<!DOCTYPE html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"UTF-8\" />\r\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/threejs-icon.svg\" />\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\r\n    <title>Vite + Three.js</title>\r\n  </head>\r\n  <body>\r\n    <script type=\"module\" src=\"/src/scene.ts\"></script>\r\n  </body>\r\n</html>\r\n"
       },
       "/home/project/package.json": {
         "type": "file",
@@ -76,7 +188,7 @@
       },
       "/home/project/src/style.css": {
         "type": "file",
-        "content": "/* Reset and base styles */\r\n* {\r\n  margin: 0;\r\n  padding: 0;\r\n  box-sizing: border-box;\r\n}\r\n\r\nbody {\r\n  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\r\n  overflow: hidden;\r\n  background: #000;\r\n  color: #fff;\r\n}\r\n\r\ncanvas {\r\n  display: block;\r\n  cursor: grab;\r\n}\r\n\r\ncanvas:active {\r\n  cursor: grabbing;\r\n}\r\n\r\n/* FPS Counter */\r\n#fps-counter {\r\n  position: absolute;\r\n  top: 20px;\r\n  left: 20px;\r\n  background: rgba(0, 0, 0, 0.7);\r\n  color: #00ff00;\r\n  padding: 8px 12px;\r\n  border-radius: 4px;\r\n  font-family: 'Courier New', monospace;\r\n  font-size: 14px;\r\n  font-weight: bold;\r\n  border: 1px solid #333;\r\n  z-index: 100;\r\n  backdrop-filter: blur(5px);\r\n}\r\n\r\n/* Settings Panel */\r\n#settings-panel {\r\n  position: absolute;\r\n  top: 20px;\r\n  right: 20px;\r\n  background: rgba(20, 20, 20, 0.9);\r\n  border: 1px solid #444;\r\n  border-radius: 8px;\r\n  padding: 20px;\r\n  min-width: 250px;\r\n  max-height: 80vh;\r\n  overflow-y: auto;\r\n  backdrop-filter: blur(10px);\r\n  z-index: 100;\r\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);\r\n}\r\n\r\n#settings-panel h3 {\r\n  margin-bottom: 15px;\r\n  color: #fff;\r\n  font-size: 16px;\r\n  font-weight: 600;\r\n  border-bottom: 1px solid #444;\r\n  padding-bottom: 8px;\r\n}\r\n\r\n.setting-item {\r\n  margin-bottom: 15px;\r\n}\r\n\r\n.setting-item label {\r\n  display: block;\r\n  margin-bottom: 5px;\r\n  color: #ccc;\r\n  font-size: 13px;\r\n  font-weight: 500;\r\n}\r\n\r\n/* Input styles */\r\ninput[type=\"checkbox\"] {\r\n  margin-right: 8px;\r\n  transform: scale(1.1);\r\n  accent-color: #00ff00;\r\n}\r\n\r\ninput[type=\"range\"] {\r\n  width: 100%;\r\n  height: 4px;\r\n  background: #333;\r\n  outline: none;\r\n  border-radius: 2px;\r\n  margin-top: 5px;\r\n}\r\n\r\ninput[type=\"range\"]::-webkit-slider-thumb {\r\n  appearance: none;\r\n  width: 16px;\r\n  height: 16px;\r\n  background: #00ff00;\r\n  cursor: pointer;\r\n  border-radius: 50%;\r\n  border: 2px solid #fff;\r\n  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\r\n}\r\n\r\ninput[type=\"range\"]::-moz-range-thumb {\r\n  width: 16px;\r\n  height: 16px;\r\n  background: #00ff00;\r\n  cursor: pointer;\r\n  border-radius: 50%;\r\n  border: 2px solid #fff;\r\n  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\r\n}\r\n\r\ninput[type=\"color\"] {\r\n  width: 40px;\r\n  height: 30px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  cursor: pointer;\r\n  background: transparent;\r\n}\r\n\r\ninput[type=\"color\"]::-webkit-color-swatch-wrapper {\r\n  padding: 0;\r\n  border-radius: 4px;\r\n  border: 1px solid #555;\r\n}\r\n\r\ninput[type=\"color\"]::-webkit-color-swatch {\r\n  border: none;\r\n  border-radius: 3px;\r\n}\r\n\r\n/* Button styles */\r\n#reset-button {\r\n  width: 100%;\r\n  padding: 10px;\r\n  background: linear-gradient(45deg, #333, #555);\r\n  color: #fff;\r\n  border: 1px solid #666;\r\n  border-radius: 4px;\r\n  cursor: pointer;\r\n  font-size: 13px;\r\n  font-weight: 500;\r\n  transition: all 0.2s ease;\r\n  margin-top: 10px;\r\n}\r\n\r\n#reset-button:hover {\r\n  background: linear-gradient(45deg, #444, #666);\r\n  border-color: #777;\r\n  transform: translateY(-1px);\r\n}\r\n\r\n#reset-button:active {\r\n  transform: translateY(0);\r\n  background: linear-gradient(45deg, #222, #444);\r\n}\r\n\r\n/* Speed value display */\r\n#speed-value {\r\n  color: #00ff00;\r\n  font-family: 'Courier New', monospace;\r\n  font-weight: bold;\r\n  margin-left: 5px;\r\n}\r\n\r\n/* Scrollbar styling */\r\n#settings-panel::-webkit-scrollbar {\r\n  width: 6px;\r\n}\r\n\r\n#settings-panel::-webkit-scrollbar-track {\r\n  background: rgba(255, 255, 255, 0.1);\r\n  border-radius: 3px;\r\n}\r\n\r\n#settings-panel::-webkit-scrollbar-thumb {\r\n  background: rgba(255, 255, 255, 0.3);\r\n  border-radius: 3px;\r\n}\r\n\r\n#settings-panel::-webkit-scrollbar-thumb:hover {\r\n  background: rgba(255, 255, 255, 0.5);\r\n}\r\n\r\n/* Responsive design */\r\n@media (max-width: 768px) {\r\n  #settings-panel {\r\n    right: 10px;\r\n    left: 10px;\r\n    top: 10px;\r\n    min-width: auto;\r\n    max-height: 60vh;\r\n  }\r\n\r\n  #fps-counter {\r\n    top: 10px;\r\n    left: 10px;\r\n    font-size: 12px;\r\n    padding: 6px 10px;\r\n  }\r\n}\r\n\r\n@media (max-width: 480px) {\r\n  #settings-panel {\r\n    padding: 15px;\r\n  }\r\n\r\n  #settings-panel h3 {\r\n    font-size: 14px;\r\n  }\r\n\r\n  .setting-item label {\r\n    font-size: 12px;\r\n  }\r\n\r\n  #reset-button {\r\n    padding: 8px;\r\n    font-size: 12px;\r\n  }\r\n}\r\n\r\n/* Loading animation */\r\n@keyframes pulse {\r\n  0% { opacity: 0.6; }\r\n  50% { opacity: 1; }\r\n  100% { opacity: 0.6; }\r\n}\r\n\r\n.loading {\r\n  animation: pulse 1.5s ease-in-out infinite;\r\n}\r\n\r\n/* Smooth transitions */\r\n* {\r\n  transition: opacity 0.2s ease, transform 0.2s ease;\r\n}\r\n\r\n/* Focus states for accessibility */\r\ninput:focus,\r\nbutton:focus {\r\n  outline: 2px solid #00ff00;\r\n  outline-offset: 2px;\r\n}\r\n\r\n/* Selection styling */\r\n::selection {\r\n  background: rgba(0, 255, 0, 0.3);\r\n  color: #fff;\r\n}\r\n"
+        "content": "/* Reset and base styles */\r\n* {\r\n  margin: 0;\r\n  padding: 0;\r\n  box-sizing: border-box;\r\n}\r\n\r\nbody {\r\n  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\r\n  overflow: hidden;\r\n  background: #000;\r\n  color: #fff;\r\n}\r\n\r\ncanvas {\r\n  display: block;\r\n  cursor: grab;\r\n}\r\n\r\ncanvas:active {\r\n  cursor: grabbing;\r\n}\r\n\r\n/* FPS Counter */\r\n#fps-counter {\r\n  position: absolute;\r\n  top: 20px;\r\n  left: 20px;\r\n  background: rgba(0, 0, 0, 0.7);\r\n  color: #00ff00;\r\n  padding: 8px 12px;\r\n  border-radius: 4px;\r\n  font-family: 'Courier New', monospace;\r\n  font-size: 14px;\r\n  font-weight: bold;\r\n  border: 1px solid #333;\r\n  z-index: 100;\r\n  backdrop-filter: blur(5px);\r\n}\r\n\r\n/* Settings Panel */\r\n#settings-panel {\r\n  position: absolute;\r\n  top: 20px;\r\n  right: 20px;\r\n  background: rgba(20, 20, 20, 0.9);\r\n  border: 1px solid #444;\r\n  border-radius: 8px;\r\n  padding: 20px;\r\n  min-width: 250px;\r\n  max-height: 80vh;\r\n  overflow-y: auto;\r\n  backdrop-filter: blur(10px);\r\n  z-index: 100;\r\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);\r\n}\r\n\r\n#settings-panel h3 {\r\n  margin-bottom: 15px;\r\n  color: #fff;\r\n  font-size: 16px;\r\n  font-weight: 600;\r\n  border-bottom: 1px solid #444;\r\n  padding-bottom: 8px;\r\n}\r\n\r\n.setting-item {\r\n  margin-bottom: 15px;\r\n}\r\n\r\n.setting-item label {\r\n  display: block;\r\n  margin-bottom: 5px;\r\n  color: #ccc;\r\n  font-size: 13px;\r\n  font-weight: 500;\r\n}\r\n\r\n/* Input styles */\r\ninput[type=\"checkbox\"] {\r\n  margin-right: 8px;\r\n  transform: scale(1.1);\r\n  accent-color: #00ff00;\r\n}\r\n\r\ninput[type=\"range\"] {\r\n  width: 100%;\r\n  height: 4px;\r\n  background: #333;\r\n  outline: none;\r\n  border-radius: 2px;\r\n  margin-top: 5px;\r\n}\r\n\r\ninput[type=\"range\"]::-webkit-slider-thumb {\r\n  appearance: none;\r\n  width: 16px;\r\n  height: 16px;\r\n  background: #00ff00;\r\n  cursor: pointer;\r\n  border-radius: 50%;\r\n  border: 2px solid #fff;\r\n  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\r\n}\r\n\r\ninput[type=\"range\"]::-moz-range-thumb {\r\n  width: 16px;\r\n  height: 16px;\r\n  background: #00ff00;\r\n  cursor: pointer;\r\n  border-radius: 50%;\r\n  border: 2px solid #fff;\r\n  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);\r\n}\r\n\r\ninput[type=\"color\"] {\r\n  width: 40px;\r\n  height: 30px;\r\n  border: none;\r\n  border-radius: 4px;\r\n  cursor: pointer;\r\n  background: transparent;\r\n}\r\n\r\ninput[type=\"color\"]::-webkit-color-swatch-wrapper {\r\n  padding: 0;\r\n  border-radius: 4px;\r\n  border: 1px solid #555;\r\n}\r\n\r\ninput[type=\"color\"]::-webkit-color-swatch {\r\n  border: none;\r\n  border-radius: 3px;\r\n}\r\n\r\n/* Button styles */\r\n#reset-button {\r\n  width: 100%;\r\n  padding: 10px;\r\n  background: linear-gradient(45deg, #333, #555);\r\n  color: #fff;\r\n  border: 1px solid #666;\r\n  border-radius: 4px;\r\n  cursor: pointer;\r\n  font-size: 13px;\r\n  font-weight: 500;\r\n  transition: all 0.2s ease;\r\n  margin-top: 10px;\r\n}\r\n\r\n#reset-button:hover {\r\n  background: linear-gradient(45deg, #444, #666);\r\n  border-color: #777;\r\n  transform: translateY(-1px);\r\n}\r\n\r\n#reset-button:active {\r\n  transform: translateY(0);\r\n  background: linear-gradient(45deg, #222, #444);\r\n}\r\n\r\n/* Speed value display */\r\n#speed-value {\r\n  color: #00ff00;\r\n  font-family: 'Courier New', monospace;\r\n  font-weight: bold;\r\n  margin-left: 5px;\r\n}\r\n\r\n/* Scrollbar styling */\r\n#settings-panel::-webkit-scrollbar {\r\n  width: 6px;\r\n}\r\n\r\n#settings-panel::-webkit-scrollbar-track {\r\n  background: rgba(255, 255, 255, 0.1);\r\n  border-radius: 3px;\r\n}\r\n\r\n#settings-panel::-webkit-scrollbar-thumb {\r\n  background: rgba(255, 255, 255, 0.3);\r\n  border-radius: 3px;\r\n}\r\n\r\n#settings-panel::-webkit-scrollbar-thumb:hover {\r\n  background: rgba(255, 255, 255, 0.5);\r\n}\r\n\r\n/* Responsive design */\r\n@media (max-width: 768px) {\r\n  #settings-panel {\r\n    right: 10px;\r\n    left: 10px;\r\n    top: 10px;\r\n    min-width: auto;\r\n    max-height: 60vh;\r\n  }\r\n\r\n  #fps-counter {\r\n    top: 10px;\r\n    left: 10px;\r\n    font-size: 12px;\r\n    padding: 6px 10px;\r\n  }\r\n}\r\n\r\n@media (max-width: 480px) {\r\n  #settings-panel {\r\n    padding: 15px;\r\n  }\r\n\r\n  #settings-panel h3 {\r\n    font-size: 14px;\r\n  }\r\n\r\n  .setting-item label {\r\n    font-size: 12px;\r\n  }\r\n\r\n  #reset-button {\r\n    padding: 8px;\r\n    font-size: 12px;\r\n  }\r\n}\r\n\r\n/* Loading animation */\r\n@keyframes pulse {\r\n  0% { opacity: 0.6; }\r\n  50% { opacity: 1; }\r\n  100% { opacity: 0.6; }\r\n}\r\n\r\n.loading {\r\n  animation: pulse 1.5s ease-in-out infinite;\r\n}\r\n\r\n/* Smooth transitions */\r\n/* Removed redundant universal selector rule */\r\n\r\n/* Focus states for accessibility */\r\ninput:focus,\r\nbutton:focus {\r\n  outline: 2px solid #00ff00;\r\n  outline-offset: 2px;\r\n}\r\n\r\n/* Selection styling */\r\n::selection {\r\n  background: rgba(0, 255, 0, 0.3);\r\n  color: #fff;\r\n}\r\n"
       },
       "/home/project/src/vite-env.d.ts": {
         "type": "file",
@@ -88,7 +200,7 @@
       },
       "/home/project/vite.config.ts": {
         "type": "file",
-        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite'\nimport tailwindcss from '@tailwindcss/vite'\nimport { fileURLToPath } from 'node:url'\nimport { nodePolyfills } from 'vite-plugin-node-polyfills'\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url))\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [\n    tailwindcss(),\n    nodePolyfills()\n  ],\n  resolve: {\n    alias: {\n      \"@\": __dirname\n    },\n  },\n  // Optimize Three.js imports\n  optimizeDeps: {\n    include: ['three']\n  },\n  // Configure build for better Three.js performance\n  build: {\n    rollupOptions: {\n      output: {\n        manualChunks: {\n          'three': ['three']\n        }\n      }\n    }\n  },\n  // Enable source maps for development\n  css: {\n    devSourcemap: true\n  }\n})"
+        "content": "/// <reference types=\"vite/client\" />\r\n\r\nimport { defineConfig } from 'vite'\r\nimport tailwindcss from '@tailwindcss/vite'\r\nimport { fileURLToPath } from 'node:url'\r\nimport { nodePolyfills } from 'vite-plugin-node-polyfills'\r\n\r\nconst __dirname = fileURLToPath(new URL('.', import.meta.url))\r\n\r\n// https://vite.dev/config/\r\nexport default defineConfig({\r\n  plugins: [\r\n    tailwindcss(),\r\n    nodePolyfills()\r\n  ],\r\n  resolve: {\r\n    alias: {\r\n      \"@\": __dirname\r\n    },\r\n  },\r\n  // Optimize Three.js imports\r\n  optimizeDeps: {\r\n    include: ['three']\r\n  },\r\n  // Configure build for better Three.js performance\r\n  build: {\r\n    rollupOptions: {\r\n      output: {\r\n        manualChunks: {\r\n          'three': ['three']\r\n        }\r\n      }\r\n    }\r\n  },\r\n  // Enable source maps for development\r\n  css: {\r\n    devSourcemap: true\r\n  }\r\n})"
       }
     }
   }

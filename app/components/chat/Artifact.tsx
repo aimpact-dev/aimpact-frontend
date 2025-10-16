@@ -82,25 +82,37 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
           : 'Creating Project...' // Title during initial creation
       : artifact?.title; // Fallback to original title for non-bundled or if artifact is missing
 
+  const [showWorkbench, setShowWorkbench] = useState(workbenchStore.showWorkbench.get());
+
+  useEffect(() => {
+    const unsubscribe = workbenchStore.showWorkbench.subscribe((value) => {
+      setShowWorkbench(value);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const toggleWorkbench = () => {
+    const newValue = !showWorkbench;
+    setShowWorkbench(newValue);
+    workbenchStore.showWorkbench.set(newValue);
+  };
+
   return (
     <>
       <div className="artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
         <div className="flex">
           <button
             className="flex items-stretch bg-bolt-elements-artifacts-background hover:bg-bolt-elements-artifacts-backgroundHover w-full overflow-hidden"
-            onClick={() => {
-              const showWorkbench = workbenchStore.showWorkbench.get();
-              workbenchStore.showWorkbench.set(!showWorkbench);
-            }}
+            onClick={toggleWorkbench}
           >
             <div className="px-5 p-3.5 w-full text-left">
               <div className="w-full text-bolt-elements-textPrimary font-medium leading-5 text-sm">
                 {/* Use the dynamic title here */}
                 {dynamicTitle}
               </div>
-              <div className="w-full w-full text-bolt-elements-textSecondary text-xs mt-0.5">
-                Click to open Workbench
-              </div>
+              {!showWorkbench && (
+                <div className="w-full text-bolt-elements-textSecondary text-xs mt-0.5">Click to open Workbench</div>
+              )}
             </div>
           </button>
           {artifact.type !== 'bundled' && <div className="bg-bolt-elements-artifacts-borderColor w-[1px]" />}

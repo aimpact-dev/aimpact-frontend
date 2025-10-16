@@ -7,6 +7,7 @@ import { ScreenshotSelector } from './ScreenshotSelector';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { Tooltip } from '../chat/Tooltip';
+import { PreviewIframe } from '~/components/workbench/PreviewIframe';
 
 type ResizeSide = 'left' | 'right' | null;
 
@@ -52,6 +53,9 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Indicates whether the iframe loaded content from preview url
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [isPortDropdownOpen, setIsPortDropdownOpen] = useState(false);
@@ -101,6 +105,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
     const { baseUrl } = activePreview;
     setIframeUrl(baseUrl);
     setDisplayPath('/');
+    setIsPreviewLoading(true);
   }, [activePreview]);
 
   const findMinPortIndex = useCallback(
@@ -120,6 +125,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const reloadPreview = () => {
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
+      setIsPreviewLoading(true);
     }
   };
 
@@ -376,68 +382,66 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   );
 
   const openInNewWindow = (size: WindowSize) => {
-    if (activePreview?.baseUrl) {
-      const match = activePreview.baseUrl.match(/^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/);
+    if (!activePreview?.baseUrl) {
+      console.warn('[Preview] Invalid URL:', activePreview.baseUrl);
+      return;
+    }
 
-      if (match) {
-        const previewId = match[1];
-        const previewUrl = `/webcontainer/preview/${previewId}`;
+    let width = size.width;
+    let height = size.height;
 
-        // Adjust dimensions for landscape mode if applicable
-        let width = size.width;
-        let height = size.height;
+    if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
+      // Swap width and height for landscape mode
+      width = size.height;
+      height = size.width;
+    }
 
-        if (isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')) {
-          // Swap width and height for landscape mode
-          width = size.height;
-          height = size.width;
-        }
+    // Create a window with device frame if enabled
+    const previewUrl = activePreview.baseUrl;
+    if (showDeviceFrame && size.hasFrame) {
+      // Calculate frame dimensions
+      const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
+      const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
 
-        // Create a window with device frame if enabled
-        if (showDeviceFrame && size.hasFrame) {
-          // Calculate frame dimensions
-          const frameWidth = size.frameType === 'mobile' ? (isLandscape ? 120 : 40) : 60; // Width padding on each side
-          const frameHeight = size.frameType === 'mobile' ? (isLandscape ? 80 : 80) : isLandscape ? 60 : 100; // Height padding on top and bottom
+      // Create a window with the correct dimensions first
+      const newWindow = window.open(
+        '',
+        '_blank',
+        `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
-          // Create a window with the correct dimensions first
-          const newWindow = window.open(
-            '',
-            '_blank',
-            `width=${width + frameWidth},height=${height + frameHeight + 40},menubar=no,toolbar=no,location=no,status=no`,
-          );
+      if (!newWindow) {
+        console.error('Failed to open new window');
+        return;
+      }
 
-          if (!newWindow) {
-            console.error('Failed to open new window');
-            return;
-          }
+      // Create the HTML content for the frame
+      const frameColor = getFrameColor();
+      const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
+      const framePadding =
+        size.frameType === 'mobile'
+          ? isLandscape
+            ? '40px 60px'
+            : '40px 20px'
+          : isLandscape
+            ? '30px 50px'
+            : '50px 30px';
 
-          // Create the HTML content for the frame
-          const frameColor = getFrameColor();
-          const frameRadius = size.frameType === 'mobile' ? '36px' : '20px';
-          const framePadding =
-            size.frameType === 'mobile'
-              ? isLandscape
-                ? '40px 60px'
-                : '40px 20px'
-              : isLandscape
-                ? '30px 50px'
-                : '50px 30px';
+      // Position notch and home button based on orientation
+      const notchTop = isLandscape ? '50%' : '20px';
+      const notchLeft = isLandscape ? '30px' : '50%';
+      const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
+      const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
+      const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
 
-          // Position notch and home button based on orientation
-          const notchTop = isLandscape ? '50%' : '20px';
-          const notchLeft = isLandscape ? '30px' : '50%';
-          const notchTransform = isLandscape ? 'translateY(-50%)' : 'translateX(-50%)';
-          const notchWidth = isLandscape ? '8px' : size.frameType === 'mobile' ? '60px' : '80px';
-          const notchHeight = isLandscape ? (size.frameType === 'mobile' ? '60px' : '80px') : '8px';
+      const homeBottom = isLandscape ? '50%' : '15px';
+      const homeRight = isLandscape ? '30px' : '50%';
+      const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
+      const homeWidth = isLandscape ? '4px' : '40px';
+      const homeHeight = isLandscape ? '40px' : '4px';
 
-          const homeBottom = isLandscape ? '50%' : '15px';
-          const homeRight = isLandscape ? '30px' : '50%';
-          const homeTransform = isLandscape ? 'translateY(50%)' : 'translateX(50%)';
-          const homeWidth = isLandscape ? '4px' : '40px';
-          const homeHeight = isLandscape ? '40px' : '4px';
-
-          // Create HTML content for the wrapper page
-          const htmlContent = `
+      // Create HTML content for the wrapper page
+      const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -455,11 +459,11 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   overflow: hidden;
                   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 }
-                
+
                 .device-container {
                   position: relative;
                 }
-                
+
                 .device-name {
                   position: absolute;
                   top: -30px;
@@ -469,7 +473,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   font-size: 14px;
                   color: #333;
                 }
-                
+
                 .device-frame {
                   position: relative;
                   border-radius: ${frameRadius};
@@ -478,7 +482,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
                   overflow: hidden;
                 }
-                
+
                 /* Notch */
                 .device-frame:before {
                   content: '';
@@ -492,7 +496,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   border-radius: 4px;
                   z-index: 2;
                 }
-                
+
                 /* Home button */
                 .device-frame:after {
                   content: '';
@@ -506,7 +510,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   border-radius: 50%;
                   z-index: 2;
                 }
-                
+
                 iframe {
                   border: none;
                   width: ${width}px;
@@ -527,24 +531,20 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
             </html>
           `;
 
-          // Write the HTML content to the new window
-          newWindow.document.open();
-          newWindow.document.write(htmlContent);
-          newWindow.document.close();
-        } else {
-          // Standard window without frame
-          const newWindow = window.open(
-            previewUrl,
-            '_blank',
-            `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
-          );
+      // Write the HTML content to the new window
+      newWindow.document.open();
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+    } else {
+      // Standard window without frame
+      const newWindow = window.open(
+        previewUrl,
+        '_blank',
+        `width=${width},height=${height},menubar=no,toolbar=no,location=no,status=no`,
+      );
 
-          if (newWindow) {
-            newWindow.focus();
-          }
-        }
-      } else {
-        console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
+      if (newWindow) {
+        newWindow.focus();
       }
     }
   };
@@ -639,7 +639,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <Tooltip content="Ports" side='bottom'> 
+          <Tooltip content="Ports" side='bottom'>
             <PortDropdown
               activePreviewIndex={activePreviewIndex}
               setActivePreviewIndex={setActivePreviewIndex}
@@ -749,22 +749,12 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                             return;
                           }
 
-                          const match = activePreview.baseUrl.match(
-                            /^https?:\/\/([^.]+)\.local-credentialless\.webcontainer-api\.io/,
-                          );
-
-                          if (!match) {
-                            console.warn('[Preview] Invalid WebContainer URL:', activePreview.baseUrl);
-                            return;
-                          }
-
-                          const previewId = match[1];
-                          const previewUrl = `/webcontainer/preview/${previewId}`;
+                          const previewUrl = activePreview.baseUrl;
 
                           // Open in a new window with simple parameters
                           window.open(
                             previewUrl,
-                            `preview-${previewId}`,
+                            `preview-${activePreviewIndex}`,
                             'width=1280,height=720,menubar=no,toolbar=no,location=no,status=no,resizable=yes',
                           );
                         }}
@@ -940,31 +930,22 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                         zIndex: 2,
                       }}
                     />
-
-                    <iframe
-                      ref={iframeRef}
-                      title="preview"
-                      style={{
-                        border: 'none',
-                        width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
-                        height: isLandscape ? `${selectedWindowSize.width}px` : `${selectedWindowSize.height}px`,
-                        background: 'white',
-                        display: 'block',
-                      }}
-                      src={iframeUrl}
-                      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                      allow="cross-origin-isolated"
+                    <PreviewIframe
+                      isPreviewLoading={isPreviewLoading}
+                      setIsPreviewLoading={setIsPreviewLoading}
+                      iframeRef={iframeRef}
+                      iframeUrl={iframeUrl}
+                      onLoad={() => setIsPreviewLoading(false)}
                     />
                   </div>
                 </div>
               ) : (
-                <iframe
-                  ref={iframeRef}
-                  title="preview"
-                  className="border-none w-full h-full bg-bolt-elements-background-depth-1"
-                  src={iframeUrl}
-                  sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
-                  allow="geolocation; ch-ua-full-version-list; cross-origin-isolated; screen-wake-lock; publickey-credentials-get; shared-storage-select-url; ch-ua-arch; bluetooth; compute-pressure; ch-prefers-reduced-transparency; deferred-fetch; usb; ch-save-data; publickey-credentials-create; shared-storage; deferred-fetch-minimal; run-ad-auction; ch-ua-form-factors; ch-downlink; otp-credentials; payment; ch-ua; ch-ua-model; ch-ect; autoplay; camera; private-state-token-issuance; accelerometer; ch-ua-platform-version; idle-detection; private-aggregation; interest-cohort; ch-viewport-height; local-fonts; ch-ua-platform; midi; ch-ua-full-version; xr-spatial-tracking; clipboard-read; gamepad; display-capture; keyboard-map; join-ad-interest-group; ch-width; ch-prefers-reduced-motion; browsing-topics; encrypted-media; gyroscope; serial; ch-rtt; ch-ua-mobile; window-management; unload; ch-dpr; ch-prefers-color-scheme; ch-ua-wow64; attribution-reporting; fullscreen; identity-credentials-get; private-state-token-redemption; hid; ch-ua-bitness; storage-access; sync-xhr; ch-device-memory; ch-viewport-width; picture-in-picture; magnetometer; clipboard-write; microphone"
+                <PreviewIframe
+                  isPreviewLoading={isPreviewLoading}
+                  setIsPreviewLoading={setIsPreviewLoading}
+                  iframeRef={iframeRef}
+                  iframeUrl={iframeUrl}
+                  onLoad={() => setIsPreviewLoading(false)}
                 />
               )}
               <ScreenshotSelector

@@ -26,6 +26,8 @@ init({
 
 const root = document.getElementById('root')!;
 
+
+
 startTransition(() => {
   hydrateRoot(
     root,
@@ -33,4 +35,5 @@ startTransition(() => {
       <RemixBrowser />
     </AppProvider>,
   );
+
 });

@@ -1,3 +1,9 @@
+import PolicyPage from '~/components/wrappers/PolicyPage';
+import refundPolicyData from '~/data/refund-policy.json';
+import type { PolicyData } from '~/components/wrappers/PolicyPage';
+
+const refundPolicy = refundPolicyData as PolicyData;
+
 export default function RefundPolicy() {
-  return <div>Refund Policy</div>;
+  return <PolicyPage policy={refundPolicy} />;
 }

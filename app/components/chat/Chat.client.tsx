@@ -31,6 +31,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
+import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -108,7 +109,7 @@ const processSampledMessages = createSampler(
   }) => {
     const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
     parseMessages(messages, isLoading);
-    
+
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
@@ -151,12 +152,12 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   useEffect(() => {
     return () => {
       processSampledMessages.cancel?.();
-      
+
       // Stop any ongoing chat requests
       if (isLoading) {
         stop();
       }
-      
+
       // Clear any pending toasts
       toast.dismiss();
     };
@@ -242,22 +243,13 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     experimental_throttle: 75,
   });
+
   useEffect(() => {
     const prompt = searchParams.get('prompt');
-
-    // console.log(prompt, searchParams, model, provider);
 
     if (prompt) {
       setSearchParams({});
       setInput(prompt);
-
-      /*
-       * runAnimation();
-       * append({
-       *   role: 'user',
-       *   content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
-       * });
-       */
     }
   }, [model, provider, searchParams]);
 
@@ -629,6 +621,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         data={chatData}
         showWorkbench={showWorkbench}
       />
+      <DaytonaCleanup/>
     </>
   );
 });
