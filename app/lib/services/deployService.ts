@@ -29,7 +29,6 @@ export class DeployService {
 
   async runDeployScript() {;
     const webcontainer = await this.#webcontainer;
-
     // Create a new terminal specifically for the build
     console.log('Spawning build process...')
     const buildProcess = await webcontainer.spawn('pnpm', ['run', 'build']);

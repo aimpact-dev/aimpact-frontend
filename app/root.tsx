@@ -1,15 +1,16 @@
-import { captureRemixErrorBoundaryError } from "@sentry/remix";
+import { captureRemixErrorBoundaryError } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
-import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
+import '@unocss/reset/tailwind.css';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
-import React, { Suspense, useEffect, useState, type FC, type PropsWithChildren } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ClientOnly } from 'remix-utils/client-only';
+import { CivicAuthProvider } from '@civic/auth-web3/react';
 
 import { logStore } from './lib/stores/logs';
 import { AuthProvider } from './lib/hooks/useAuth';
@@ -18,16 +19,15 @@ import { RefCodeProvider } from './lib/hooks/useRefCode';
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
+import '@unocss/reset/tailwind.css';
 
 import 'virtual:uno.css';
-import { workbenchStore } from "./lib/stores/workbench";
-import LoadingScreen from "./components/common/LoadingScreen";
-import { useMemoryMonitor } from "./lib/hooks/useMemoryMonitor";
+import LoadingScreen from './components/common/LoadingScreen';
 
-const SolanaProvider = React.lazy(() => 
-  import('./components/providers/SolanaProvider').then(mod => ({
-    default: mod.default
-  }))
+const SolanaProvider = React.lazy(() =>
+  import('./components/providers/SolanaProvider').then((mod) => ({
+    default: mod.default,
+  })),
 );
 
 export const links: LinksFunction = () => [
@@ -37,7 +37,6 @@ export const links: LinksFunction = () => [
     type: 'image/svg+xml',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },
-  { rel: 'stylesheet', href: tailwindReset },
   { rel: 'stylesheet', href: globalStyles },
   { rel: 'stylesheet', href: xtermStyles },
   {
@@ -88,13 +87,17 @@ function Providers({ children }: { children: React.ReactNode }) {
       {() => (
         <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
+            {/*<CivicAuthProvider*/}
+            {/*  autoCreateWallet*/}
+            {/*  autoConnectEmbeddedWallet*/}
+            {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
+            {/*>*/}
             <RefCodeProvider>
               <AuthProvider>
-                <DndProvider backend={HTML5Backend}>
-                  {children}
-                </DndProvider>
+                <DndProvider backend={HTML5Backend}>{children}</DndProvider>
               </AuthProvider>
             </RefCodeProvider>
+            {/*</CivicAuthProvider>*/}
           </SolanaProvider>
         </Suspense>
       )}
@@ -126,7 +129,6 @@ export const ErrorBoundary = () => {
 
 export default function App() {
   const theme = useStore(themeStore);
-  useMemoryMonitor();
 
   useEffect(() => {
     logStore.logSystem('Application initialized', {
@@ -135,11 +137,6 @@ export default function App() {
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
     });
-
-    return () => {
-      // console.log('App unmounting, cleaning up...');
-      // workbenchStore.cleanup();
-    };
   }, []);
 
   return (

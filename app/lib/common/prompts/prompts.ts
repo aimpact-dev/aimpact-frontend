@@ -3,25 +3,19 @@ import { WORK_DIR } from '~/utils/constants';
 import { stripIndents } from '~/utils/stripIndent';
 
 const ENABLE_SOLANA_PROMPT = process.env.ENABLE_SOLANA_PROMPT === "true";
-console.log(ENABLE_SOLANA_PROMPT);
 
 const getSolanaPrompt = (): string => {
-  const prompt = `# Artifact Info
-You can use Solana to store data. Here is the code of the program:
-<code>
-  ${ENABLE_SOLANA_PROMPT ? SOLANA_PROGRAM_CODE : ""}
-</code>
+  const prompt = `# Web3 and Smart Contract Instructions
+When users ask to generate a Web3 application or smart contract functionality, follow these guidelines:
 
-It is already deployed on devnet:
-- Program ID: ${SOLANA_PROGRAM_ID}
-- RPC URL: ${SOLANA_DEVNET_RPC_URL}
-
-Created app should genereate an application ID that is used to store data in the program. 
-Use current timestamp as application ID.
-domain parameter is used to separate data for different applications. Use application ID as domain.
-
-When user interacts with the app, you should use the program to store data. 
-Pop up a Phantom Wallet to confirm transactions for each action.`
+## For Web3 Applications:
+- Generate solana smart contract code for the app in the \`src-anchor\` directory (lib.rs file)
+- Pop up a Phantom Wallet to confirm transactions for each action
+- Do not try to use solana and anchor cli tools, because those are not installed in the system
+- To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
+- Use latest frontend solana libraries to parse the IDL and integrate it into app
+- Avoid using mocks for imitating smart contract behaviour, use actual calls to the smart contract
+- When integrating smart contract into app always use the public key from IDL.`
 
   return ENABLE_SOLANA_PROMPT ? prompt : "";
 }
@@ -156,10 +150,10 @@ pub struct Initialize<'info> {
               seeds=[&domain.to_le_bytes().as_ref(), &key.to_le_bytes().as_ref()],
               bump)]
     val: Account<'info, Val>,
-    
+
     #[account(mut)]
     signer: Signer<'info>,
-    
+
     system_program: Program<'info, System>,
 }
 
@@ -283,5 +277,5 @@ Instructions:
 5. If no perfect match exists, recommend the closest option
 
 Important: Provide only the selection tags in your response, no additional text.
-MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH 
+MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH
 `;

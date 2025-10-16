@@ -1,6 +1,21 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { ky } from 'query';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { client } from '~/lib/api/backend/api';
+
+interface AppDeployments {
+  provider: string;
+  url: string | null;
+}
+
+interface ProjectsResponse {
+  data: Project[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+}
 
 export type Project = {
   id: string;
@@ -10,6 +25,7 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  appDeployments?: AppDeployments[];
 };
 
 export type ProjectWithOwner = Project & {
@@ -23,10 +39,39 @@ export type UpdateProjectInfoPayload = {
   featured?: string;
 };
 
-export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
-  return useQuery<Project[]>({
-    initialData: [],
-    queryKey: ['projects'],
+export type OwnershipFilter = 'all' | 'owned';
+export type DeploymentPlatform = 'S3' | 'Akash' | 'ICP';
+export type StatusFilter = 'deployed' | 'hackathonWinner' | 'featured';
+export type ProjectFilters = OwnershipFilter | DeploymentPlatform | StatusFilter;
+
+const deploymentPlatforms: DeploymentPlatform[] = ['S3', 'Akash', 'ICP'];
+
+export const useProjectsQuery = (
+  page: number,
+  pageSize: number,
+  filters: ProjectFilters[],
+  sortBy: 'createdAt' | 'updatedAt' | 'name',
+  sortDirection: 'ASC' | 'DESC',
+  jwtToken?: string,
+) => {
+  const ownership: OwnershipFilter = filters.includes('owned') ? 'owned' : 'all';
+
+  const provider = deploymentPlatforms.find((p) => filters.includes(p));
+
+  const statusFilters: Partial<Record<StatusFilter, boolean>> = {};
+
+  if (filters.includes('hackathonWinner')) {
+    statusFilters.hackathonWinner = true;
+  }
+  if (filters.includes('featured')) {
+    statusFilters.featured = true;
+  }
+  if (filters.includes('deployed')) {
+    statusFilters.deployed = true;
+  }
+
+  return useQuery<ProjectsResponse>({
+    queryKey: ['projects', { page, pageSize, ownership, statusFilters, provider, sortBy, sortDirection }],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -34,13 +79,17 @@ export const useProjectsQuery = (ownership: 'all' | 'owned', sortBy: 'createdAt'
       }
       const res = await ky.get('projects', {
         searchParams: {
+          page,
+          pageSize,
           ownership,
+          ...(provider ? { provider } : {}),
+          ...statusFilters,
           sortBy,
           sortOrder: sortDirection,
         },
-        headers: requestHeaders
-      })
-      const data = await res.json<Project[]>();
+        headers: requestHeaders,
+      });
+      const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
         throw new Error('Not found projects');
@@ -79,7 +128,6 @@ export const useUpdateProjectInfoMutation = (id: string, jwtToken?: string) => {
 
 export const useProjectQuery = (id: string) => {
   return useQuery<ProjectWithOwner | null>({
-    initialData: null,
     queryKey: ['project', id],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
@@ -99,23 +147,43 @@ export const useProjectQuery = (id: string) => {
   });
 };
 
-export const useS3DeployemntQuery = (id: string) => {
+export const useDeploymentQuery = (projectId: string | undefined, provider: 's3' | 'icp' | 'akash') => {
   return useQuery<string | null>({
+    queryKey: ['getDeployment', projectId, provider],
+    enabled: !!projectId,
     initialData: null,
-    queryKey: ['getS3Deployment', id],
     queryFn: async () => {
-      const res = await ky.get(`deploy-app/s3-deployment?projectId=${id}`);
+      if (!projectId) return null;
 
-      if (res.status === 404) {
-        return null; // No deployment found
-      }
+      const endpointMap = {
+        s3: `deploy-app/s3-deployment`,
+        icp: `deploy-app/icp-deployment`,
+        akash: `deploy-app/akash-deployment`,
+      };
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch S3 deployment');
-      }
+      const res = await ky.get(`${endpointMap[provider]}?projectId=${projectId}`);
+      console.log(provider, res);
+
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`Failed to fetch ${provider} deployment`);
 
       const data = await res.json<{ url: string }>();
       return data.url;
+    },
+  });
+};
+
+export interface SetProjectTokenPayload {
+  tokenAddress: string;
+}
+
+export const useSetProjectToken = (id: string) => {
+  return useMutation<{}, AxiosError, SetProjectTokenPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<{}>(`projects/${id}/add-token`, {
+        json: payload,
+      });
+      return data;
     },
   });
 };

@@ -23,9 +23,9 @@ const IGNORE_PATTERNS = [
 
 const defaultIgnore = ignore().add(IGNORE_PATTERNS);
 
-export const filterIgnoreFiles = (files: FileMap) => {
+export const filterIgnoreFiles = (workdir: string, files: FileMap) => {
   const filterFunc = ([key, value]: any) => {
-    const relPath = key.replace('/home/project/', '');
+    const relPath = key.replace(workdir, '');
     if (defaultIgnore.ignores(relPath)) return false;
 
     return true;

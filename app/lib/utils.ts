@@ -4,3 +4,24 @@ import { twMerge } from 'tailwind-merge';
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+export function base64ToUint8Array(b64: string) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+export function uint8ArrayToBase64(arr: Uint8Array): string {
+  let bin = '';
+  for (let i = 0; i < arr.length; i++) {
+    bin += String.fromCharCode(arr[i]);
+  }
+  return btoa(bin);
+}
+
+export const formatNumber = (price: number, fraction?: number) => {
+  if (price < 1e-6) return '<0.0000001';
+  const rounded = parseFloat(price.toFixed(7));
+  return rounded.toLocaleString(undefined, { maximumFractionDigits: fraction ?? 7 });
+};

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigation } from '@remix-run/react';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { toast } from 'react-toastify';
 import { Button } from '../ui';
-import { useSolanaProxy } from '~/lib/api-hooks/useSolanaProxyApi';
+import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { classNames } from '~/utils/classNames';
 import waterStyles from '../ui/WaterButton.module.scss';
 import { Tooltip } from './Tooltip';
+import Cookies from 'js-cookie';
 
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);
 
@@ -18,8 +19,8 @@ interface DepositButtonProps {
 export default function DepositButton({ discountPercent }: DepositButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigation = useNavigation();
-  const { publicKey, sendTransaction } = useWallet();
-  const { getRecentBlockhash } = useSolanaProxy();
+  const { publicKey, signTransaction } = useWallet();
+  const { getRecentBlockhash, sendTransaction } = useSolanaProxy();
   const detectMobileScreen = () => {
     return window.innerWidth <= 768;
   };
@@ -32,21 +33,24 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
     ? Math.floor(baseMessageCount / (1 - discountPercent / 100))
     : baseMessageCount;
 
-  const multiplier = hasDiscount
-    ? parseFloat((discountedMessageCount / baseMessageCount).toFixed(2)).toString()
-    : null;
+  const multiplier = hasDiscount ? parseFloat((discountedMessageCount / baseMessageCount).toFixed(2)).toString() : null;
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
   };
 
   const handlePurchase = async () => {
-    if (!publicKey || !sendTransaction) {
+    if (!publicKey || !sendTransaction || !signTransaction) {
       return;
     }
 
     // 1. Fetch recent blockhash and lastValidBlockHeight from backend
     let blockhash, lastValidBlockHeight;
+    const authToken = Cookies.get('authToken');
+    if (!authToken) {
+      toast.error('You need to be logged in to purchase messages.');
+      return;
+    }
 
     try {
       const data = await getRecentBlockhash();
@@ -69,31 +73,33 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
       }),
     );
 
-    // public rpc connection
-    const connection = new Connection('https://api.mainnet-beta.solana.com');
+    const signedTransaction = await signTransaction(transaction);
+    const serializedTransaction = signedTransaction.serialize();
+    const base64 = Buffer.from(serializedTransaction).toString('base64');
 
     // 3. Send transaction with wallet
     try {
-      await sendTransaction(transaction, connection);
+      await sendTransaction(base64);
+      (window as any).plausible('purchase_messages', {
+        props: {
+          message_count: baseMessageCount,
+          purchase_messages_success: true,
+          error: null,
+        },
+      });
 
-      (window as any).plausible('purchase_messages', { props: {
-        message_count: baseMessageCount,
-        purchase_messages_success: true,
-        error: null,
-      }
-    });
-
-    setIsOpen(false);
-    toast.success('Purchase completed!');
+      setIsOpen(false);
+      toast.success('Purchase completed!');
     } catch (err) {
       if (err instanceof Error && err.message.includes('User rejected the request')) {
-        (window as any).plausible('purchase_messages', { props: {
+        (window as any).plausible('purchase_messages', {
+          props: {
             message_count: baseMessageCount,
             purchase_messages_success: false,
             error: 'Sign transaction failed',
-          }
+          },
         });
-      return;
+        return;
       }
 
       toast.error('Transaction failed. Please try again.');
@@ -103,7 +109,11 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
   return (
     <div className="max-w-md mx-auto">
       <Tooltip content="Buy some messages for SOL">
-        <Button onClick={handleToggle} variant="default" className="flex py-2.5 items-center gap-2 border border-bolt-elements-borderColor font-medium">
+        <Button
+          onClick={handleToggle}
+          variant="default"
+          className="flex items-center gap-2 border border-bolt-elements-borderColor font-medium"
+        >
           Buy Messages
         </Button>
       </Tooltip>
@@ -124,23 +134,18 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
                 <div className="text-center">
                   <h3 className="text-2xl font-bold mb-4">Purchase Messages</h3>
                   <p className="text-xl mb-6">
-                    Get{" "}
+                    Get{' '}
                     {hasDiscount ? (
                       <>
                         <span className="font-semibold line-through text-gray-400">{baseMessageCount}</span>
                         <span className="mx-1" />
                         <span className="font-semibold text-white">{discountedMessageCount}</span>
-                        {multiplier && (
-                          <span className="text-green-400 font-semibold ml-1">
-                            (x{multiplier})
-                          </span>
-                        )}
+                        {multiplier && <span className="text-green-400 font-semibold ml-1">(x{multiplier})</span>}
                       </>
                     ) : (
                       <span className="font-semibold">{baseMessageCount}</span>
-                    )}{" "}
-                    messages for{" "}
-                    <span className="font-semibold">{MESSAGE_PRICE_IN_SOL * baseMessageCount} SOL</span>
+                    )}{' '}
+                    messages for <span className="font-semibold">{MESSAGE_PRICE_IN_SOL * baseMessageCount} SOL</span>
                   </p>
 
                   <div className="flex flex-col gap-2">
@@ -160,9 +165,7 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
                         <div className={waterStyles.waterDroplets}></div>
                         <div className={waterStyles.waterSurface}></div>
                       </div>
-                      <div className={waterStyles.buttonContent}>
-                        {isSubmitting ? 'Processing...' : 'Purchase Now'}
-                      </div>
+                      <div className={waterStyles.buttonContent}>{isSubmitting ? 'Processing...' : 'Purchase Now'}</div>
                     </button>
                   </div>
                 </div>

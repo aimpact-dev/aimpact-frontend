@@ -1,11 +1,14 @@
-import type { WebContainer } from '@webcontainer/api';
 import { path as nodePath } from '~/utils/path';
-import { atom, map, type MapStore } from 'nanostores';
+import { map, type MapStore } from 'nanostores';
 import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import type { ActionCallbackData } from './message-parser';
-import type { BoltShell } from '~/utils/shell';
+import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
+import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+import type { BuildService } from '~/lib/services/buildService';
+import { getSandbox } from '~/lib/daytona';
+import { isBinaryPath } from '~/utils/fileExtensionUtils';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -64,10 +67,10 @@ class ActionCommandError extends Error {
 }
 
 export class ActionRunner {
-  #webcontainer: Promise<WebContainer>;
+  #buildService: Promise<BuildService>;
+  #aimpactFs: Promise<AimpactFs>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
-  #shellTerminal: () => BoltShell;
-  runnerId = atom<string>(`${Date.now()}`);
+  #shellTerminal: () => AimpactShell;
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
@@ -75,13 +78,15 @@ export class ActionRunner {
   buildOutput?: { path: string; exitCode: number; output: string };
 
   constructor(
-    webcontainerPromise: Promise<WebContainer>,
-    getShellTerminal: () => BoltShell,
+    buildServicePromise: Promise<BuildService>,
+    aimpactFsPromise: Promise<AimpactFs>,
+    getShellTerminal: () => AimpactShell,
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
   ) {
-    this.#webcontainer = webcontainerPromise;
+    this.#buildService = buildServicePromise;
+    this.#aimpactFs = aimpactFsPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
@@ -150,6 +155,9 @@ export class ActionRunner {
 
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
+
+    //Waiting for the sandbox to be ready
+    await getSandbox();
 
     this.#updateAction(actionId, { status: 'running' });
 
@@ -256,13 +264,11 @@ export class ActionRunner {
     }
 
     const shell = this.#shellTerminal();
-    await shell.ready();
-
-    if (!shell || !shell.terminal || !shell.process) {
+    if (!shell) {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
+    const resp = await shell.executeCommand(action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
     });
@@ -283,13 +289,12 @@ export class ActionRunner {
     }
 
     const shell = this.#shellTerminal();
-    await shell.ready();
 
-    if (!shell || !shell.terminal || !shell.process) {
+    if (!shell) {
       unreachable('Shell terminal not found');
     }
 
-    const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
+    const resp = await shell.executeCommand(action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
     });
@@ -307,8 +312,13 @@ export class ActionRunner {
       unreachable('Expected file action');
     }
 
-    const webcontainer = await this.#webcontainer;
-    const relativePath = nodePath.relative(webcontainer.workdir, action.filePath);
+    const fs = await this.#aimpactFs;
+    let actionPath = action.filePath;
+    if (!action.filePath.startsWith('/')){
+      // If the filePath is not absolute, we assume it's relative to the current working directory
+      actionPath = nodePath.join(await fs.workdir(), action.filePath);
+    }
+    const relativePath = nodePath.relative(await fs.workdir(), actionPath);
 
     let folder = nodePath.dirname(relativePath);
 
@@ -317,15 +327,18 @@ export class ActionRunner {
 
     if (folder !== '.') {
       try {
-        await webcontainer.fs.mkdir(folder, { recursive: true });
+        await fs.mkdir(folder);
         logger.debug('Created folder', folder);
       } catch (error) {
-        logger.error('Failed to create folder\n\n', error);
+        logger.error('Failed to create folder\n\n', folder);
       }
     }
 
     try {
-      await webcontainer.fs.writeFile(relativePath, action.content);
+      const isBinary  = isBinaryPath(action.filePath);
+      const encoding = isBinary ? 'base64' : 'utf-8';
+      const buffer = Buffer.from(action.content, isBinary ? 'base64' : 'utf-8');
+      await fs.writeFile(relativePath, buffer, encoding);
       logger.debug(`File written ${relativePath}`);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
@@ -340,9 +353,9 @@ export class ActionRunner {
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {
     try {
-      const webcontainer = await this.#webcontainer;
+      const fs = await this.#aimpactFs;
       const historyPath = this.#getHistoryPath(filePath);
-      const content = await webcontainer.fs.readFile(historyPath, 'utf-8');
+      const content = await fs.readFile(historyPath, 'utf-8');
 
       return JSON.parse(content);
     } catch (error) {
@@ -352,7 +365,6 @@ export class ActionRunner {
   }
 
   async saveFileHistory(filePath: string, history: FileHistory) {
-    // const webcontainer = await this.#webcontainer;
     const historyPath = this.#getHistoryPath(filePath);
 
     await this.#runFileAction({
@@ -383,36 +395,27 @@ export class ActionRunner {
       source: 'netlify',
     });
 
-    const webcontainer = await this.#webcontainer;
-
+    const buildService = await this.#buildService;
+    const fs = await this.#aimpactFs;
     // Create a new terminal specifically for the build
-    const buildProcess = await webcontainer.spawn('npm', ['run', 'build']);
+    const buildResult = await buildService.runBuildScript('npm');
 
-    let output = '';
-    buildProcess.output.pipeTo(
-      new WritableStream({
-        write(data) {
-          output += data;
-        },
-      }),
-    );
+    const exitCode = buildResult.exitCode;
 
-    const exitCode = await buildProcess.exit;
-
-    if (exitCode !== 0) {
+    if (!exitCode || exitCode !== 0) {
       // Trigger build failed alert
       this.onDeployAlert?.({
         type: 'error',
         title: 'Build Failed',
         description: 'Your application build failed',
-        content: output || 'No build output available',
+        content: buildResult.output || 'No build output available',
         stage: 'building',
         buildStatus: 'failed',
         deployStatus: 'pending',
         source: 'netlify',
       });
 
-      throw new ActionCommandError('Build Failed', output || 'No Output Available');
+      throw new ActionCommandError('Build Failed', buildResult.output || 'No Output Available');
     }
 
     // Trigger build success alert
@@ -426,38 +429,14 @@ export class ActionRunner {
       source: 'netlify',
     });
 
-    // Check for common build directories
-    const commonBuildDirs = ['dist', 'build', 'out', 'output', '.next', 'public'];
-
-    let buildDir = '';
-
-    // Try to find the first existing build directory
-    for (const dir of commonBuildDirs) {
-      const dirPath = nodePath.join(webcontainer.workdir, dir);
-
-      try {
-        await webcontainer.fs.readdir(dirPath);
-        buildDir = dirPath;
-        logger.debug(`Found build directory: ${buildDir}`);
-        break;
-      } catch (error) {
-        // Directory doesn't exist, try the next one
-        logger.debug(`Build directory ${dir} not found, trying next option. ${error}`);
-      }
-    }
-
-    // If no build directory was found, use the default (dist)
-    if (!buildDir) {
-      buildDir = nodePath.join(webcontainer.workdir, 'dist');
-      logger.debug(`No build directory found, defaulting to: ${buildDir}`);
-    }
 
     return {
-      path: buildDir,
-      exitCode,
-      output,
+      path: buildResult.path!,
+      exitCode: buildResult.exitCode!,
+      output: buildResult.output!,
     };
   }
+
   async handleSupabaseAction(action: SupabaseAction) {
     const { operation, content, filePath } = action;
     logger.debug('[Supabase Action]:', { operation, filePath, content });
