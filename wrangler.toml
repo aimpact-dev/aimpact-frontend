@@ -14,6 +14,9 @@ VITE_REWARDS_SHARING_PERCENT = "10"
 VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
 DYNAMIC_ENVIROMENT_ID = "ef8d5320-bb51-49c8-9932-5926b6646175"
 ENVIRONMENT = "production"
+DAYTONA_API_KEY = "dtn_e46a309ff2e5cb089d1b13f90e118b3b8181c1e5c112c0cb8c196f3a9e466c9a"
+DAYTONA_ORG_ID = "7ad8aa5c-f44d-4718-9958-aff0de3c9acb"
+DAYTONA_API_URL = "https://app.daytona.io/api"
 
 [env.preview]
 name = "aimpact-preview"
