@@ -1,11 +1,11 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo, useId, useRef } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
-import { ActionRunner, type ActionState } from '~/lib/runtime/action-runner';
+import { ActionRunner } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
@@ -29,7 +29,8 @@ import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { getSandbox } from '~/lib/daytona';
+import { currentParsingMessageState, parserState } from '~/lib/stores/parse';
+import { chatStore } from '~/lib/stores/chat';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -290,46 +291,43 @@ export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
     const customPreviewState = useRef('');
-    const [waitForInstall, setWaitForInstall] = useState(false);
-    const [forcePreviewLoading, setForcePreviewLoading] = useState(false);
+    const waitForInstallRunned = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
     const chatIdx = useStore(lastChatIdx);
     const chatSummary = useStore(lastChatSummary);
-    const [lastSnapshotTime, setLastSnapshotTime] = useState<number | null>(null);
-    const [activeSnapshotPromise, setActiveSnapshotPromise] = useState<Promise<void> | null>(null);
+    const lastSnapshotRef = useRef<number | null>(null);
+
+    function sleep(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
 
     useEffect(() => {
       // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
-      const removeSubscribe = workbenchStore.files.subscribe((files) => {
-        if (!chatIdx) return;
+      if (!parserState.get().parserRan) return;
 
-        if (!lastSnapshotTime || !activeSnapshotPromise || Date.now() - lastSnapshotTime > 10000) {
-          takeSnapshot(chatIdx, files, undefined, chatSummary);
-          setLastSnapshotTime(Date.now());
-        } else {
-          const func = takeSnapshot(chatIdx, files, undefined, chatSummary);
-          setActiveSnapshotPromise(func);
-          func
-            .then(() => {
-              setLastSnapshotTime(Date.now());
-            })
-            .finally(() => {
-              setActiveSnapshotPromise(null);
-            });
+      const removeSubscribe = workbenchStore.files.subscribe((files) => {
+        const { initialMessagesIds } = chatStore.get();
+        const currentParsingMessage = currentParsingMessageState.get();
+        if (!chatIdx || !initialMessagesIds.length) return;
+
+        if (!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) {
+          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > 10000) {
+            takeSnapshot(chatIdx, files, undefined, chatSummary);
+            console.debug('Snapshot was taken on file change');
+            lastSnapshotRef.current = Date.now();
+          }
         }
       });
 
       return () => {
         removeSubscribe();
       };
-    }, [workbenchStore.files, chatIdx, chatSummary]);
-
+    }, [chatIdx, chatSummary]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -344,10 +342,6 @@ export const Workbench = memo(
     const setSelectedView = (view: WorkbenchViewType) => {
       workbenchStore.currentView.set(view);
     };
-
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
 
     async function waitForInstallCmd() {
       const artifacts = Object.values(workbenchStore.artifacts.get());
@@ -410,37 +404,51 @@ export const Workbench = memo(
     useEffect(() => {
       if (hasPreview) return;
       if (selectedView !== 'preview') return;
+
       const func = async (): Promise<{ customMsg: boolean }> => {
+        if (waitForInstallRunned.current === true) return { customMsg: true };
+
         customPreviewState.current = 'Running...';
         const artifacts = Object.values(workbenchStore.artifacts.get());
+        console.log(artifacts);
         if (!artifacts.length) return { customMsg: false };
 
         const artifact = Object.values(artifacts).find((a) => a.runner);
+        console.log(artifact);
         if (!artifact) return { customMsg: false };
 
-        let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
-        if (!waitForInstall) {
-          customPreviewState.current = 'Wait for install...';
-          setWaitForInstall(true);
-          waitForInstallRes = await waitForInstallCmd();
-          setWaitForInstall(false);
+        // const { initialMessagesIds } = chatStore.get();
+        const currentParsingMessage = currentParsingMessageState.get();
+        const { parserRan } = parserState.get();
+        if (!parserRan || currentParsingMessage) {
+          customPreviewState.current = 'Wait for project initialization...';
+          return { customMsg: true };
         }
 
-        if (!hasPreview && selectedView === 'preview') {
+        let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
+        if (waitForInstallRunned.current === false) {
+          customPreviewState.current = 'Wait for install...';
+          waitForInstallRunned.current = true;
+          waitForInstallRes = await waitForInstallCmd();
+          waitForInstallRunned.current = false;
+        }
+
+        if (waitForInstallRes?.status && !hasPreview && selectedView === 'preview') {
           customPreviewState.current = 'Running...';
           try {
             workbenchStore.startProject(artifact.runner);
           } catch (e) {
             console.error(e);
             customPreviewState.current = 'Failed to run preview. Maybe your project structure is not supported';
-            return { customMsg: true };
           }
+          return { customMsg: true };
         }
 
         return { customMsg: waitForInstallRes?.customMsg || false };
       };
 
       func().then((res) => {
+        console.log('func res', res);
         if (!hasPreview && !res.customMsg) {
           customPreviewState.current = 'No preview available.';
         }
@@ -474,21 +482,6 @@ export const Workbench = memo(
 
     const onFileReset = useCallback(() => {
       workbenchStore.resetCurrentDocument();
-    }, []);
-
-    const handleSyncFiles = useCallback(async () => {
-      setIsSyncing(true);
-
-      try {
-        const directoryHandle = await window.showDirectoryPicker();
-        await workbenchStore.syncFiles(directoryHandle);
-        toast.success('Files synced successfully');
-      } catch (error) {
-        console.error('Error syncing files:', error);
-        toast.error('Failed to sync files');
-      } finally {
-        setIsSyncing(false);
-      }
     }, []);
 
     const handleSelectFile = useCallback((filePath: string) => {
@@ -645,7 +638,7 @@ export const Workbench = memo(
                     <SmartContractView postMessage={postMessage} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
-                    <Preview customText={customPreviewState.current} forcePreviewLoading={forcePreviewLoading} />
+                    <Preview customText={customPreviewState.current} />
                   </View>
                 </div>
               </div>

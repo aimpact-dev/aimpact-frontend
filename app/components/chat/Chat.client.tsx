@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import { convertToCoreMessages, type Message, type UIMessage } from 'ai';
+import { type Message, type UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -47,6 +47,7 @@ export function Chat() {
   const title = useStore(description);
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
+    // chatStore.setKey('initialMessagesIds', initialMessages.map(m => m.id));
   }, [initialMessages]);
 
   if ((error as any)?.status === 404) {
@@ -107,7 +108,11 @@ const processSampledMessages = createSampler(
     storeMessageHistory: (messages: Message[]) => Promise<void>;
   }) => {
     const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
-    parseMessages(messages, isLoading);
+    const filteredMessages = messages.filter((message) => {
+      return message.annotations ? !message.annotations.includes('ignore-actions') : true;
+    });
+    console.log('filtered messages in chat.client', filteredMessages, messages);
+    parseMessages(filteredMessages, isLoading);
 
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
@@ -241,7 +246,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
       logger.debug('Finished streaming');
       if (!chatIdx) return;
-      takeSnapshot(chatIdx, files, undefined, chatSummary).then(() => logger.debug('Project saved after message on finish'));
+      takeSnapshot(chatIdx, files, undefined, chatSummary).then(() =>
+        logger.debug('Project saved after message on finish'),
+      );
     },
     initialMessages,
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
@@ -600,16 +607,18 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
          * importChat={importChat}
          * exportChat={exportChat}
          */
-        messages={messages.map((message, i) => {
-          if (message.role === 'user') {
-            return message;
-          }
+        messages={
+          messages.map((message, i) => {
+            if (message.role === 'user') {
+              return message;
+            }
 
-          return {
-            ...message,
-            content: parsedMessages[i] || '',
-          };
-        }) as UIMessage[]}
+            return {
+              ...message,
+              content: parsedMessages[i] || '',
+            };
+          }) as UIMessage[]
+        }
         enhancePrompt={enhancePromptCallback}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}

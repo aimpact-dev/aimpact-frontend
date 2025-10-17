@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { StreamingMessageParser } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
+import { parserState } from '../stores/parse';
 
 const logger = createScopedLogger('useMessageParser');
 
@@ -58,9 +59,10 @@ export function useMessageParser() {
       messageParser.reset();
     }
 
+    parserState.setKey('parserRan', true);
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant' || message.role === 'user') {
-        const newParsedContent = messageParser.parse(message.id, extractTextContent(message));
+        const newParsedContent = messageParser.parse(message.id, extractTextContent(message), messages.map(m => m.id));
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
           [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,

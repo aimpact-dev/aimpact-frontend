@@ -89,10 +89,26 @@ export function useChatHistory() {
                 archivedMessages = storedMessages.messages.slice(0, snapshotIndex + 1);
               }
 
-              let filteredMessages = storedMessages.messages.slice(useProjectImport ? snapshotIndex : 0, endingIndex + 1);
-              
+              let filteredMessages = storedMessages.messages.slice(
+                useProjectImport ? snapshotIndex : 0,
+                endingIndex + 1,
+              );
+              filteredMessages = filteredMessages.map((message) => {
+                if (!message.annotations) {
+                  message.annotations = ['no-snapshot-save'];
+                } else {
+                  if (!message.annotations.includes('no-snapshot-save')) {
+                    message.annotations.push('no-snapshot-save');
+                  }
+                  if (!message.annotations.includes('ignore-actions')) {
+                    message.annotations.push('ignore-actions');
+                  }
+                }
+                return message;
+              });
+
               setArchivedMessages(archivedMessages);
-              
+
               if (useProjectImport) {
                 const files = Object.entries(validSnapshot?.files || {})
                   .map(([key, value]) => {
@@ -143,6 +159,7 @@ export function useChatHistory() {
                     `, // Added commandActionsString, followupMessage, updated id and title
                     annotations: [
                       'no-store',
+                      'no-snapshot-save',
                       ...(summary
                         ? [
                             {
@@ -158,7 +175,7 @@ export function useChatHistory() {
                 ];
                 restoreSnapshot(mixedId);
               }
-
+              // setInitialMessages(storedMessages.messages);
               setInitialMessages(filteredMessages);
 
               description.set(storedMessages.description);
@@ -176,7 +193,10 @@ export function useChatHistory() {
             console.error(error);
 
             logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-            toast.error('Failed to load chat: ' + error.message); // More specific error
+            console.log(error);
+            if (error?.status && error.status !== 404) {
+              toast.error('Failed to load chat: ' + error.message); // More specific error
+            }
             setError(error);
           });
       } else {
@@ -246,7 +266,7 @@ export function useChatHistory() {
     initialMessages,
     error,
     takeSnapshot,
-    updateChatMestaData: async (metadata: IChatMetadata) => {
+    updateChatMetaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();
 
       if (!id) {
@@ -275,11 +295,10 @@ export function useChatHistory() {
       if (initialMessages.length === 0 && !_chatId && !mixedId && !creatingProjectRef.current) {
         creatingProjectRef.current = true;
 
-        console.log("Creating a new project, calling createProject of http database.");
+        console.log('Creating a new project, calling createProject of http database.');
         try {
           _chatId = await createProject(`${firstArtifact?.title || `Sample Project ${Date.now()}`}`);
-        }
-        catch (error) {
+        } catch (error) {
           console.error('Failed to create project:', error);
           toast.error('Failed to create new chat project.');
           creatingProjectRef.current = false;
@@ -319,7 +338,7 @@ export function useChatHistory() {
       const finalChatId = _chatId;
       console.log("Final chat ID to be used for storing messages: ", finalChatId);
 
-      if (creatingProjectRef.current){
+      if (creatingProjectRef.current) {
         console.warn('Creating project is in progress, cannot store messages yet.');
         return;
       }

@@ -4,4 +4,5 @@ export const chatStore = map({
   started: false,
   aborted: false,
   showChat: true,
+  initialMessagesIds: [] as string[],
 });

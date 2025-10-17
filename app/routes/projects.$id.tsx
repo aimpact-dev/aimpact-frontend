@@ -68,11 +68,7 @@ export default function Project() {
   const s3Url = useDeploymentQuery(params.id, 's3').data;
   const icpUrl = useDeploymentQuery(params.id, 'icp').data;
   const akashUrl = useDeploymentQuery(params.id, 'akash').data;
-  const { data: tokenInfo, isLoading: tokenInfoLoading, error: tokenInfoError } = useGetHeavenToken(params.id);
-
-  useEffect(() => {
-    console.log(!!tokenInfo, tokenInfoLoading, tokenInfoError);
-  });
+  const { data: tokenInfo, isLoading: tokenInfoLoading } = useGetHeavenToken(params.id);
 
   const [showTokenWindow, setShowTokenWindow] = useState(false);
 

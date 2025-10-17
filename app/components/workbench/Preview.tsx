@@ -49,7 +49,7 @@ const WINDOW_SIZES: WindowSize[] = [
   { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
 ];
 
-export const Preview = memo(({ customText, forcePreviewLoading }: { customText?: string; forcePreviewLoading: boolean }) => {
+export const Preview = memo(({ customText }: { customText?: string }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -919,7 +919,7 @@ export const Preview = memo(({ customText, forcePreviewLoading }: { customText?:
                       }}
                     />
                     <PreviewIframe
-                      isPreviewLoading={isPreviewLoading || forcePreviewLoading}
+                      isPreviewLoading={isPreviewLoading}
                       setIsPreviewLoading={setIsPreviewLoading}
                       iframeRef={iframeRef}
                       iframeUrl={iframeUrl}
@@ -929,7 +929,7 @@ export const Preview = memo(({ customText, forcePreviewLoading }: { customText?:
                 </div>
               ) : (
                 <PreviewIframe
-                  isPreviewLoading={isPreviewLoading || forcePreviewLoading}
+                  isPreviewLoading={isPreviewLoading}
                   setIsPreviewLoading={setIsPreviewLoading}
                   iframeRef={iframeRef}
                   iframeUrl={iframeUrl}

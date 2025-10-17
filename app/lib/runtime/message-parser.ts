@@ -10,6 +10,7 @@ import type {
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
+import { currentParsingMessageState } from '../stores/parse';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
 const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
@@ -122,7 +123,7 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string) {
+  parse(messageId: string, input: string, messageList?: string[]) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -136,6 +137,7 @@ export class StreamingMessageParser {
 
       this.#messages.set(messageId, state);
     }
+    currentParsingMessageState.set(messageId);
 
     let output = '';
     let i = state.position;
@@ -324,6 +326,10 @@ export class StreamingMessageParser {
     }
 
     state.position = i;
+
+    if (!messageList || !messageList.length || messageId === messageList.at(-1)) {
+      currentParsingMessageState.set(null);
+    }
 
     return output;
   }
