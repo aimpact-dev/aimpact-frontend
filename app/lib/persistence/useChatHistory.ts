@@ -32,6 +32,7 @@ export const lastChatIdx = atom<string | undefined>(undefined);
 export const lastChatSummary = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
+
 export function useChatHistory() {
   const navigate = useNavigate();
 
@@ -342,7 +343,6 @@ export function useChatHistory() {
           ).then(async () => {
             lastChatIdx.set(messages[messages.length - 1].id);
             lastChatSummary.set(chatSummary);
-            return takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), finalChatId, chatSummary);
           });
 
           await settingProjectWorkaroundPromise.current;

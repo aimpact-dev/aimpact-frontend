@@ -13,9 +13,125 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Pop up a Phantom Wallet to confirm transactions for each action
 - Do not try to use solana and anchor cli tools, because those are not installed in the system
 - To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
-- Use latest frontend solana libraries to parse the IDL and integrate it into app
+
+## Smart contract integration into frontend:
 - Avoid using mocks for imitating smart contract behaviour, use actual calls to the smart contract
-- When integrating smart contract into app always use the public key from IDL.`
+- Use latest frontend solana libraries to parse the IDL and integrate it into app
+- When integrating smart contract into app always use the public key from IDL
+- Use devnet for integration
+- Prefer to use \`@coral-xyz/anchor\` and \`@solana/web3.js\` for smart contract integration
+
+Here is example of wallet conntector adapter to root frontend file (usually \`App.tsx\` or \`main.tsx\`)
+\`\`\`
+import { useMemo } from "react";
+import {
+  ConnectionProvider,
+  WalletProvider,
+} from "@solana/wallet-adapter-react";
+import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import {
+  WalletModalProvider,
+  WalletMultiButton,
+} from "@solana/wallet-adapter-react-ui";
+import { clusterApiUrl } from "@solana/web3.js";
+import "./index.css";
+
+import "@solana/wallet-adapter-react-ui/styles.css";
+
+function App() {
+  const network = WalletAdapterNetwork.Devnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+
+  const wallets = useMemo(
+    () => [
+      // if desired, manually define specific/custom wallets here (normally not required)
+      // otherwise, the wallet-adapter will auto detect the wallets a user's browser has available
+    ],
+    [network],
+  );
+
+  return (
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <WalletMultiButton />
+          <h1>Hello Solana</h1>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}
+
+export default App;
+\`\`\`
+
+Here is example code of smart contract integration and calling methods:
+\`\`\`
+// config.ts
+import { IdlAccounts, Program } from "@coral-xyz/anchor";
+import { IDL, Counter } from "./idl";
+import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
+
+const programId = new PublicKey("B2Sj5CsvGJvYEVUgF1ZBnWsBzWuHRQLrgMSJDjBU5hWA");
+const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+// Initialize the program interface with the IDL, program ID, and connection.
+// This setup allows us to interact with the on-chain program using the defined interface.
+export const program = new Program<Counter>(IDL, programId, {
+  connection,
+});
+
+export const [counterPDA] = PublicKey.findProgramAddressSync(
+  [Buffer.from("counter")],
+  program.programId,
+);
+
+// This is just a TypeScript type for the Counter data structure based on the IDL
+// We need this so TypeScript doesn't yell at us
+export type CounterData = IdlAccounts<Counter>["counter"];
+
+// someComponent.tsx
+import { useEffect, useState } from "react";
+import { useConnection } from "@solana/wallet-adapter-react";
+import { program, counterPDA, CounterData } from "../anchor/setup";
+
+...
+  const { connection } = useConnection();
+  const [counterData, setCounterData] = useState<CounterData | null>(null);
+
+  useEffect(() => {
+    const fetchCounterData = async () => {
+      try {
+        // Fetch initial account data
+        const data = await program.account.counter.fetch(counterPDA);
+        setCounterData(data);
+        // you can add some user feedback here
+      } catch (error) {
+        console.error("Error fetching counter data:", error);
+      }
+    };
+
+    fetchCounterData();
+
+    const subscriptionId = connection.onAccountChange(
+      counterPDA,
+      // Callback for when the account changes
+      (accountInfo) => {
+        try {
+          const decodedData = program.coder.accounts.decode("counter", accountInfo.data);
+          setCounterData(decodedData);
+        } catch (error) {
+          console.error("Error decoding account data:", error);
+        }
+      },
+    );
+
+    return () => {
+      connection.removeAccountChangeListener(subscriptionId);
+    };
+  }, [program, counterPDA, connection]);
+\`\`\`
+`
 
   return ENABLE_SOLANA_PROMPT ? prompt : '';
 };
@@ -32,16 +148,16 @@ Daytona has the ability to run a web server but requires to use an npm package (
 
 **Core Limitation:** No native binaries. Only JS, WebAssembly, and packages without native dependencies are allowed.
 **Tools:** \`git\`, \`pip\`, \`diff\`, and \`patch\` are **NOT** available.
-**Scripting:** Prefer Node.js scripts over shell scripts.
 **Commands:**
   - Use non-interactive flags (e.g., \`npx --yes\`).
   - List one command per line. Do not use \`&&\`.
   - Avoid \`alert()\`.
 **Dependencies:**
-  - Always define dependencies in \`package.json\`.
-  - Prefer to use \`pnpm\` for better performance.
-  - Always run \`pnpm install\` or modifying \`package.json\`. This is the first step before any other action.
-  - Prefer to import using relative paths. It has less potential errors
+- Prefer to use \`pnpm\` for better performance.
+- Prefer to import using relative paths in your code. It has less potential errors
+- Think before editing the code which libraries you should install and use. After you finish editing files — analyze used libraries, edit package.json and use \`pnpm install\`. So use this flow to avoid importing uinstanlled libraries.
+- Always define dependencies in \`package.json\`.
+- Always run \`pnpm install\` or modifying \`package.json\`.
 
 **Code Quality:** Write clean, modular code. Split features into smaller, reusable files and connect them with imports.
 **UI Defaults:**
@@ -51,11 +167,10 @@ Daytona has the ability to run a web server but requires to use an npm package (
 Use 2 spaces for code indentation
 
 # Chain of thought instructions
-Before providing a solution, BRIEFLY outline your implementation steps. This helps ensure systematic thinking and clear communication. Your planning should:
+Before providing a solution, outline your implementation steps. This helps ensure systematic thinking and clear communication. Your planning should:
 - List concrete steps you'll take
 - Identify key components needed
 - Note potential challenges
-- Be concise (2-4 lines maximum)
 
 # Artifact Info
 AImpact creates a single, comprehensive project artifact. It includes:
@@ -69,7 +184,7 @@ AImpact creates a single, comprehensive project artifact. It includes:
 
 ## Updating
 - Use \`update\` when changing fewer than 20 lines and fewer than 5 distinct locations. You can call \`update\` multiple times to update different parts of the artifact.
-- When using \`update\`, you must provide both \`<old>\` and \`<new>\`. Pay special attention to whitespace. So you shouldn't add \`\\n\` char if you don't want to replace it.
+- When using \`update\`, you must provide both \`<old>\` and \`<new>\`. Pay special attention to whitespace. So you shouldn't add \`\\n\` char if you don't want to replace this char.
 - \`<old>\` content must be perfectly unique (i.e. appear EXACTLY once) in the artifact and must match exactly, including whitespace.
 - When updating, maintain the same level of quality and detail as the original artifact.
 - Use \`file\` with same path when structural changes are needed or when modifications would exceed the above thresholds.
@@ -131,111 +246,6 @@ export const CONTINUE_PROMPT = stripIndents`
   Continue your prior response. IMPORTANT: Immediately begin from where you left off without any interruptions.
   Do not repeat any content, including artifact and action tags.
 `;
-
-export const SOLANA_PROGRAM_CODE = `
-  use anchor_lang::prelude::*;
-use std::mem::size_of;
-declare_id!("6ytMmvJR2YYsuPR7FSQUQnb7UGi1rf36BrXzZUNvKsnj");
-
-#[program]
-pub mod mappings {
-    use super::*;
-
-    pub fn initialize(ctx: Context<Initialize>, domain: u64, key: u64) -> Result<()> {
-        Ok(())
-    }
-
-    pub fn set(ctx: Context<Set>, domain: u64, key: u64, value: u64) -> Result<()> {
-        ctx.accounts.val.value = value;
-        Ok(())
-    }
-
-    pub fn get(ctx: Context<Get>, domain: u64, key: u64) -> Result<u64> {
-        Ok(ctx.accounts.val.value)
-    }
-}
-
-#[derive(Accounts)]
-#[instruction(domain: u64, key: u64)]
-pub struct Initialize<'info> {
-
-    #[account(init,
-              payer = signer,
-              space = size_of::<Val>() + 8,
-              seeds=[&domain.to_le_bytes().as_ref(), &key.to_le_bytes().as_ref()],
-              bump)]
-    val: Account<'info, Val>,
-
-    #[account(mut)]
-    signer: Signer<'info>,
-
-    system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct Val {
-    value: u64,
-}
-
-#[derive(Accounts)]
-#[instruction(domain: u64, key: u64)]
-pub struct Set<'info> {
-    #[account(mut)]
-    val: Account<'info, Val>,
-}
-
-#[derive(Accounts)]
-#[instruction(domain: u64, key: u64)]
-pub struct Get<'info> {
-    val: Account<'info, Val>,
-}
-`;
-
-export const SOLANA_PROGRAM_TEST_CODE = `
-  import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { Mappings } from "../target/types/mappings";
-import { assert } from "chai";
-
-describe("mappings", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-
-  const program = anchor.workspace.mappings as Program<Mappings>;
-  const key = new anchor.BN(42);
-  const domain = new anchor.BN(777);
-  const value = new anchor.BN(100);
-
-  const seeds = [domain.toArrayLike(Buffer, "le", 8), key.toArrayLike(Buffer, "le", 8)];
-
-  const valueAccount = anchor.web3.PublicKey.findProgramAddressSync(
-    seeds,
-    program.programId
-  )[0];
-
-  it("Initialize mapping storage", async () => {
-    await program.methods.initialize(domain, key).accounts(valueAccount).rpc();
-  });
-
-  it("Should set value", async () => {
-    await program.methods.set(domain, key, value).accounts({val: valueAccount}).rpc();
-  });
-
-  it("Should get value (direct memory access)", async () => {
-    const retrievedValue = (await program.account.val.fetch(valueAccount)).value;
-    assert.equal(retrievedValue.toString(), value.toString());
-
-  });
-
-   it("Should get value (via program method)", async () => {
-    const retrievedValue = await program.methods.get(domain, key).accounts({val: valueAccount}).view();
-    assert.equal(retrievedValue.toString(), value.toString());
-  });
-});
-`;
-
-export const SOLANA_PROGRAM_ID = '6ytMmvJR2YYsuPR7FSQUQnb7UGi1rf36BrXzZUNvKsnj';
-export const SOLANA_DEVNET_RPC_URL = 'https://api.devnet.solana.com';
 
 export const starterTemplateSelectionPrompt = (templates: Template[]) => `
 You are an experienced developer who helps people choose the best starter template for their projects.

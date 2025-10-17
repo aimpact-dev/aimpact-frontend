@@ -59,7 +59,7 @@ export const STARTER_TEMPLATES: Template[] = [
   {
     name: 'vite-solana-app',
     label: 'Vite + Solana + React + Typescript',
-    description: 'Solana blockchain development with React + TypeScript + Vite + Tailwind for building Web3 applications',
+    description: 'Solana blockchain development with React + TypeScript + Vite + Tailwind for building Web3 applications. Use this, if user wants to use smart contracts',
     tags: ['typescript', 'vite', 'vitejs', 'react', 'solana', 'blockchain', 'web3', 'anchor', 'dapp'],
     icon: 'i-bolt:react',
     files: snapshotsData['vite-solana-app'].files,
