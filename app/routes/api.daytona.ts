@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
+import Redis from 'ioredis';
 
 /**
  * Parameters required for identifying a user's sandbox.
@@ -35,42 +36,83 @@ const allowedMethods = [
   'dispose',
 ];
 
-const usersSandboxes = new Map<string, LazySandbox>();
+let redisClient: Redis | null = null;
+const usersSandboxPromises = new Map<string, Promise<LazySandbox>>();
 
-function getEnvVar(context: any, key: string): string | undefined {
+function getEnvVar(context: any, key: string): string {
+  let env: string | undefined;
   if (context.cloudflare?.env?.[key]) {
-    return context.cloudflare.env[key];
+    env = context.cloudflare.env[key];
   }
-  return process.env[key];
+  env = process.env[key];
+  if(!env){
+    throw new Error(`Environment variable "${key}" not found.`);
+  }
+  return env;
 }
 
 function getCompositeId(identification: Identification){
   return `${identification.authToken}:${identification.uuid}`;
 }
 
-function getSandbox(identification: Identification): LazySandbox {
+async function getSandbox(identification: Identification): Promise<LazySandbox> {
   const compositeId = getCompositeId(identification);
-  if (!usersSandboxes.has(compositeId)) {
-    throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
+  if (!usersSandboxPromises.has(compositeId)) {
+    const redisClient = getRedisClient(identification.context);
+    const existsOnRedis = (await redisClient.exists(compositeId)) === 1;
+    if (existsOnRedis) {
+      const sandboxId = await redisClient.get(compositeId);
+      const context = identification.context;
+      const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
+      const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
+      const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
+      const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
+      const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
+      usersSandboxPromises.set(compositeId, Promise.resolve(sandbox));
+    }
+    else{
+      throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
+    }
   }
-  return usersSandboxes.get(compositeId)!;
+  return usersSandboxPromises.get(compositeId)!;
 }
 
-function createSandboxIfNotExists(identification: Identification): LazySandbox{
+function getRedisClient(context: any): Redis{
+  if(!redisClient){
+    const redisUrl = getEnvVar(context, 'REDIS_URL');
+    if(!redisUrl){
+      throw new Error('Could not find Redis URL in environment variables.');
+    }
+    redisClient = new Redis(redisUrl);
+  }
+  return redisClient;
+}
+
+function createSandboxPromiseIfNotExists(identification: Identification) {
   const compositeId = getCompositeId(identification);
   const {context} = identification;
-  if(!usersSandboxes.has(compositeId)) {
+
+  const createFunc = async (): Promise<LazySandbox> => {
+    const redisClient = getRedisClient(context);
+    const existsOnRedis = (await redisClient.exists(compositeId)) === 1;
+    let sandboxId: string | null = null;
+    if(existsOnRedis){
+      sandboxId = await redisClient.get(compositeId);
+    }
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
     const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
-    if (!apiKey || !apiUrl || !orgId || !proxyUrl) {
-      throw new Error('Missing Daytona API configuration');
-    }
-    const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl);
-    usersSandboxes.set(compositeId, sandbox);
+    const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
+    sandboxId = await sandbox.initialize();
+    //Setting actual sandbox id to redis. This way we handle both cases: when sandbox already exists and when new one is created.
+    await redisClient.set(compositeId, sandboxId);
+    return sandbox;
   }
-  return usersSandboxes.get(compositeId)!;
+
+  if(!usersSandboxPromises.has(compositeId)) {
+    usersSandboxPromises.set(compositeId, createFunc());
+  }
 }
 
 
@@ -151,7 +193,7 @@ export async function action({context, request}: ActionFunctionArgs) {
 async function createSandbox(params: MethodParams) {
   const { identification } = params;
   try{
-    createSandboxIfNotExists(identification);
+    await createSandboxPromiseIfNotExists(identification);
   }
   catch (error) {
     return new Response('Failed to create sandbox: ' + error, { status: 500 });
@@ -166,7 +208,7 @@ async function getPreviewLink(params: MethodParams){
     return new Response('Invalid port number for getPreviewLink method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try{
     const link = await sandbox.getPreviewLink(port);
     const result = {
@@ -194,7 +236,7 @@ async function createFolder(params: MethodParams){
     return new Response('Invalid mode for createFolder method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.createFolder(path, mode);
     return new Response('Folder created successfully', { status: 200 });
@@ -209,7 +251,7 @@ async function fileExists(params: MethodParams){
   if (!filePath || typeof filePath !== 'string') {
     return new Response('Invalid file path for fileExists method.', { status: 400 });
   }
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const exists = await sandbox.fileExists(filePath);
     return new Response(JSON.stringify({ exists }),{
@@ -228,7 +270,7 @@ async function deleteFile(params: MethodParams){
     return new Response('Invalid path for deleteFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.deleteFile(path);
     return new Response('File deleted successfully', { status: 200 });
@@ -249,7 +291,7 @@ async function executeCommand(params: MethodParams){
     return new Response('Invalid command for executeCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const response = await sandbox.executeCommand(command, cwd, env, timeout);
     return new Response(JSON.stringify(response), {
@@ -274,7 +316,7 @@ async function uploadFile(params: MethodParams){
     return new Response('Invalid remote path for uploadFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.uploadFile(fileBuffer, remotePath);
     return new Response('File uploaded successfully', { status: 200 });
@@ -295,7 +337,7 @@ async function searchFiles(params: MethodParams){
     return new Response('Invalid pattern for searchFiles method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const response = await sandbox.searchFiles(path, pattern);
     return new Response(JSON.stringify(response), {
@@ -316,7 +358,7 @@ async function downloadFile(params: MethodParams){
     return new Response('Invalid remote path for downloadFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
 
   try {
     const fileBuffer = await sandbox.downloadFile(remotePath, timeout);
@@ -340,7 +382,7 @@ async function listFiles(params: MethodParams){
     return new Response('Invalid path for listFiles method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const files = await sandbox.listFiles(path);
     return new Response(JSON.stringify(files), {
@@ -358,7 +400,7 @@ async function createSession(params: MethodParams){
     return new Response('Invalid session ID for createSession method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.createSession(sessionId);
     return new Response('Session created successfully', { status: 200 });
@@ -374,7 +416,7 @@ async function deleteSession(params: MethodParams){
     return new Response('Invalid session ID for deleteSession method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.deleteSession(sessionId);
     return new Response('Session deleted successfully', { status: 200 });
@@ -396,7 +438,7 @@ async function executeSessionCommand(params: MethodParams){
     return new Response('Invalid command for executeSessionCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const response = await sandbox.executeSessionCommand(sessionId, requestObj, timeout);
     return new Response(JSON.stringify(response), {
@@ -419,7 +461,7 @@ async function getSessionCommand(params: MethodParams){
     return new Response('Invalid command ID for getSessionCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const command = await sandbox.getSessionCommand(sessionId, commandId);
     return new Response(JSON.stringify(command), {
@@ -442,7 +484,7 @@ async function getSessionCommandLogs(params: MethodParams){
     return new Response('Invalid command ID for getSessionCommandLogs method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const logs = await sandbox.getSessionCommandLogs(sessionId, commandId);
     return new Response(logs, {
@@ -456,14 +498,20 @@ async function getSessionCommandLogs(params: MethodParams){
 async function disposeSandbox(params: MethodParams){
   const { identification } = params;
   const compositeId = getCompositeId(identification);
-  if(usersSandboxes.has(compositeId)){
-    const sandbox = usersSandboxes.get(compositeId);
+  const redisClient = getRedisClient(identification.context);
+  if(usersSandboxPromises.has(compositeId)){
+    const sandbox = await usersSandboxPromises.get(compositeId);
     if(!sandbox){
       return new Response('Sandbox instance not found', { status: 404 });
     }
-    usersSandboxes.delete(compositeId);
+    usersSandboxPromises.delete(compositeId);
     try {
       await sandbox.dispose();
+      const existsOnRedis = (await redisClient.exists(compositeId)) === 1;
+      if(existsOnRedis){
+        await redisClient.del(compositeId);
+      }
+      console.log("Sandbox deleted");
       return new Response('Sandbox disposed successfully', { status: 200 });
     } catch (error) {
       return new Response('Failed to dispose sandbox', { status: 500 });
