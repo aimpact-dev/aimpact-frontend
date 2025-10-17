@@ -27,7 +27,7 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
-import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
+import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { getSandbox } from '~/lib/daytona';
 
@@ -309,11 +309,11 @@ export const Workbench = memo(
       const removeSubscribe = workbenchStore.files.subscribe((files) => {
         if (!chatIdx) return;
 
-        if (!lastSnapshotTime || !activeSnapshotPromise || Date.now() - lastSnapshotTime > 5000) {
-          takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, chatSummary);
+        if (!lastSnapshotTime || !activeSnapshotPromise || Date.now() - lastSnapshotTime > 10000) {
+          takeSnapshot(chatIdx, files, undefined, chatSummary);
           setLastSnapshotTime(Date.now());
         } else {
-          const func = takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, chatSummary);
+          const func = takeSnapshot(chatIdx, files, undefined, chatSummary);
           setActiveSnapshotPromise(func);
           func
             .then(() => {
@@ -330,7 +330,6 @@ export const Workbench = memo(
       };
     }, [workbenchStore.files, chatIdx, chatSummary]);
 
-    // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);

@@ -5,7 +5,7 @@ import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
-import { description, useChatHistory } from '~/lib/persistence';
+import { description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import {
@@ -188,6 +188,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     [files, promptId, contextOptimizationEnabled],
   );
 
+  const { takeSnapshot } = useChatHistory();
+  const chatIdx = useStore(lastChatIdx);
+  const chatSummary = useStore(lastChatSummary);
+
   const {
     messages,
     status,
@@ -236,6 +240,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
 
       logger.debug('Finished streaming');
+      if (!chatIdx) return;
+      takeSnapshot(chatIdx, files, undefined, chatSummary).then(() => logger.debug('Project saved after message on finish'));
     },
     initialMessages,
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
@@ -270,7 +276,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     processSampledMessages({
-      messages: messages,
+      messages: messages as UIMessage[],
       initialMessages,
       isLoading: status == 'streaming',
       parseMessages,
@@ -586,10 +592,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}
         sendMessage={sendMessage}
-        model={model}
-        setModel={handleModelChange}
-        provider={provider}
-        setProvider={handleProviderChange}
         providerList={activeProviders}
         handleInputChange={handleInputChangeAndCache}
         handleStop={abort}
@@ -607,7 +609,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
             ...message,
             content: parsedMessages[i] || '',
           };
-        })}
+        }) as UIMessage[]}
         enhancePrompt={enhancePromptCallback}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}

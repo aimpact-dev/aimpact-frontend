@@ -1,9 +1,9 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import type { GetBuildRequestResponse } from '~/lib/hooks/tanstack/useContractBuild';
-import type { ContractBuild } from './SmartContractView';
 import type { GetDeploymentResponse, GetDeployRequestResponse } from '~/lib/hooks/tanstack/useContractDeploy';
 import { Button } from '~/components/ui';
 import { memo } from 'react';
+import type { ContractBuild } from './SmartContractView';
 
 interface Props {
   openAccordion: string | undefined;
