@@ -13,11 +13,13 @@ import { twMerge } from 'tailwind-merge';
 import { formatNumber } from '~/lib/utils';
 import TokenInfoForm from '~/components/chat/TokenInfoForm';
 import Popup from '~/components/common/Popup';
-import { LoadingDots } from '~/components/ui';
+import { Button, LoadingDots } from '~/components/ui';
 import { TwitterShareButton } from '~/components/ui/TwitterShareButton';
 import { motion } from 'framer-motion';
 import Navbar from '~/components/dashboard/navbar';
 import Footer from '~/components/footer/Footer.client';
+import { Tooltip } from '~/components/chat/Tooltip';
+import ProjectInfoUpdateForm from '~/components/dashboard/ProjectInfoUpdateForm';
 
 const InfoRow = ({ label, children, hidden }: { label: string; children: React.ReactNode; hidden?: boolean }) => {
   if (hidden) return null;
@@ -44,7 +46,6 @@ export default function Project() {
 
   const navigate = useNavigate();
 
-  const updateProjectMutation = useUpdateProjectInfoMutation(params.id, auth?.jwtToken);
   const isOwner = useMemo(() => {
     return !!(
       auth &&
@@ -55,27 +56,8 @@ export default function Project() {
   }, [auth, connected, publicKey, projectQuery.data?.projectOwnerAddress]);
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const editProjectInfo = async () => {
-    setErrorMsg(null);
-    const trimmedName = editName.trim();
-    if (!trimmedName) {
-      setErrorMsg('Project name cannot be empty');
-      return;
-    }
-    try {
-      await updateProjectMutation.mutateAsync({
-        name: trimmedName,
-        description: editDescription,
-      });
-      setIsEditing(false);
-    } catch (e: any) {
-      setErrorMsg(e?.message || 'Failed to save changes');
-    }
-  };
+  const [showInfoUpdateWindow, setShowInfoUpdateWindow] = useState(false);
 
   const s3Url = useDeploymentQuery(params.id, 's3').data;
   const icpUrl = useDeploymentQuery(params.id, 'icp').data;
@@ -97,14 +79,6 @@ export default function Project() {
     icpUrl && { name: 'ICP', url: icpUrl },
     akashUrl && { name: 'Akash', url: akashUrl },
   ].filter(Boolean) as { name: string; url: string }[];
-
-  // Initialize form fields when project data arrives or when entering edit mode
-  useEffect(() => {
-    if (projectQuery.data && isEditing) {
-      setEditName(projectQuery.data.name || '');
-      setEditDescription(projectQuery.data.description ?? '');
-    }
-  }, [projectQuery.data, isEditing]);
 
   const endTriggerRef = useRef(null);
   const [isFooterFixed, setIsFooterFixed] = useState(true);
@@ -156,6 +130,18 @@ export default function Project() {
 
   return (
     <main className="flex flex-col min-h-screen bg-gradient-to-br from-black via-purple-900 to-black">
+      <Popup
+        isShow={showInfoUpdateWindow}
+        handleToggle={() => {
+          setShowInfoUpdateWindow(!showInfoUpdateWindow);
+        }}
+      >
+        <div className="mb-3">
+          <h1 className="text-2xl font-bold">Project details</h1>
+        </div>
+
+        <ProjectInfoUpdateForm projectId={params.id} jwtToken={auth?.jwtToken} setShowForm={setShowInfoUpdateWindow} />
+      </Popup>
       <Navbar />
       <section id="project" className="flex-1 py-16 md:py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -174,26 +160,38 @@ export default function Project() {
                 />
               )}
               <div className="flex justify-between">
-                {!isEditing ? (
-                  <div className="flex gap-6 group">
-                    <button className="flex gap-3" onClick={() => navigate(`/projects`)}>
-                      <div className="inline-flex justify-center items-center bg-bolt-elements-button-primary-background rounded-md p-2 transition-colors duration-200 group-hover:bg-bolt-elements-button-primary-backgroundHover">
-                        <div className="i-ph:arrow-left h-5 w-5 color-accent-500"></div>
-                      </div>
-                      <h1 className="text-3xl font-bold flex items-center gap-2 text-white transition-colors duration-300 group-hover:text-accent-500">
-                        {project.name}
-                      </h1>
-                    </button>
+                <div className="flex gap-6 group">
+                  <button className="flex gap-3" onClick={() => navigate(`/projects`)}>
+                    <div className="inline-flex justify-center items-center bg-bolt-elements-button-primary-background rounded-md p-2 transition-colors duration-200 group-hover:bg-bolt-elements-button-primary-backgroundHover">
+                      <div className="i-ph:arrow-left h-5 w-5 color-accent-500"></div>
+                    </div>
+                    <h1 className="text-3xl font-bold flex items-center gap-2 text-white transition-colors duration-300 group-hover:text-accent-500">
+                      {project.name}
+                    </h1>
+                  </button>
+                </div>
+                {isOwner && (
+                  <div className="flex gap-2 items-center">
+                    <TwitterShareButton
+                      withLabel
+                      customVariant="glowing"
+                      deployUrls={deployUrls}
+                      classNames="select-none"
+                    />
+
+                    <Tooltip content="Edit project info">
+                      <Button
+                        variant="glowing"
+                        className="text-sm  py-2 px-3 transition-colors duration-200"
+                        onClick={() => {
+                          setShowInfoUpdateWindow(true);
+                        }}
+                      >
+                        <div className="i-ph:pencil" />
+                      </Button>
+                    </Tooltip>
                   </div>
-                ) : (
-                  <input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="text-3xl font-bold bg-gray-800 text-white border border-gray-700 rounded px-3 w-full"
-                    placeholder="Project name"
-                  />
                 )}
-                <TwitterShareButton withLabel deployUrls={deployUrls} />
                 {project.category && <div className="text-lg text-purple-400 mt-2">{project.category}</div>}
               </div>
             </section>
@@ -201,66 +199,18 @@ export default function Project() {
               <h2 className="text-2xl font-bold text-purple-300 mb-4">Project Overview</h2>
 
               <div className="flex justify-between gap-6">
-                {!isEditing ? (
-                  <p className="text-xl leading-relaxed text-gray-300">
-                    {project.description || 'No description available.'}
-                  </p>
-                ) : (
-                  <textarea
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    className="flex-1 min-h-[140px] text-lg leading-relaxed bg-gray-900 text-gray-100 border border-gray-800 rounded-lg p-4"
-                    placeholder="Add a description..."
-                  />
-                )}
+                <p className="text-xl leading-relaxed text-gray-300">
+                  {project.description || 'No description available.'}
+                </p>
 
                 {isOwner && (
                   <div className="flex flex-col items-end gap-2 min-w-[220px]">
-                    {!isEditing ? (
-                      <div className="flex gap-1">
-                        <div className="bg-bolt-elements-button-primary-background p-1 rounded-xl">
-                          <a
-                            className="text-sm flex items-center justify-center gap-2 bg-purple-900 border-1 border-bolt-elements-borderColorActive !hover:bg-purple-800/50 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200"
-                            href={`/chat/${project.id}`}
-                          >
-                            <div className="i-ph:code w-5 h-5" />
-                            Edit project
-                          </a>
-                        </div>
-                        <div className="bg-bolt-elements-button-primary-background p-1 rounded-xl">
-                          <button
-                            className="text-sm flex items-center justify-center gap-2 bg-purple-900 border-1 border-bolt-elements-borderColorActive !hover:bg-purple-800/50 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
-                            onClick={() => {
-                              setIsEditing(true);
-                              setErrorMsg(null);
-                            }}
-                          >
-                            <div className="i-ph:pencil w-5 h-5" />
-                            Edit project info
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2">
-                        <button
-                          className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg disabled:opacity-60"
-                          disabled={updateProjectMutation.isPending}
-                          onClick={editProjectInfo}
-                        >
-                          {updateProjectMutation.isPending ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          className="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
-                          onClick={() => {
-                            setIsEditing(false);
-                            setErrorMsg(null);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-                    {errorMsg && <div className="text-red-400 text-sm">{errorMsg}</div>}
+                    <a href={`/chat/${project.id}`}>
+                      <Button variant="glowing" className="gap-1 px-3">
+                        <div className="i-ph:code w-4 h-4" />
+                        Open editor
+                      </Button>
+                    </a>
                   </div>
                 )}
               </div>

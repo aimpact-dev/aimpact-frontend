@@ -1,6 +1,7 @@
-import { Tooltip } from '../chat/Tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu';
-import { Button } from './Button';
+import { Button, type ButtonProps } from './Button';
+import { classNames as cn } from '~/utils/classNames';
+import { Tooltip } from '../chat/Tooltip';
 
 type DeployUrl = {
   name: string;
@@ -8,12 +9,19 @@ type DeployUrl = {
 };
 
 type TwitterShareButtonProps = {
+  customVariant?: ButtonProps['variant'];
   deployUrls: DeployUrl[];
   withLabel?: boolean;
+  classNames?: string;
 };
 
-export function TwitterShareButton({ deployUrls, withLabel = false }: TwitterShareButtonProps) {
-  deployUrls.push({ name: 'fds', url: 'fsfsf' });
+export function TwitterShareButton({
+  customVariant,
+  deployUrls,
+  withLabel = false,
+  classNames,
+  ...props
+}: TwitterShareButtonProps) {
   const tweets = [
     'Built this with @AImpact_dev — one-prompt Web3 app generator. AI did the coding, I did the vibing.\nTake a look 👇\n',
     'Just shipped my new Web3 app with @AImpact_dev ⚡️\nNo team. No code. Just vibes.\nSee it live 👇\n',
@@ -37,56 +45,55 @@ export function TwitterShareButton({ deployUrls, withLabel = false }: TwitterSha
     window.open(fullUrl, '_blank');
   }
 
+  const baseButton = (
+    <Button
+      variant={customVariant ? customVariant : 'ghost'}
+      className={cn(
+        'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-black rounded-md hover:bg-gray-800 transition z-10',
+        classNames,
+      )}
+      {...props}
+    >
+      {withLabel && 'Share on'}
+      <div className="i-ph:x-logo" />
+    </Button>
+  );
+
+  // Case: No deploys
   if (deployUrls.length === 0) {
     return (
       <Tooltip content="Deploy your app to share it on X!">
         <Button
-          variant="ghost"
-          className="flex h-full items-center gap-2 px-3 py-2 h-full bg-black text-bolt-elements-textSecondary border-1 border-black rounded-md cursor-not-allowed !hover:bg-black hover:text-bolt-elements-textSecondary z-10"
+          variant={customVariant ? customVariant : 'ghost'}
+          className={cn(
+            'flex items-center gap-2 px-3 py-2 bg-black text-bolt-elements-textSecondary border border-black rounded-md cursor-not-allowed hover:bg-black hover:text-bolt-elements-textSecondary z-10',
+            classNames,
+          )}
+          {...props}
         >
-          <div className="i-ph:x-logo"></div>
+          <div className="i-ph:x-logo" />
           {withLabel && 'Share'}
         </Button>
       </Tooltip>
     );
   }
 
-  if (deployUrls.length === 1) {
+  if (deployUrls.length > 1) {
     return (
-      <Button
-        variant="ghost"
-        className="flex h-full items-center gap-2 px-3 py-2 bg-black text-white border-1 border-black rounded-md hover:bg-gray-800 transition z-10"
-        onClick={() => {
-          shareOnTwitter(deployUrls[0].url);
-        }}
-      >
-        <div className="i-ph:x-logo"></div>
-        {withLabel && 'Share'}
-      </Button>
-    );
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex h-full items-center gap-2 px-3 py-2 bg-black text-white border-1 border-black rounded-md hover:bg-gray-800 transition z-10"
-        >
-          <div className="i-ph:x-logo"></div>
-          {withLabel && 'Share'}
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="start">
-        {deployUrls.map(({ name, url }) => (
-          <>
-            <DropdownMenuItem key={name} onClick={() => shareOnTwitter(url)} className="  rounded-lg cursor-pointer">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>{baseButton}</DropdownMenuTrigger>
+        <DropdownMenuContent align="center" sideOffset={8} className="bg-black/50 border-white/10 backdrop-blur-sm">
+          {deployUrls.map(({ name, url }) => (
+            <DropdownMenuItem
+              key={name}
+              onClick={() => shareOnTwitter(url)}
+              className="rounded-lg cursor-pointer text-white/80 hover:text-white !hover:bg-purple-900/50"
+            >
               Share {name} deploy
             </DropdownMenuItem>
-          </>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 }

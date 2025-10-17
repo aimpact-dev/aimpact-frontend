@@ -455,7 +455,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         </Tooltip>
       </div>
       <div>
-        <TwitterShareButton withLabel deployUrls={deployUrls} />
+        <TwitterShareButton deployUrls={deployUrls} />
       </div>
     </div>
   );

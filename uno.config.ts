@@ -277,6 +277,9 @@ export default defineConfig({
         },
       },
     },
+    boxShadow: {
+      glow: '0 0 10px rgba(147, 51, 234, 0.5)',
+    },
   },
   transformers: [transformerDirectives()],
   presets: [
