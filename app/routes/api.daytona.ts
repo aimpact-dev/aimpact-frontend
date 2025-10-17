@@ -1,7 +1,8 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
-import Redis from 'ioredis';
+import type { PersistentKV } from '~/lib/persistence/kv/persistentKV';
+import { RedisKV } from '~/lib/persistence/kv/redisKV';
 
 /**
  * Parameters required for identifying a user's sandbox.
@@ -36,7 +37,7 @@ const allowedMethods = [
   'dispose',
 ];
 
-let redisClient: Redis | null = null;
+let persistentKv: PersistentKV | null = null;
 const usersSandboxPromises = new Map<string, Promise<LazySandbox>>();
 
 function getEnvVar(context: any, key: string): string {
@@ -58,10 +59,10 @@ function getCompositeId(identification: Identification){
 async function getSandbox(identification: Identification): Promise<LazySandbox> {
   const compositeId = getCompositeId(identification);
   if (!usersSandboxPromises.has(compositeId)) {
-    const redisClient = getRedisClient(identification.context);
-    const existsOnRedis = (await redisClient.exists(compositeId)) === 1;
-    if (existsOnRedis) {
-      const sandboxId = await redisClient.get(compositeId);
+    const kv = getPersistentKv(identification.context);
+    const existsInKv = await kv.exists(compositeId);
+    if (existsInKv) {
+      const sandboxId = await kv.get(compositeId);
       const context = identification.context;
       const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
       const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
@@ -77,15 +78,15 @@ async function getSandbox(identification: Identification): Promise<LazySandbox> 
   return usersSandboxPromises.get(compositeId)!;
 }
 
-function getRedisClient(context: any): Redis{
-  if(!redisClient){
+function getPersistentKv(context: any): PersistentKV {
+  if(!persistentKv){
     const redisUrl = getEnvVar(context, 'REDIS_URL');
     if(!redisUrl){
       throw new Error('Could not find Redis URL in environment variables.');
     }
-    redisClient = new Redis(redisUrl);
+    persistentKv = new RedisKV(redisUrl);
   }
-  return redisClient;
+  return persistentKv;
 }
 
 function createSandboxPromiseIfNotExists(identification: Identification) {
@@ -93,11 +94,11 @@ function createSandboxPromiseIfNotExists(identification: Identification) {
   const {context} = identification;
 
   const createFunc = async (): Promise<LazySandbox> => {
-    const redisClient = getRedisClient(context);
-    const existsOnRedis = (await redisClient.exists(compositeId)) === 1;
+    const kv = getPersistentKv(context);
+    const existsInKv = await kv.exists(compositeId);
     let sandboxId: string | null = null;
-    if(existsOnRedis){
-      sandboxId = await redisClient.get(compositeId);
+    if(existsInKv){
+      sandboxId = await kv.get(compositeId);
     }
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
@@ -105,8 +106,8 @@ function createSandboxPromiseIfNotExists(identification: Identification) {
     const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
     const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
     sandboxId = await sandbox.initialize();
-    //Setting actual sandbox id to redis. This way we handle both cases: when sandbox already exists and when new one is created.
-    await redisClient.set(compositeId, sandboxId);
+    //Setting actual sandbox id to kv. This way we handle both cases: when sandbox already exists and when new one is created.
+    await kv.set(compositeId, sandboxId);
     return sandbox;
   }
 
@@ -498,7 +499,7 @@ async function getSessionCommandLogs(params: MethodParams){
 async function disposeSandbox(params: MethodParams){
   const { identification } = params;
   const compositeId = getCompositeId(identification);
-  const redisClient = getRedisClient(identification.context);
+  const kv = getPersistentKv(identification.context);
   if(usersSandboxPromises.has(compositeId)){
     const sandbox = await usersSandboxPromises.get(compositeId);
     if(!sandbox){
@@ -507,9 +508,9 @@ async function disposeSandbox(params: MethodParams){
     usersSandboxPromises.delete(compositeId);
     try {
       await sandbox.dispose();
-      const existsOnRedis = (await redisClient.exists(compositeId)) === 1;
-      if(existsOnRedis){
-        await redisClient.del(compositeId);
+      const existsInKv = await kv.exists(compositeId);
+      if(existsInKv){
+        await kv.delete(compositeId);
       }
       console.log("Sandbox deleted");
       return new Response('Sandbox disposed successfully', { status: 200 });
