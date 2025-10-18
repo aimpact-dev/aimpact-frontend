@@ -103,6 +103,7 @@
     "@tanstack/react-query": "^5.76.1",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@uiw/codemirror-theme-vscode": "^4.23.12",
+    "@upstash/redis": "^1.35.6",
     "@webcontainer/api": "1.6.1-internal.1",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/addon-web-links": "^0.11.0",

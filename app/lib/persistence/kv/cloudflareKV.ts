@@ -18,7 +18,9 @@ export class CloudflareKV implements PersistentKV {
 
   async exists(key: string): Promise<boolean> {
     try{
+      console.log(`Checking if key ${key} exists on Cloudflare KV`);
       const res = await this.kv.get(key);
+      console.log(`Retrieved value from Cloudflare KV when checking if key ${key} exists: ${JSON.stringify(res)}`);
       return !!res;
     } catch(err){
       console.log(`Error occurred while checking for key ${key} existence in Cloudflare KV. Error ${JSON.stringify(err)}`);
