@@ -111,7 +111,6 @@ const processSampledMessages = createSampler(
     const filteredMessages = messages.filter((message) => {
       return message.annotations ? !message.annotations.includes('ignore-actions') : true;
     });
-    console.log('filtered messages in chat.client', filteredMessages, messages);
     parseMessages(filteredMessages, isLoading);
 
     if (messages.length > initialMessages.length) {
