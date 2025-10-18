@@ -56,7 +56,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     authToken: string;
   }>();
   let { messages } = body;
-  return; 
   const { files, promptId, contextOptimization, authToken } = body;
 
   const apiKeys: Record<string, string> = {

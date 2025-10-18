@@ -111,7 +111,6 @@ const processSampledMessages = createSampler(
     const filteredMessages = messages.filter((message) => {
       return message.annotations ? !message.annotations.includes('ignore-actions') : true;
     });
-    console.log('filtered messages in chat.client', filteredMessages, messages);
     parseMessages(filteredMessages, isLoading);
 
     if (messages.length > initialMessages.length) {
@@ -535,22 +534,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     }, 1000),
     [],
   );
-
-  useEffect(() => {
-    return () => {
-      // debouncedCachePrompt.cancel?.();
-    };
-  }, [debouncedCachePrompt]);
-
-  const handleModelChange = (newModel: string) => {
-    setModel(newModel);
-    Cookies.set('selectedModel', newModel, { expires: 30 });
-  };
-
-  const handleProviderChange = (newProvider: ProviderInfo) => {
-    setProvider(newProvider);
-    Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
-  };
 
   const enhancePromptCallback = useCallback(() => {
     enhancePrompt(input, (input) => {
