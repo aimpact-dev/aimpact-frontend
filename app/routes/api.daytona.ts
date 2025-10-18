@@ -3,13 +3,14 @@ import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
 import type { PersistentKV } from '~/lib/persistence/kv/persistentKV';
 import { RedisKV } from '~/lib/persistence/kv/redisKV';
+import jwt from 'jsonwebtoken';
 
 /**
  * Parameters required for identifying a user's sandbox.
  */
 interface Identification {
   context: any;
-  authToken: string;
+  userId: string;
   uuid: string;
 }
 
@@ -57,8 +58,17 @@ function getEnvVar(context: any, key: string): string {
   return env;
 }
 
+function getUserIdFromToken(authToken: string): string | null {
+  try {
+    const decoded = jwt.decode(authToken) as { sub?: string } | null;
+    return decoded?.sub || null;
+  } catch {
+    return null;
+  }
+}
+
 function getCompositeId(identification: Identification){
-  return `${identification.authToken}:${identification.uuid}`;
+  return `${identification.userId}:${identification.uuid}`;
 }
 
 async function getSandbox(identification: Identification): Promise<LazySandbox> {
@@ -87,6 +97,7 @@ async function getSandbox(identification: Identification): Promise<LazySandbox> 
       throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
     }
   }
+  console.log(`Sandbox promise found for user with id ${compositeId}`);
   return usersSandboxPromises.get(compositeId)!;
 }
 
@@ -153,20 +164,11 @@ export async function action({context, request}: ActionFunctionArgs) {
       authToken: string,
       uuid: string
     }>();
-    console.log(`Received request to aimpact daytona api with payload ${JSON.stringify(payload)}`);
   }
   catch (error){
     return new Response('Invalid request format', { status: 400 });
   }
   const { method, args, authToken, uuid } = payload;
-  const params: MethodParams = {
-    args,
-    identification: {
-      context,
-      authToken,
-      uuid
-    }
-  }
 
   if (!allowedMethods.includes(method)) {
     throw new Response('Method not allowed', { status: 405 });
@@ -175,7 +177,19 @@ export async function action({context, request}: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
-  console.log(`Executing method ${method} for user with authToken: ${authToken}}`);
+  const userId = getUserIdFromToken(authToken);
+  if(!userId){
+    throw new Response('Could not retrieve user id from JWT token.', { status: 401 });
+  }
+  const params: MethodParams = {
+    args,
+    identification: {
+      context,
+      userId: userId,
+      uuid
+    }
+  }
+  console.log(`Executing method ${method} for user with id: ${userId}}`);
   switch (method){
     case 'createSandbox':
       return createSandbox(params);
