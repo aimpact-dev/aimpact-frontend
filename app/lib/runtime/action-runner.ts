@@ -1,9 +1,9 @@
 import { path as nodePath } from '~/utils/path';
 import { map, type MapStore } from 'nanostores';
-import type { ActionAlert, BoltAction, DeployAlert, FileHistory, SupabaseAction, SupabaseAlert } from '~/types/actions';
+import type { ActionAlert, BoltAction, DeployAlert, FileHistory } from '~/types/actions';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
-import type { ActionCallbackData } from './message-parser';
+import { parseOldNewPairs, type ActionCallbackData } from './message-parser';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import type { BuildService } from '~/lib/services/buildService';
@@ -73,7 +73,6 @@ export class ActionRunner {
   #shellTerminal: () => AimpactShell;
   actions: ActionsMap = map({});
   onAlert?: (alert: ActionAlert) => void;
-  onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
   buildOutput?: { path: string; exitCode: number; output: string };
 
@@ -82,14 +81,12 @@ export class ActionRunner {
     aimpactFsPromise: Promise<AimpactFs>,
     getShellTerminal: () => AimpactShell,
     onAlert?: (alert: ActionAlert) => void,
-    onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
   ) {
     this.#buildService = buildServicePromise;
     this.#aimpactFs = aimpactFsPromise;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
-    this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
   }
 
@@ -134,7 +131,7 @@ export class ActionRunner {
       return; // No return value here
     }
 
-    if (isStreaming && action.type !== 'file') {
+    if (isStreaming && action.type !== 'file' && action.type !== 'update') {
       return; // No return value here
     }
 
@@ -156,7 +153,7 @@ export class ActionRunner {
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
 
-    //Waiting for the sandbox to be ready
+    // Waiting for the sandbox to be ready
     await getSandbox();
 
     this.#updateAction(actionId, { status: 'running' });
@@ -171,21 +168,6 @@ export class ActionRunner {
           await this.#runFileAction(action);
           break;
         }
-        case 'supabase': {
-          try {
-            await this.handleSupabaseAction(action as SupabaseAction);
-          } catch (error: any) {
-            // Update action status
-            this.#updateAction(actionId, {
-              status: 'failed',
-              error: error instanceof Error ? error.message : 'Supabase action failed',
-            });
-
-            // Return early without re-throwing
-            return;
-          }
-          break;
-        }
         case 'build': {
           const buildOutput = await this.#runBuildAction(action);
 
@@ -193,38 +175,9 @@ export class ActionRunner {
           this.buildOutput = buildOutput;
           break;
         }
-        case 'start': {
-          // making the start app non blocking
-
-          this.#runStartAction(action)
-            .then(() => this.#updateAction(actionId, { status: 'complete' }))
-            .catch((err: Error) => {
-              if (action.abortSignal.aborted) {
-                return;
-              }
-
-              this.#updateAction(actionId, { status: 'failed', error: 'Action failed' });
-              logger.error(`[${action.type}]:Action failed\n\n`, err);
-
-              if (!(err instanceof ActionCommandError)) {
-                return;
-              }
-
-              this.onAlert?.({
-                type: 'error',
-                title: 'Dev Server Failed',
-                description: err.header,
-                content: err.output,
-              });
-            });
-
-          /*
-           * adding a delay to avoid any race condition between 2 start actions
-           * i am up for a better approach
-           */
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          return;
+        case 'update': {
+          await this.#runUpdateAction(action);
+          break;
         }
       }
 
@@ -269,7 +222,7 @@ export class ActionRunner {
     }
 
     const resp = await shell.executeCommand(action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
+      logger.debug(`[${action.type}]:Aborting Action\n\n`, JSON.stringify(action));
       action.abort();
     });
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
@@ -279,32 +232,69 @@ export class ActionRunner {
     }
   }
 
-  async #runStartAction(action: ActionState) {
-    if (action.type !== 'start') {
-      unreachable('Expected shell action');
+  normalizeString(s: string) {
+    return s.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
+  }
+
+  async #runUpdateAction(action: ActionState) {
+    if (action.type !== 'update') {
+      unreachable('Expected update action');
     }
 
-    if (!this.#shellTerminal) {
-      unreachable('Shell terminal not found');
+    const fs = await this.#aimpactFs;
+    let actionPath = action.filePath;
+    if (!action.filePath.startsWith('/')) {
+      // If the filePath is not absolute, we assume it's relative to the current working directory
+      actionPath = nodePath.join(await fs.workdir(), action.filePath);
+    }
+    const relativePath = nodePath.relative(await fs.workdir(), actionPath);
+
+    if ((await fs.fileExists(relativePath)) === false) {
+      logger.debug(`File ${relativePath} does not exists`);
+      return;
     }
 
-    const shell = this.#shellTerminal();
+    try {
+      const isBinary = isBinaryPath(action.filePath);
+      const encoding = isBinary ? 'base64' : 'utf-8';
+      const oldNewPair = parseOldNewPairs(action.content);
+      if (!oldNewPair.old) {
+        logger.error(`Reverted: Update actino have empt old string`);
+        return;
+      }
 
-    if (!shell) {
-      unreachable('Shell terminal not found');
+      const fileContent = await fs.readFile(relativePath, encoding);
+
+      let updatedContent: string;
+      const oldNorm = this.normalizeString(oldNewPair.old);
+      const fileNorm = this.normalizeString(fileContent);
+      if (!fileNorm.includes(oldNorm)) {
+        logger.debug("Warning! File content doesn't inclides <old /> text. Nothing to replace");
+      } else {
+        logger.debug('<old /> in fileContent, all is okay.');
+      }
+      if (action.occurrences === 'all') {
+        updatedContent = fileNorm.replaceAll(oldNorm, oldNewPair.new);
+      } else if (action.occurrences === 'nth' && action.n) {
+        let count = 0;
+        // replace only on some index
+        updatedContent = fileNorm.replace(oldNorm, (match) => {
+          count++;
+          if (count === action.n) {
+            return oldNewPair.new;
+          }
+          return match;
+        });
+      } else {
+        updatedContent = fileNorm.replace(oldNorm, oldNewPair.new);
+      }
+      const buffer = Buffer.from(updatedContent, isBinary ? 'base64' : 'utf-8');
+
+      await fs.writeFile(relativePath, buffer, encoding);
+      logger.debug(`File updated ${relativePath}`);
+    } catch (error) {
+      logger.error(`Failed to update file ${relativePath}\n\n`, error);
     }
-
-    const resp = await shell.executeCommand(action.content, () => {
-      logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
-      action.abort();
-    });
-    logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
-
-    if (resp?.exitCode != 0) {
-      throw new ActionCommandError('Failed To Start Application', resp?.output || 'No Output Available');
-    }
-
-    return resp;
   }
 
   async #runFileAction(action: ActionState) {
@@ -314,7 +304,7 @@ export class ActionRunner {
 
     const fs = await this.#aimpactFs;
     let actionPath = action.filePath;
-    if (!action.filePath.startsWith('/')){
+    if (!action.filePath.startsWith('/')) {
       // If the filePath is not absolute, we assume it's relative to the current working directory
       actionPath = nodePath.join(await fs.workdir(), action.filePath);
     }
@@ -335,7 +325,7 @@ export class ActionRunner {
     }
 
     try {
-      const isBinary  = isBinaryPath(action.filePath);
+      const isBinary = isBinaryPath(action.filePath);
       const encoding = isBinary ? 'base64' : 'utf-8';
       const buffer = Buffer.from(action.content, isBinary ? 'base64' : 'utf-8');
       await fs.writeFile(relativePath, buffer, encoding);
@@ -429,59 +419,11 @@ export class ActionRunner {
       source: 'netlify',
     });
 
-
     return {
       path: buildResult.path!,
       exitCode: buildResult.exitCode!,
       output: buildResult.output!,
     };
-  }
-
-  async handleSupabaseAction(action: SupabaseAction) {
-    const { operation, content, filePath } = action;
-    logger.debug('[Supabase Action]:', { operation, filePath, content });
-
-    switch (operation) {
-      case 'migration':
-        if (!filePath) {
-          throw new Error('Migration requires a filePath');
-        }
-
-        // Show alert for migration action
-        this.onSupabaseAlert?.({
-          type: 'info',
-          title: 'Supabase Migration',
-          description: `Create migration file: ${filePath}`,
-          content,
-          source: 'supabase',
-        });
-
-        // Only create the migration file
-        await this.#runFileAction({
-          type: 'file',
-          filePath,
-          content,
-          changeSource: 'supabase',
-        } as any);
-        return { success: true };
-
-      case 'query': {
-        // Always show the alert and let the SupabaseAlert component handle connection state
-        this.onSupabaseAlert?.({
-          type: 'info',
-          title: 'Supabase Query',
-          description: 'Execute database query',
-          content,
-          source: 'supabase',
-        });
-
-        // The actual execution will be triggered from SupabaseChatAlert
-        return { pending: true };
-      }
-
-      default:
-        throw new Error(`Unknown operation: ${operation}`);
-    }
   }
 
   // Add this method declaration to the class

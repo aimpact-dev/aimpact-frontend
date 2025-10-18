@@ -152,6 +152,8 @@ export const useDeploymentQuery = (projectId: string | undefined, provider: 's3'
     queryKey: ['getDeployment', projectId, provider],
     enabled: !!projectId,
     initialData: null,
+    retry: false,
+    refetchInterval: 30000,
     queryFn: async () => {
       if (!projectId) return null;
 

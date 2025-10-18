@@ -1,4 +1,4 @@
-import { memo, Fragment } from 'react';
+import { memo, Fragment, useEffect } from 'react';
 import { Markdown } from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
@@ -60,6 +60,11 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
     promptTokens: number;
     totalTokens: number;
   } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+
+  useEffect(() => {
+    console.log('assistant message')
+    console.log(content)
+  }, [])
 
   return (
     <div className="overflow-hidden w-full">

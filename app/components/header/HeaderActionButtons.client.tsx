@@ -67,7 +67,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const clearDeployStatusInterval = () => {
     deployStatusInterval.current ? clearTimeout(deployStatusInterval.current) : undefined;
     deployStatusInterval.current = null;
-    console.log('Deploy status and interval', deployStatusInterval);
   };
 
   useEffect(() => {
@@ -310,7 +309,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex gap-2 mr-1">
-      <Tooltip
+      {/* <Tooltip
         content={
           (isSaving && 'Saving...') ||
           (!activePreview && 'Run a project before saving') ||
@@ -337,7 +336,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             </>
           )}
         </Button>
-      </Tooltip>
+      </Tooltip> */}
 
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 text-sm h-full">

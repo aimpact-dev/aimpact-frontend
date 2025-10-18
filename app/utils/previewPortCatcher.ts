@@ -9,22 +9,22 @@ export class PreviewPortCatcher {
   private portRemovedCallbacks: Array<(port: number) => void> = [];
 
   putNewPort(port: number): void {
-    if(this.port !== undefined){
+    if (this.port !== undefined) {
       // If there was a previous port, notify its removal
       const oldPort = this.port;
-      this.portRemovedCallbacks.forEach(callback => callback(oldPort));
+      this.portRemovedCallbacks.forEach((callback) => callback(oldPort));
     }
     this.port = port;
     // Notify all registered callbacks about the new port
-    this.portCaughtCallbacks.forEach(callback => callback(port));
+    this.portCaughtCallbacks.forEach((callback) => callback(port));
   }
 
-  removePort(){
-    if(this.port !== undefined){
+  removePort() {
+    if (this.port !== undefined) {
       const oldPort = this.port;
       this.port = undefined;
       // Notify all registered callbacks about the removed port
-      this.portRemovedCallbacks.forEach(callback => callback(oldPort));
+      this.portRemovedCallbacks.forEach((callback) => callback(oldPort));
     }
   }
 
@@ -38,7 +38,7 @@ export class PreviewPortCatcher {
    * If there was no previous port, callbacks will not be called.
    * @param callback
    */
-  addPortRemovedCallback(callback: ((port: number) => void)): void {
+  addPortRemovedCallback(callback: (port: number) => void): void {
     this.portRemovedCallbacks.push(callback);
   }
 

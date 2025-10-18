@@ -1,11 +1,11 @@
 import { useStore } from '@nanostores/react';
-import type { Message, UIMessage } from 'ai';
+import { type Message, type UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
-import { description, useChatHistory } from '~/lib/persistence';
+import { description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import {
@@ -28,7 +28,6 @@ import { getTemplates, selectStarterTemplate } from '~/utils/selectStarterTempla
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
-import { supabaseConnection } from '~/lib/stores/supabase';
 import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
@@ -48,12 +47,13 @@ export function Chat() {
   const title = useStore(description);
   useEffect(() => {
     workbenchStore.setReloadedMessages(initialMessages.map((m) => m.id));
+    // chatStore.setKey('initialMessagesIds', initialMessages.map(m => m.id));
   }, [initialMessages]);
 
   if ((error as any)?.status === 404) {
     return <Page404 />;
   } else if ((error as any)?.status === 401) {
-    return <ErrorPage errorCode='401' errorText='Unauthorized' details='Connect wallet, sign in and reload page' />
+    return <ErrorPage errorCode="401" errorText="Unauthorized" details="Connect wallet, sign in and reload page" />;
   }
 
   return (
@@ -108,7 +108,11 @@ const processSampledMessages = createSampler(
     storeMessageHistory: (messages: Message[]) => Promise<void>;
   }) => {
     const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
-    parseMessages(messages, isLoading);
+    const filteredMessages = messages.filter((message) => {
+      return message.annotations ? !message.annotations.includes('ignore-actions') : true;
+    });
+    console.log('filtered messages in chat.client', filteredMessages, messages);
+    parseMessages(filteredMessages, isLoading);
 
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
@@ -137,10 +141,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const files = useStore(workbenchStore.files);
   const actionAlert = useStore(workbenchStore.alert);
   const deployAlert = useStore(workbenchStore.deployAlert);
-  const supabaseConn = useStore(supabaseConnection); // Add this line to get Supabase connection
-  const selectedProject = supabaseConn.stats?.projects?.find(
-    (project) => project.id === supabaseConn.selectedProjectId,
-  );
   const supabaseAlert = useStore(workbenchStore.supabaseAlert);
   const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
 
@@ -154,7 +154,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       processSampledMessages.cancel?.();
 
       // Stop any ongoing chat requests
-      if (isLoading) {
+      if (status === 'streaming') {
         stop();
       }
 
@@ -183,16 +183,23 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
-  const chatBody = useMemo(() => ({
-    files,
-    promptId,
-    contextOptimization: contextOptimizationEnabled,
-    authToken: Cookies.get('authToken'),
-  }), [files, promptId, contextOptimizationEnabled]);
+  const chatBody = useMemo(
+    () => ({
+      files,
+      promptId,
+      contextOptimization: contextOptimizationEnabled,
+      authToken: Cookies.get('authToken'),
+    }),
+    [files, promptId, contextOptimizationEnabled],
+  );
+
+  const { takeSnapshot } = useChatHistory();
+  const chatIdx = useStore(lastChatIdx);
+  const chatSummary = useStore(lastChatSummary);
 
   const {
     messages,
-    isLoading,
+    status,
     input,
     handleInputChange,
     setInput,
@@ -238,6 +245,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
 
       logger.debug('Finished streaming');
+      if (!chatIdx) return;
+      takeSnapshot(chatIdx, files, undefined, chatSummary).then(() =>
+        logger.debug('Project saved after message on finish'),
+      );
     },
     initialMessages,
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
@@ -272,13 +283,13 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     processSampledMessages({
-      messages,
+      messages: messages as UIMessage[],
       initialMessages,
-      isLoading,
+      isLoading: status == 'streaming',
       parseMessages,
       storeMessageHistory,
     });
-  }, [messages, isLoading, parseMessages]);
+  }, [messages, status, parseMessages]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -336,7 +347,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
-    if (isLoading) {
+    if (status === 'streaming') {
       abort();
       return;
     }
@@ -527,7 +538,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     return () => {
-      debouncedCachePrompt.cancel?.();
+      // debouncedCachePrompt.cancel?.();
     };
   }, [debouncedCachePrompt]);
 
@@ -542,35 +553,38 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   };
 
   const enhancePromptCallback = useCallback(() => {
-    enhancePrompt(
-      input,
-      (input) => {
-        setInput(input);
-        scrollTextArea();
-      },
-    );
+    enhancePrompt(input, (input) => {
+      setInput(input);
+      scrollTextArea();
+    });
   }, [enhancePrompt, input, setInput]);
 
-  const handleInputChangeAndCache = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onTextareaChange(e);
-    debouncedCachePrompt(e);
-  }, [onTextareaChange, debouncedCachePrompt]);
+  const handleInputChangeAndCache = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      onTextareaChange(e);
+      debouncedCachePrompt(e);
+    },
+    [onTextareaChange, debouncedCachePrompt],
+  );
 
   const clearAlertCallback = useCallback(() => {
     workbenchStore.clearAlert();
   }, []);
 
   const clearSupabaseAlertCallback = useCallback(() => {
-    workbenchStore.clearSupabaseAlert()
+    workbenchStore.clearSupabaseAlert();
   }, []);
 
   const clearDeployAlertCallback = useCallback(() => {
-    workbenchStore.clearDeployAlert()
+    workbenchStore.clearDeployAlert();
   }, []);
 
-  const onStreamingChangeCallback = useCallback((streaming: boolean) => {
-    streamingState.set(streaming);
-  }, [streamingState]);
+  const onStreamingChangeCallback = useCallback(
+    (streaming: boolean) => {
+      streamingState.set(streaming);
+    },
+    [streamingState],
+  );
 
   return (
     <>
@@ -580,33 +594,31 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         input={input}
         showChat={showChat}
         chatStarted={chatStarted}
-        isStreaming={isLoading || fakeLoading}
+        isStreaming={status === 'streaming' || fakeLoading}
         onStreamingChange={onStreamingChangeCallback}
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}
         sendMessage={sendMessage}
-        model={model}
-        setModel={handleModelChange}
-        provider={provider}
-        setProvider={handleProviderChange}
         providerList={activeProviders}
         handleInputChange={handleInputChangeAndCache}
         handleStop={abort}
         /*
-        * description={description}
-        * importChat={importChat}
-        * exportChat={exportChat}
-        */
-        messages={messages.map((message, i) => {
-          if (message.role === 'user') {
-            return message;
-          }
+         * description={description}
+         * importChat={importChat}
+         * exportChat={exportChat}
+         */
+        messages={
+          messages.map((message, i) => {
+            if (message.role === 'user') {
+              return message;
+            }
 
-          return {
-            ...message,
-            content: parsedMessages[i] || '',
-          };
-        })}
+            return {
+              ...message,
+              content: parsedMessages[i] || '',
+            };
+          }) as UIMessage[]
+        }
         enhancePrompt={enhancePromptCallback}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}
@@ -621,7 +633,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         data={chatData}
         showWorkbench={showWorkbench}
       />
-      <DaytonaCleanup/>
+      <DaytonaCleanup />
     </>
   );
 });

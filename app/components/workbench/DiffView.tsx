@@ -636,7 +636,7 @@ export const DiffView = memo(({ fileHistory, setFileHistory, isTabOpen }: DiffVi
         return;
       }
 
-      if (!file || !('content' in file)) {
+      if (!file || !('content' in file) || !file.content || !currentDocument.value) {
         return;
       }
 

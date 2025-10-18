@@ -3,7 +3,7 @@ import type {
   ExecuteResponse,
   PortPreviewUrl,
   SessionExecuteRequest,
-  SessionExecuteResponse
+  SessionExecuteResponse,
 } from '@daytonaio/api-client';
 import { Buffer } from 'buffer';
 import type { FileInfo, SearchFilesResponse } from '@daytonaio/sdk';
@@ -18,7 +18,7 @@ export class RemoteSandbox implements AimpactSandbox {
   private cachedToken: string | null = null;
   private remoteSandboxCreated: boolean = false;
 
-  private async callApi(method: string, args: any, authToken: string){
+  private async callApi(method: string, args: any, authToken: string) {
     const response = await fetch('/api/daytona', {
       method: 'POST',
       headers: {
@@ -36,9 +36,9 @@ export class RemoteSandbox implements AimpactSandbox {
   }
 
   private async callRemoteSandbox(method: string, args: any, authToken: string): Promise<Response> {
-    if (!this.remoteSandboxCreated){
+    if (!this.remoteSandboxCreated) {
       const createResponse = await this.callApi('createSandbox', {}, authToken);
-      if (!createResponse.ok){
+      if (!createResponse.ok) {
         // Error responses are handled by the caller
         return createResponse;
       }
@@ -47,7 +47,7 @@ export class RemoteSandbox implements AimpactSandbox {
     return this.callApi(method, args, authToken);
   }
 
-  private getAuthToken(): string{
+  private getAuthToken(): string {
     const authToken = getAuthTokenFromCookies();
     if (!authToken) {
       throw new Error('Not authorized');
@@ -56,17 +56,17 @@ export class RemoteSandbox implements AimpactSandbox {
     return authToken;
   }
 
-  async getPreviewLink(port: number): Promise<PortPreviewUrl>{
+  async getPreviewLink(port: number): Promise<PortPreviewUrl> {
     const args = {
       port: port,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('getPreviewLink', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to get preview link: ${response.statusText}`);
     }
-    const data = await response.json();
-    if(!data.token || !data.url){
+    const data: { token?: string, url?: string } = await response.json();
+    if (!data.token || !data.url) {
       throw new Error('Invalid response from getPreviewLink');
     }
     return {
@@ -75,14 +75,16 @@ export class RemoteSandbox implements AimpactSandbox {
     };
   }
 
-  async fileExists(file: string): Promise<boolean>{
+  async fileExists(file: string): Promise<boolean> {
     const args = {
       filePath: file,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('fileExists', args, authToken);
-    if(!response.ok){
-      throw new Error(`Failed to check if file exists: ${response.statusText}. Response content: ${await response.text()}`);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to check if file exists: ${response.statusText}. Response content: ${await response.text()}`,
+      );
     }
     let responseParsed: { exists: boolean };
     try {
@@ -93,31 +95,26 @@ export class RemoteSandbox implements AimpactSandbox {
     return responseParsed.exists;
   }
 
-  async createFolder(
-    path: string,
-    mode: string,
-  ): Promise<void>{
+  async createFolder(path: string, mode: string): Promise<void> {
     const args = {
       path: path,
       mode: mode,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('createFolder', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to create folder: ${response.statusText}`);
     }
   }
 
-  async deleteFile(
-    path: string,
-  ): Promise<void>{
+  async deleteFile(path: string): Promise<void> {
     const args = {
       path: path,
     };
     const authToken = this.getAuthToken();
 
     const response = await this.callRemoteSandbox('deleteFile', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to delete file: ${response.statusText}`);
     }
   }
@@ -127,7 +124,7 @@ export class RemoteSandbox implements AimpactSandbox {
     cwd?: string,
     env?: Record<string, string>,
     timeout?: number,
-  ): Promise<ExecuteResponse>{
+  ): Promise<ExecuteResponse> {
     const args = {
       command: command,
       cwd: cwd,
@@ -137,7 +134,7 @@ export class RemoteSandbox implements AimpactSandbox {
     const authToken = this.getAuthToken();
 
     const response = await this.callRemoteSandbox('executeCommand', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to execute command: ${response.statusText}`);
     }
     let responseParsed: ExecuteResponse;
@@ -150,11 +147,7 @@ export class RemoteSandbox implements AimpactSandbox {
     return responseParsed;
   }
 
-  async uploadFile(
-    file: Buffer,
-    remotePath: string,
-    timeout?: number,
-  ): Promise<void>{
+  async uploadFile(file: Buffer, remotePath: string, timeout?: number): Promise<void> {
     const args = {
       file: file.toString('base64'),
       remotePath: remotePath,
@@ -167,17 +160,14 @@ export class RemoteSandbox implements AimpactSandbox {
     }
   }
 
-  async searchFiles(
-    path: string,
-    pattern: string,
-  ): Promise<SearchFilesResponse>{
+  async searchFiles(path: string, pattern: string): Promise<SearchFilesResponse> {
     const args = {
       path: path,
       pattern: pattern,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('searchFiles', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to search files: ${response.statusText}`);
     }
     let responseParsed: SearchFilesResponse;
@@ -189,22 +179,22 @@ export class RemoteSandbox implements AimpactSandbox {
     return responseParsed;
   }
 
-  async downloadFile(
-    remotePath: string,
-    timeout?: number,
-  ): Promise<Buffer> {
+  async downloadFile(remotePath: string, timeout?: number): Promise<Buffer> {
     const args = {
       remotePath: remotePath,
       timeout: timeout,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('downloadFile', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to download file: ${response.statusText}`);
     }
     let fileContent: string; //Base64 encoded file content
     try {
-      const json = await response.json();
+      const json: { fileContent?: string } = await response.json();
+      if (!json.fileContent) {
+        throw new Error('Failed to find file')
+      }
       fileContent = json.fileContent;
     } catch (e) {
       throw new Error(`Failed to read file content: ${e}`);
@@ -212,15 +202,13 @@ export class RemoteSandbox implements AimpactSandbox {
     return Buffer.from(fileContent, 'base64');
   }
 
-  async listFiles(
-    path: string,
-  ): Promise<FileInfo[]>{
+  async listFiles(path: string): Promise<FileInfo[]> {
     const args = {
       path: path,
-    }
+    };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('listFiles', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to list files: ${response.statusText}`);
     }
     let responseParsed: FileInfo[];
@@ -232,28 +220,24 @@ export class RemoteSandbox implements AimpactSandbox {
     return responseParsed;
   }
 
-  async createSession(
-    sessionId: string,
-  ): Promise<void>{
+  async createSession(sessionId: string): Promise<void> {
     const args = {
       sessionId: sessionId,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('createSession', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to create session: ${response.statusText}`);
     }
   }
 
-  async deleteSession(
-    sessionId: string,
-  ): Promise<void> {
+  async deleteSession(sessionId: string): Promise<void> {
     const args = {
       sessionId: sessionId,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('deleteSession', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to delete session: ${response.statusText}`);
     }
   }
@@ -262,7 +246,7 @@ export class RemoteSandbox implements AimpactSandbox {
     sessionId: string,
     req: SessionExecuteRequest,
     timeout?: number,
-  ): Promise<SessionExecuteResponse>{
+  ): Promise<SessionExecuteResponse> {
     const args = {
       sessionId: sessionId,
       request: req,
@@ -270,7 +254,7 @@ export class RemoteSandbox implements AimpactSandbox {
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('executeSessionCommand', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       const responseText = await response.text();
       throw new Error(`Failed to execute session command. Status: ${response.statusText}. Response: ${responseText}`);
     }
@@ -283,17 +267,14 @@ export class RemoteSandbox implements AimpactSandbox {
     return responseParsed;
   }
 
-  async getSessionCommand(
-    sessionId: string,
-    commandId: string,
-  ): Promise<Command> {
+  async getSessionCommand(sessionId: string, commandId: string): Promise<Command> {
     const args = {
       sessionId: sessionId,
       commandId: commandId,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('getSessionCommand', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to get session command: ${response.statusText}`);
     }
     let responseParsed: Command;
@@ -305,23 +286,20 @@ export class RemoteSandbox implements AimpactSandbox {
     return responseParsed;
   }
 
-  async getSessionCommandLogs(
-    sessionId: string,
-    commandId: string,
-  ): Promise<string> {
+  async getSessionCommandLogs(sessionId: string, commandId: string): Promise<string> {
     const args = {
       sessionId: sessionId,
       commandId: commandId,
     };
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('getSessionCommandLogs', args, authToken);
-    if(!response.ok){
+    if (!response.ok) {
       throw new Error(`Failed to get session command logs: ${response.statusText}`);
     }
     return response.text();
   }
 
-  dispose(){
+  dispose() {
     // We need to call dispose action via keepalive request
     fetch('/api/daytona', {
       method: 'POST',

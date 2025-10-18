@@ -1,7 +1,7 @@
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { Template } from '~/types/template';
 import rawSnapshotsData from '~/template/snapshot.json';
-import type { FileMap, SaveFileMap } from '~/lib/stores/files';
+import type { SaveFileMap } from '~/lib/stores/files';
 
 interface Snapshot {
   files: SaveFileMap;
@@ -16,8 +16,8 @@ export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
-export const DEFAULT_MODEL = 'anthropic/claude-sonnet-4';
-export const DEFAULT_MINI_MODEL = 'openai/gpt-4.1-mini';
+export const DEFAULT_MODEL = 'z-ai/glm-4.6';
+export const DEFAULT_MINI_MODEL = 'z-ai/glm-4.5-air';
 export const DEFAULT_PROVIDER_NAME = 'OpenRouter';
 export const DEFAULT_MINI_PROVIDER_NAME = 'OpenRouter';
 export const PROMPT_COOKIE_KEY = 'cachedPrompt';
@@ -39,7 +39,6 @@ PROVIDER_LIST.forEach((provider) => {
 });
 
 // starter Templates
-
 export const STARTER_TEMPLATES: Template[] = [
   {
     name: 'vite-react-app',
@@ -60,7 +59,7 @@ export const STARTER_TEMPLATES: Template[] = [
   {
     name: 'vite-solana-app',
     label: 'Vite + Solana + React + Typescript',
-    description: 'Solana blockchain development with React + TypeScript + Vite + Tailwind for building Web3 applications',
+    description: 'Solana blockchain development with React + TypeScript + Vite + Tailwind for building Web3 applications. Use this, if user wants to use smart contracts',
     tags: ['typescript', 'vite', 'vitejs', 'react', 'solana', 'blockchain', 'web3', 'anchor', 'dapp'],
     icon: 'i-bolt:react',
     files: snapshotsData['vite-solana-app'].files,

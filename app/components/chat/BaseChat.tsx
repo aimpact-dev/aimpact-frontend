@@ -51,8 +51,6 @@ interface BaseChatProps {
   enhancingPrompt?: boolean;
   promptEnhanced?: boolean;
   input?: string;
-  provider?: ProviderInfo;
-  setProvider?: (provider: ProviderInfo) => void;
   providerList?: ProviderInfo[];
   handleStop?: () => void;
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
@@ -83,7 +81,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatStarted = false,
       isStreaming = false,
       onStreamingChange,
-      provider,
       providerList,
       input = '',
       enhancingPrompt,

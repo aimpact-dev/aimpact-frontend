@@ -1,11 +1,11 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo, useId, useRef } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
-import { ActionRunner, type ActionState } from '~/lib/runtime/action-runner';
+import { ActionRunner } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
@@ -27,7 +27,10 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
-import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
+import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
+import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
+import { currentParsingMessageState, parserState } from '~/lib/stores/parse';
+import { chatStore } from '~/lib/stores/chat';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -288,14 +291,43 @@ export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
     const customPreviewState = useRef('');
-    const [waitForInstall, setWaitForInstall] = useState(false);
+    const waitForInstallRunned = useRef(false);
 
-    // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
+    const { takeSnapshot } = useChatHistory();
+    const chatIdx = useStore(lastChatIdx);
+    const chatSummary = useStore(lastChatSummary);
+    const lastSnapshotRef = useRef<number | null>(null);
+
+    function sleep(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    useEffect(() => {
+      // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
+      if (!parserState.get().parserRan) return;
+
+      const removeSubscribe = workbenchStore.files.subscribe((files) => {
+        const { initialMessagesIds } = chatStore.get();
+        const currentParsingMessage = currentParsingMessageState.get();
+        if (!chatIdx || !initialMessagesIds.length) return;
+
+        if (!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) {
+          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > 10000) {
+            takeSnapshot(chatIdx, files, undefined, chatSummary);
+            console.debug('Snapshot was taken on file change');
+            lastSnapshotRef.current = Date.now();
+          }
+        }
+      });
+
+      return () => {
+        removeSubscribe();
+      };
+    }, [chatIdx, chatSummary]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -311,92 +343,117 @@ export const Workbench = memo(
       workbenchStore.currentView.set(view);
     };
 
-    useEffect(() => {
-      if (hasPreview) {
-        setSelectedView('preview');
-      }
-    }, [hasPreview]);
+    async function waitForInstallCmd() {
+      const artifacts = Object.values(workbenchStore.artifacts.get());
+      if (!artifacts.length) return { status: false, customMsg: false };
 
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    async function getRunCommand(artifact: ArtifactState) {
-      const actions = artifact.runner.actions.get();
-      const runCommand = Object.values(actions).findLast((a) => a.content === 'pnpm run dev');
-
-      return runCommand;
-    }
-
-    async function waitForInstallCmd(artifact: ArtifactState) {
-      setWaitForInstall(true);
+      let packageJson: { content: Record<string, any>; packageManager: string } | null = null;
       let tries = 0;
-      let isCompleted: boolean;
-      let runCommand: ActionState | undefined;
-      const cooldown = 1 * 1000;
-      const unsubscribe = artifact.runner.actions.subscribe((state, prevState, key) => {
+
+      while (tries <= 15) {
+        await sleep(2000);
+        try {
+          packageJson = workbenchStore.getPackageJson();
+          break;
+        } catch (e) {
+          continue;
+        } finally {
+          tries++;
+        }
+      }
+      if (!packageJson) {
+        customPreviewState.current = 'package.json not found';
+        return { status: false, customMsg: true };
+      }
+
+      const installCmd = `${packageJson.packageManager} install`;
+      let artifact: ArtifactState | null = null;
+      for (const a of artifacts) {
+        if (!a.runner) continue;
+        const actions = Object.values(a.runner.actions.get());
+        const installCmdAction = actions.find((action) => action.content.endsWith(installCmd));
+        if (!installCmdAction) {
+          continue;
+        }
+        artifact = a;
+      }
+      if (!artifact) return { status: false, customMsg: false };
+
+      let isCompleted: boolean = false;
+      const unsubscribe = artifact.runner.actions.subscribe((state) => {
         const commands = Object.values(state);
-        const installCmd = commands.find((a) => a.content === 'pnpm install');
-        runCommand = commands.find((a) => a.content === 'pnpm run dev');
-        // console.log(installCmd, installCmd?.status, installCmd?.status === 'complete');
-        if (installCmd?.status === 'complete') {
-          // console.log('command executed');
+        const installCmdAction = commands.find((a) => a.content.endsWith(installCmd));
+        if (installCmdAction?.status === 'complete') {
           isCompleted = true;
         }
       });
 
-      isCompleted = false;
-      while (tries <= 20) {
+      tries = 0;
+      while (tries <= 15) {
         if (isCompleted) {
           unsubscribe();
-          return { status: true, runCommand };
+          return { status: true, customMsg: false };
         }
-        await sleep(cooldown);
+        await sleep(2000);
+        tries++;
       }
 
-      customPreviewState.current = 'Failed to run project';
-      return { status: false, runCommand };
+      return { status: false, customMsg: false };
     }
 
     useEffect(() => {
-      const func = async () => {
+      if (hasPreview) return;
+      if (selectedView !== 'preview') return;
+
+      const func = async (): Promise<{ customMsg: boolean }> => {
+        if (waitForInstallRunned.current === true) return { customMsg: true };
+
         customPreviewState.current = 'Running...';
-        const artifact = workbenchStore.firstArtifact;
-        if (!artifact) return;
-        const actionCommand = 'pnpm run dev'; // for now it's constant. need to change it, but it's complex
-        const abortController = new AbortController();
-        let runCommand: ActionState | undefined;
+        const artifacts = Object.values(workbenchStore.artifacts.get());
+        console.log(artifacts);
+        if (!artifacts.length) return { customMsg: false };
 
-        if (!waitForInstall) {
+        const artifact = Object.values(artifacts).find((a) => a.runner);
+        console.log(artifact);
+        if (!artifact) return { customMsg: false };
+
+        // const { initialMessagesIds } = chatStore.get();
+        const currentParsingMessage = currentParsingMessageState.get();
+        const { parserRan } = parserState.get();
+        if (!parserRan || currentParsingMessage) {
+          customPreviewState.current = 'Wait for project initialization...';
+          return { customMsg: true };
+        }
+
+        let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
+        if (waitForInstallRunned.current === false) {
           customPreviewState.current = 'Wait for install...';
-          const installResult = await waitForInstallCmd(artifact);
-          runCommand = installResult.runCommand;
-        } else {
-          runCommand = await getRunCommand(artifact);
+          waitForInstallRunned.current = true;
+          waitForInstallRes = await waitForInstallCmd();
+          waitForInstallRunned.current = false;
         }
 
-        if (!hasPreview && (!runCommand || (runCommand.status === 'complete' && runCommand.executed === true))) {
-          artifact?.runner.runShellAction({
-            status: 'pending',
-            executed: false,
-            abort: () => {
-              abortController.abort();
-            },
-            abortSignal: abortController.signal,
-            content: actionCommand,
-            type: 'shell',
-          });
-          customPreviewState.current = '';
+        if (waitForInstallRes?.status && !hasPreview && selectedView === 'preview') {
+          customPreviewState.current = 'Running...';
+          try {
+            workbenchStore.startProject(artifact.runner);
+          } catch (e) {
+            console.error(e);
+            customPreviewState.current = 'Failed to run preview. Maybe your project structure is not supported';
+          }
+          return { customMsg: true };
         }
+
+        return { customMsg: waitForInstallRes?.customMsg || false };
       };
 
-      // if (!hasPreview && selectedView === 'preview') {
-      //   func();
-      // }
-      if (!hasPreview) {
-        customPreviewState.current = 'No preview available.';
-      }
-    }, [selectedView]);
+      func().then((res) => {
+        console.log('func res', res);
+        if (!hasPreview && !res.customMsg) {
+          customPreviewState.current = 'No preview available.';
+        }
+      });
+    }, [selectedView, hasPreview]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
@@ -425,21 +482,6 @@ export const Workbench = memo(
 
     const onFileReset = useCallback(() => {
       workbenchStore.resetCurrentDocument();
-    }, []);
-
-    const handleSyncFiles = useCallback(async () => {
-      setIsSyncing(true);
-
-      try {
-        const directoryHandle = await window.showDirectoryPicker();
-        await workbenchStore.syncFiles(directoryHandle);
-        toast.success('Files synced successfully');
-      } catch (error) {
-        console.error('Error syncing files:', error);
-        toast.error('Failed to sync files');
-      } finally {
-        setIsSyncing(false);
-      }
     }, []);
 
     const handleSelectFile = useCallback((filePath: string) => {
