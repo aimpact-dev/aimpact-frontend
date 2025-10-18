@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 import type { PersistentKV } from '~/lib/persistence/kv/persistentKV';
 import { RedisKV } from '~/lib/persistence/kv/redisKV';
 import jwt from 'jsonwebtoken';
+import { CloudflareKV } from '~/lib/persistence/kv/cloudflareKV';
 
 /**
  * Parameters required for identifying a user's sandbox.
@@ -103,11 +104,18 @@ async function getSandbox(identification: Identification): Promise<LazySandbox> 
 
 function getPersistentKv(context: any): PersistentKV {
   if(!persistentKv){
-    const redisUrl = getEnvVar(context, 'REDIS_URL');
-    if(!redisUrl){
-      throw new Error('Could not find Redis URL in environment variables.');
+    if(context.cloudflare?.env?.KV){
+      console.log('Cloudflare KV namespace found, using cloudflare kv.');
+      persistentKv = new CloudflareKV(context.cloudflare?.env);
     }
-    persistentKv = new RedisKV(redisUrl);
+    else {
+      console.log('Cloudflare KV namespace not found, fallback to redis kv.');
+      const redisUrl = getEnvVar(context, 'REDIS_URL');
+      if(!redisUrl){
+        throw new Error('Could not find Redis URL in environment variables.');
+      }
+      persistentKv = new RedisKV(redisUrl);
+    }
   }
   return persistentKv;
 }

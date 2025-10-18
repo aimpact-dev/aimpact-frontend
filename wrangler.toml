@@ -5,6 +5,10 @@ compatibility_date = "2025-03-28"
 pages_build_output_dir = "./build/client"
 send_metrics = false
 
+kv_namespaces = [
+  { binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }
+]
+
 [vars]
 VITE_LOG_LEVEL = "debug"
 VITE_GITHUB_TOKEN_TYPE = "classic"
