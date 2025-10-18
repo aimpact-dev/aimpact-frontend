@@ -302,6 +302,8 @@ export const Workbench = memo(
     const chatSummary = useStore(lastChatSummary);
     const lastSnapshotRef = useRef<number | null>(null);
 
+    const snapshotTakeCooldown = 10000;
+
     function sleep(ms: number) {
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -316,7 +318,7 @@ export const Workbench = memo(
         if (!chatIdx || !initialMessagesIds.length) return;
 
         if (!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) {
-          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > 10000) {
+          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
             takeSnapshot(chatIdx, files, undefined, chatSummary);
             console.debug('Snapshot was taken on file change');
             lastSnapshotRef.current = Date.now();

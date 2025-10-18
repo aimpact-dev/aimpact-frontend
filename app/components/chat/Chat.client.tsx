@@ -536,22 +536,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     [],
   );
 
-  useEffect(() => {
-    return () => {
-      // debouncedCachePrompt.cancel?.();
-    };
-  }, [debouncedCachePrompt]);
-
-  const handleModelChange = (newModel: string) => {
-    setModel(newModel);
-    Cookies.set('selectedModel', newModel, { expires: 30 });
-  };
-
-  const handleProviderChange = (newProvider: ProviderInfo) => {
-    setProvider(newProvider);
-    Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
-  };
-
   const enhancePromptCallback = useCallback(() => {
     enhancePrompt(input, (input) => {
       setInput(input);
