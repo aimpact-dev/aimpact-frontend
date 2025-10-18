@@ -40,7 +40,7 @@ export class UpstashRedisKV implements PersistentKV {
 
   async set(key: string, value: string): Promise<void> {
     try {
-      await this.redisClient.set(key, value);
+      await this.redisClient.set(key, value, {ex: 60*60*24});
     } catch (error) {
       console.error(`[UpstashRedisKV] Failed to set key: ${key}`, error);
       throw error;
