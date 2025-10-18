@@ -43,12 +43,15 @@ const usersSandboxPromises = new Map<string, Promise<LazySandbox>>();
 function getEnvVar(context: any, key: string): string {
   let env: string | undefined;
   if (context.cloudflare?.env?.[key]) {
+    console.log(`Retrieving EnvVar with key ${key} from cloudflare.`);
     env = context.cloudflare.env[key];
   }
   else {
+    console.log(`Retrieving EnvVar with key ${key} from process.`);
     env = process.env[key];
   }
   if(!env){
+    console.log(`Not found EnvVar with key ${key}.`);
     throw new Error(`Environment variable "${key}" not found.`);
   }
   return env;
@@ -60,11 +63,17 @@ function getCompositeId(identification: Identification){
 
 async function getSandbox(identification: Identification): Promise<LazySandbox> {
   const compositeId = getCompositeId(identification);
+  console.log(`Trying to retrieve a sandbox for user with id ${compositeId}`);
   if (!usersSandboxPromises.has(compositeId)) {
+    console.log(`Sandbox promise not found for user with id ${compositeId}, checking kv storage.`);
     const kv = getPersistentKv(identification.context);
+    console.log('Kv storage client received.');
     const existsInKv = await kv.exists(compositeId);
+    console.log(`Sandbox id exists for user with id ${compositeId} in kv storage: ${existsInKv}`);
     if (existsInKv) {
+      console.log(`Sandbox id for user with id ${compositeId} found in kv storage, retrieving.`);
       const sandboxId = await kv.get(compositeId);
+      console.log(`User with id ${compositeId} has sandbox id in kv storage: ${sandboxId}`);
       const context = identification.context;
       const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
       const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
@@ -72,6 +81,7 @@ async function getSandbox(identification: Identification): Promise<LazySandbox> 
       const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
       const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
       usersSandboxPromises.set(compositeId, Promise.resolve(sandbox));
+      console.log(`New sandbox promise added for user with id ${compositeId}.`);
     }
     else{
       throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
@@ -96,24 +106,33 @@ function createSandboxPromiseIfNotExists(identification: Identification) {
   const {context} = identification;
 
   const createFunc = async (): Promise<LazySandbox> => {
+    console.log(`Creating new LazySandbox instance for user with id ${compositeId}`)
     const kv = getPersistentKv(context);
+    console.log(`Key-value storage client created.`);
     const existsInKv = await kv.exists(compositeId);
+    console.log(`Sandbox id for user with id ${compositeId} exists in kv: ${existsInKv}.`);
     let sandboxId: string | null = null;
     if(existsInKv){
+      console.log(`Retrieving sandbox id from kv for user with id ${compositeId}`)
       sandboxId = await kv.get(compositeId);
+      console.log(`User with id ${compositeId} has sandbox id ${sandboxId} stored in kv.`);
     }
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
     const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
     const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
+    console.log(`Initializing sandbox for user with id ${compositeId}`);
     sandboxId = await sandbox.initialize();
+    console.log(`Sandbox for user with id ${compositeId} initialized successfully. Sandbox id: ${sandboxId}`);
     //Setting actual sandbox id to kv. This way we handle both cases: when sandbox already exists and when new one is created.
     await kv.set(compositeId, sandboxId);
+    console.log(`Sandbox id ${sandboxId} saved in kv for user with id ${compositeId}`);
     return sandbox;
   }
 
   if(!usersSandboxPromises.has(compositeId)) {
+    console.log(`User with id ${compositeId} does not have sandbox promise, creating new one.`);
     usersSandboxPromises.set(compositeId, createFunc());
   }
 }
@@ -134,6 +153,7 @@ export async function action({context, request}: ActionFunctionArgs) {
       authToken: string,
       uuid: string
     }>();
+    console.log(`Received request to aimpact daytona api with payload ${JSON.stringify(payload)}`);
   }
   catch (error){
     return new Response('Invalid request format', { status: 400 });
@@ -155,6 +175,7 @@ export async function action({context, request}: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
+  console.log(`Executing method ${method} for user with authToken: ${authToken}}`);
   switch (method){
     case 'createSandbox':
       return createSandbox(params);
@@ -196,7 +217,7 @@ export async function action({context, request}: ActionFunctionArgs) {
 async function createSandbox(params: MethodParams) {
   const { identification } = params;
   try{
-    await createSandboxPromiseIfNotExists(identification);
+    createSandboxPromiseIfNotExists(identification);
   }
   catch (error) {
     return new Response('Failed to create sandbox: ' + error, { status: 500 });
