@@ -112,7 +112,7 @@ function getPersistentKv(context: any): PersistentKV {
   return persistentKv;
 }
 
-function createSandboxPromiseIfNotExists(identification: Identification) {
+async function createSandboxPromiseIfNotExists(identification: Identification) {
   const compositeId = getCompositeId(identification);
   const {context} = identification;
 
@@ -144,7 +144,7 @@ function createSandboxPromiseIfNotExists(identification: Identification) {
 
   if(!usersSandboxPromises.has(compositeId)) {
     console.log(`User with id ${compositeId} does not have sandbox promise, creating new one.`);
-    usersSandboxPromises.set(compositeId, createFunc());
+    usersSandboxPromises.set(compositeId, Promise.resolve(await createFunc()));
   }
 }
 
@@ -231,7 +231,7 @@ export async function action({context, request}: ActionFunctionArgs) {
 async function createSandbox(params: MethodParams) {
   const { identification } = params;
   try{
-    createSandboxPromiseIfNotExists(identification);
+    await createSandboxPromiseIfNotExists(identification);
   }
   catch (error) {
     return new Response('Failed to create sandbox: ' + error, { status: 500 });
