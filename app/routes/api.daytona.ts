@@ -44,8 +44,9 @@ function getEnvVar(context: any, key: string): string {
   let env: string | undefined;
   if (context.cloudflare?.env?.[key]) {
     env = context.cloudflare.env[key];
+  } else {
+    env = process.env[key];
   }
-  env = process.env[key];
   if(!env){
     throw new Error(`Environment variable "${key}" not found.`);
   }
