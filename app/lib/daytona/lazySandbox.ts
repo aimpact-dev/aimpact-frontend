@@ -111,7 +111,9 @@ export class LazySandbox implements AimpactSandbox {
     }
     await this.ensureDependenciesInstalled();
 
+    console.log(`Getting preview link for port: ${port}`);
     const previewLink = await sandbox.getPreviewLink(port);
+    console.log(`Got daytona preview link for port ${port}: ${JSON.stringify(previewLink)}`);
     const previewUrl = new URL(previewLink.url);
     const proxyUrl = new URL(this.previewProxyUrl);
     const proxyProtocol = proxyUrl.protocol;
@@ -127,6 +129,7 @@ export class LazySandbox implements AimpactSandbox {
       customPreviewUrl.port = proxyPort;
     }
     previewLink.url = customPreviewUrl.toString();
+    console.log(`Modified preview link for port ${port} to use proxy. New link: ${JSON.stringify(previewLink)}`);
     return previewLink;
   }
 
