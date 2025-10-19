@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigation } from '@remix-run/react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { Connection, LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { toast } from 'react-toastify';
 import { Button } from '../ui';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
+import { useApplyPromocode } from '~/lib/hooks/tanstack/useMessages';
 import { classNames } from '~/utils/classNames';
 import waterStyles from '../ui/WaterButton.module.scss';
 import { Tooltip } from './Tooltip';
@@ -18,9 +19,13 @@ interface DepositButtonProps {
 
 export default function DepositButton({ discountPercent }: DepositButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [promocode, setPromocode] = useState("");
+  const [promocodeApplied, setPromocodeApplied] = useState(false);
+  const [error, setError] = useState("");
   const navigation = useNavigation();
   const { publicKey, signTransaction } = useWallet();
   const { getRecentBlockhash, sendTransaction } = useSolanaProxy();
+  const { mutateAsync: applyPromocode } = useApplyPromocode();
   const detectMobileScreen = () => {
     return window.innerWidth <= 768;
   };
@@ -37,6 +42,47 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
+    setPromocode("");
+    setPromocodeApplied(false);
+    setError("");
+  };
+
+  const handlePromocodeInput = (event: FormEvent<HTMLInputElement>) => {
+    setPromocode(event.currentTarget.value.toUpperCase());
+    setPromocodeApplied(false);
+    setError("");
+  };
+
+  const handleApplyPromocode = async () => {
+    setError("");
+
+    if (!promocode) {
+      setError("Promocode is required.");
+      return;
+    }
+
+    try {
+      const response = await applyPromocode({ promocode });
+      const messagesApplied = response.messagesApplied;
+      toast.success(`Promocode applied! You got ${messagesApplied} free messages!`);
+      (window as any).plausible('apply_promocode', { props: {
+        success: true,
+        messages_applied: messagesApplied,
+        promocode: promocode,
+        error: null,
+      }});
+      setPromocodeApplied(true);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message;
+      toast.error(errorMessage);
+      setError(errorMessage);
+      (window as any).plausible('apply_promocode', { props: {
+        success: false,
+        messages_applied: 0,
+        promocode: promocode,
+        error: `Failed due to server error: ${errorMessage}`,
+      }});
+    }
   };
 
   const handlePurchase = async () => {
@@ -149,6 +195,26 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
                   </p>
 
                   <div className="flex flex-col gap-2">
+                    <div className="flex gap-2 items-center justify-center mb-2">
+                      <div className="border border-bolt-elements-borderColor rounded-md flex p-2 bg-white flex-1">
+                        <input 
+                          className="border-none outline-none flex-1 text-base text-gray-900 placeholder-gray-500" 
+                          required 
+                          onInput={handlePromocodeInput} 
+                          value={promocode} 
+                          placeholder="Enter promocode" 
+                        />
+                      </div>
+                      <Button 
+                        variant="default" 
+                        disabled={promocodeApplied || !promocode}
+                        onClick={handleApplyPromocode}
+                        className="px-4 py-2 text-sm"
+                      >
+                        {promocodeApplied ? "Applied" : "Apply"}
+                      </Button>
+                    </div>
+
                     <button
                       onClick={handlePurchase}
                       disabled={isSubmitting || !publicKey}
