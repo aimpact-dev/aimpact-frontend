@@ -115,14 +115,19 @@ export class LazySandbox implements AimpactSandbox {
     const previewLink = await sandbox.getPreviewLink(port);
     console.log(`Got daytona preview link for port ${port}: ${JSON.stringify(previewLink)}`);
     const previewUrl = new URL(previewLink.url);
+    console.log(`Retrieved preview url: ${previewUrl}`);
+    console.log(`Creating proxy url from url string: ${this.previewProxyUrl}`);
     const proxyUrl = new URL(this.previewProxyUrl);
+    console.log(`Retrieved proxy url: ${proxyUrl}`);
     const proxyProtocol = proxyUrl.protocol;
     const proxyPort = proxyUrl.port;
     const proxyHost = proxyUrl.hostname;
     const previewDomainParts = previewUrl.hostname.split('.');
     const leftDomainPart = previewDomainParts[0];
     const customHost = `${leftDomainPart}.${proxyHost}`;
+    console.log(`Creating custom url from preview url string: ${previewUrl}`);
     const customPreviewUrl = new URL(previewUrl.toString());
+
     customPreviewUrl.protocol = proxyProtocol;
     customPreviewUrl.hostname = customHost;
     if (proxyPort) {
