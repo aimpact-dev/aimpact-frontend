@@ -3,13 +3,16 @@ import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
 import type { PersistentKV } from '~/lib/persistence/kv/persistentKV';
 import { RedisKV } from '~/lib/persistence/kv/redisKV';
+import jwt from 'jsonwebtoken';
+import { CloudflareKV } from '~/lib/persistence/kv/cloudflareKV';
+import { UpstashRedisKV } from '~/lib/persistence/kv/upstashRedisKV';
 
 /**
  * Parameters required for identifying a user's sandbox.
  */
 interface Identification {
   context: any;
-  authToken: string;
+  userId: string;
   uuid: string;
 }
 
@@ -43,26 +46,46 @@ const usersSandboxPromises = new Map<string, Promise<LazySandbox>>();
 function getEnvVar(context: any, key: string): string {
   let env: string | undefined;
   if (context.cloudflare?.env?.[key]) {
+    console.log(`Retrieving EnvVar with key ${key} from cloudflare.`);
     env = context.cloudflare.env[key];
   }
-  env = process.env[key];
+  else {
+    console.log(`Retrieving EnvVar with key ${key} from process.`);
+    env = process.env[key];
+  }
   if(!env){
+    console.log(`Not found EnvVar with key ${key}.`);
     throw new Error(`Environment variable "${key}" not found.`);
   }
   return env;
 }
 
+function getUserIdFromToken(authToken: string): string | null {
+  try {
+    const decoded = jwt.decode(authToken) as { sub?: string } | null;
+    return decoded?.sub || null;
+  } catch {
+    return null;
+  }
+}
+
 function getCompositeId(identification: Identification){
-  return `${identification.authToken}:${identification.uuid}`;
+  return `${identification.userId}:${identification.uuid}`;
 }
 
 async function getSandbox(identification: Identification): Promise<LazySandbox> {
   const compositeId = getCompositeId(identification);
+  console.log(`Trying to retrieve a sandbox for user with id ${compositeId}`);
   if (!usersSandboxPromises.has(compositeId)) {
+    console.log(`Sandbox promise not found for user with id ${compositeId}, checking kv storage.`);
     const kv = getPersistentKv(identification.context);
+    console.log('Kv storage client received.');
     const existsInKv = await kv.exists(compositeId);
+    console.log(`Sandbox id exists for user with id ${compositeId} in kv storage: ${existsInKv}`);
     if (existsInKv) {
+      console.log(`Sandbox id for user with id ${compositeId} found in kv storage, retrieving.`);
       const sandboxId = await kv.get(compositeId);
+      console.log(`User with id ${compositeId} has sandbox id in kv storage: ${sandboxId}`);
       const context = identification.context;
       const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
       const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
@@ -70,49 +93,60 @@ async function getSandbox(identification: Identification): Promise<LazySandbox> 
       const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
       const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
       usersSandboxPromises.set(compositeId, Promise.resolve(sandbox));
+      console.log(`New sandbox promise added for user with id ${compositeId}.`);
     }
     else{
       throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
     }
   }
+  console.log(`Sandbox promise found for user with id ${compositeId}`);
   return usersSandboxPromises.get(compositeId)!;
 }
 
 function getPersistentKv(context: any): PersistentKV {
   if(!persistentKv){
-    const redisUrl = getEnvVar(context, 'REDIS_URL');
-    if(!redisUrl){
-      throw new Error('Could not find Redis URL in environment variables.');
-    }
-    persistentKv = new RedisKV(redisUrl);
+    const upstashRedisUrl = getEnvVar(context, 'UPSTASH_REDIS_REST_URL');
+    const upstashRedisToken = getEnvVar(context, 'UPSTASH_REDIS_REST_TOKEN');
+    persistentKv = new UpstashRedisKV(upstashRedisUrl, upstashRedisToken);
   }
   return persistentKv;
 }
 
-function createSandboxPromiseIfNotExists(identification: Identification) {
+async function createSandboxPromiseIfNotExists(identification: Identification) {
   const compositeId = getCompositeId(identification);
   const {context} = identification;
 
   const createFunc = async (): Promise<LazySandbox> => {
+    console.log(`Creating new LazySandbox instance for user with id ${compositeId}`)
     const kv = getPersistentKv(context);
+    console.log(`Key-value storage client created.`);
     const existsInKv = await kv.exists(compositeId);
+    console.log(`Sandbox id for user with id ${compositeId} exists in kv: ${existsInKv}.`);
     let sandboxId: string | null = null;
     if(existsInKv){
+      console.log(`Retrieving sandbox id from kv for user with id ${compositeId}`)
       sandboxId = await kv.get(compositeId);
+      console.log(`User with id ${compositeId} has sandbox id ${sandboxId} stored in kv.`);
     }
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
     const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
     const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
+    console.log(`Initializing sandbox for user with id ${compositeId}`);
     sandboxId = await sandbox.initialize();
+    console.log(`Sandbox for user with id ${compositeId} initialized successfully. Sandbox id: ${sandboxId}`);
     //Setting actual sandbox id to kv. This way we handle both cases: when sandbox already exists and when new one is created.
     await kv.set(compositeId, sandboxId);
+    console.log(`Sandbox id ${sandboxId} saved in kv for user with id ${compositeId}`);
     return sandbox;
   }
 
   if(!usersSandboxPromises.has(compositeId)) {
-    usersSandboxPromises.set(compositeId, createFunc());
+    console.log(`User with id ${compositeId} does not have sandbox promise, creating new one.`);
+    const promise = createFunc();
+    usersSandboxPromises.set(compositeId, promise);
+    await promise;
   }
 }
 
@@ -137,14 +171,6 @@ export async function action({context, request}: ActionFunctionArgs) {
     return new Response('Invalid request format', { status: 400 });
   }
   const { method, args, authToken, uuid } = payload;
-  const params: MethodParams = {
-    args,
-    identification: {
-      context,
-      authToken,
-      uuid
-    }
-  }
 
   if (!allowedMethods.includes(method)) {
     throw new Response('Method not allowed', { status: 405 });
@@ -153,6 +179,19 @@ export async function action({context, request}: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
+  const userId = getUserIdFromToken(authToken);
+  if(!userId){
+    throw new Response('Could not retrieve user id from JWT token.', { status: 401 });
+  }
+  const params: MethodParams = {
+    args,
+    identification: {
+      context,
+      userId: userId,
+      uuid
+    }
+  }
+  console.log(`Executing method ${method} for user with id: ${userId}}`);
   switch (method){
     case 'createSandbox':
       return createSandbox(params);
