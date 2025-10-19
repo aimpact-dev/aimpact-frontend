@@ -144,7 +144,9 @@ async function createSandboxPromiseIfNotExists(identification: Identification) {
 
   if(!usersSandboxPromises.has(compositeId)) {
     console.log(`User with id ${compositeId} does not have sandbox promise, creating new one.`);
-    usersSandboxPromises.set(compositeId, Promise.resolve(await createFunc()));
+    const promise = createFunc();
+    usersSandboxPromises.set(compositeId, promise);
+    await promise;
   }
 }
 
