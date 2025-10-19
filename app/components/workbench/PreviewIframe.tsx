@@ -44,6 +44,7 @@ export const PreviewIframe = ({
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.data && event.data.type === 'AIMPACT_PREVIEW_LOADED') {
+        console.log('Aimpact preview loaded successfully');
         loadedSuccessfullyRef.current = true;
       }
     }
