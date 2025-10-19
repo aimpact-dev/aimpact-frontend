@@ -346,28 +346,8 @@ export const Workbench = memo(
       workbenchStore.currentView.set(view);
     };
 
-    async function waitForInstallCmd() {
+    async function waitForInstallCmd(packageJson: Record<string, any>) {
       const artifacts = Object.values(workbenchStore.artifacts.get());
-      if (!artifacts.length) return { status: false, customMsg: false };
-
-      let packageJson: { content: Record<string, any>; packageManager: string } | null = null;
-      let tries = 0;
-
-      while (tries <= 15) {
-        await sleep(2000);
-        try {
-          packageJson = workbenchStore.getPackageJson();
-          break;
-        } catch (e) {
-          continue;
-        } finally {
-          tries++;
-        }
-      }
-      if (!packageJson) {
-        customPreviewState.current = 'package.json not found';
-        return { status: false, customMsg: true };
-      }
 
       const installCmd = `${packageJson.packageManager} install`;
       let artifact: ArtifactState | null = null;
@@ -396,7 +376,7 @@ export const Workbench = memo(
         }
       });
 
-      tries = 0;
+      let tries = 0;
       while (tries <= 15) {
         if (isCompleted) {
           unsubscribe();
@@ -414,22 +394,21 @@ export const Workbench = memo(
       if (selectedView !== 'preview') return;
 
       const func = async (): Promise<{ customMsg: boolean }> => {
-        console.log('waitForInstall', waitForInstallRunned.current)
         if (waitForInstallRunned.current === true) return { customMsg: true };
 
         customPreviewState.current = 'Wait for project initialization...';
-        const artifacts = Object.values(workbenchStore.artifacts.get());
+        let artifacts: ArtifactState[] = [];
 
         let artifact: ArtifactState | undefined;
         let tries = 0;
         while (tries < 15) {
+          artifacts = Object.values(workbenchStore.artifacts.get());
           artifact = Object.values(artifacts).find((a) => a.runner);
           if (artifact) {
-            break
+            break;
           }
           await sleep(2000);
         }
-        console.log(artifact);
         if (!artifact) return { customMsg: false };
 
         const currentParsingMessage = currentParsingMessageState.get();
@@ -443,15 +422,36 @@ export const Workbench = memo(
           return { customMsg: true };
         }
 
+        let packageJson: { content: Record<string, any>; packageManager: string } | null = null;
+        tries = 0;
+
+        while (tries <= 15) {
+          await sleep(2000);
+          try {
+            packageJson = workbenchStore.getPackageJson();
+            break;
+          } catch (e) {
+            continue;
+          } finally {
+            tries++;
+          }
+        }
+        if (!packageJson) {
+          customPreviewState.current = 'package.json not found';
+          return { customMsg: true };
+        }
+
         customPreviewState.current = 'Wait for install...';
         let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
         if (waitForInstallRunned.current === false) {
           waitForInstallRunned.current = true;
-          waitForInstallRes = await waitForInstallCmd();
+          waitForInstallRes = await waitForInstallCmd(packageJson);
           waitForInstallRunned.current = false;
         }
 
-        if (waitForInstallRes?.status && !hasPreview && selectedView === 'preview') {
+        artifacts = Object.values(workbenchStore.artifacts.get());
+        const allActions = artifacts.flatMap((a) => Object.values(a.runner.actions.get()));
+        if (waitForInstallRes?.status) {
           customPreviewState.current = 'Running...';
           try {
             workbenchStore.startProject(artifact.runner);
@@ -467,7 +467,7 @@ export const Workbench = memo(
 
       customPreviewState.current = 'Loading...';
       func().then((res) => {
-        console.log(res);
+        console.log('After run preview', res);
         if (!hasPreview && !res.customMsg) {
           customPreviewState.current = 'No preview available.';
         }
