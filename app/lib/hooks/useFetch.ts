@@ -26,7 +26,7 @@ export function useFetch<T = any>() {
     const errorMessage = error instanceof Error ? error.message : 'An error occurred';
     setState({ data: null, error: error as Error, loading: false });
 
-    if (showError && (error.status ? error.status !== 400 : true)) {
+    if (showError && (error.status ? error.status !== 404 : true)) {
       toast.error(errorMessage);
     }
 

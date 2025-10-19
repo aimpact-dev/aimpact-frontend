@@ -13,6 +13,7 @@ import { detectProjectCommands, createCommandActionsString } from '~/utils/proje
 import type { ContextAnnotation } from '~/types/context';
 import { useHttpDb } from './http-db';
 import { filterIgnoreFiles } from '~/utils/ignoreFiles';
+import { chatStore } from '../stores/chat';
 
 export interface ChatHistoryItem {
   id: string;
@@ -177,6 +178,10 @@ export function useChatHistory() {
               }
               // setInitialMessages(storedMessages.messages);
               setInitialMessages(filteredMessages);
+              chatStore.setKey(
+                'initialMessagesIds',
+                filteredMessages.map((m) => m.id),
+              );
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);
@@ -304,13 +309,13 @@ export function useChatHistory() {
           creatingProjectRef.current = false;
           return;
         }
-        console.log("New chat ID created: ", _chatId);
+        console.log('New chat ID created: ', _chatId);
 
         chatId.set(_chatId);
-        console.log("Navigating to chat with ID: ", _chatId);
+        console.log('Navigating to chat with ID: ', _chatId);
         navigateChat(_chatId);
-        console.log("Navigation completed.");
-        console.log("Chat id stored in atom: ", chatId.get());
+        console.log('Navigation completed.');
+        console.log('Chat id stored in atom: ', chatId.get());
 
         creatingProjectRef.current = false;
       }
@@ -336,7 +341,6 @@ export function useChatHistory() {
 
       // Ensure chatId.get() is used for the final setMessages call
       const finalChatId = _chatId;
-      console.log("Final chat ID to be used for storing messages: ", finalChatId);
 
       if (creatingProjectRef.current) {
         console.warn('Creating project is in progress, cannot store messages yet.');
@@ -359,10 +363,14 @@ export function useChatHistory() {
             [...archivedMessages, ...messages],
             description.get(),
             chatMetadata.get(),
-          ).then(async () => {
-            lastChatIdx.set(messages[messages.length - 1].id);
-            lastChatSummary.set(chatSummary);
-          });
+          )
+            .then(async () => {
+              lastChatIdx.set(messages[messages.length - 1].id);
+              lastChatSummary.set(chatSummary);
+            })
+            .catch((e) => {
+              console.error('unexpected error', e);
+            });
 
           await settingProjectWorkaroundPromise.current;
         } finally {

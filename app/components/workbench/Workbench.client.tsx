@@ -310,7 +310,7 @@ export const Workbench = memo(
 
     useEffect(() => {
       // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
-      if (!parserState.get().parserRan) return;
+      if (!parserState.get().parserRunning) return;
 
       const removeSubscribe = workbenchStore.files.subscribe((files) => {
         const { initialMessagesIds } = chatStore.get();
@@ -421,8 +421,8 @@ export const Workbench = memo(
 
         // const { initialMessagesIds } = chatStore.get();
         const currentParsingMessage = currentParsingMessageState.get();
-        const { parserRan } = parserState.get();
-        if (!parserRan || currentParsingMessage) {
+        const { parserRunning } = parserState.get();
+        if (!parserRunning || currentParsingMessage) {
           customPreviewState.current = 'Wait for project initialization...';
           return { customMsg: true };
         }
