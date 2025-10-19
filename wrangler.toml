@@ -22,4 +22,11 @@ ENVIRONMENT = "production"
 [env.preview]
 name = "aimpact-preview"
 [env.preview.vars]
-PUBLIC_BACKEND_URL = "https://p5c2vgrgn9emb2lbdukc6el728.ingress.d3akash.cloud"
+VITE_LOG_LEVEL = "debug"
+VITE_GITHUB_TOKEN_TYPE = "classic"
+PUBLIC_BACKEND_URL = "https://eblo7vdluldh7a74tp8o30v31g.ingress.d3akash.cloud"
+VITE_DEPOSIT_ADDRESS = "GorN1wMsaWp75QJYtU8NrCu9GCgTtPiUeDRX3ccLZ5jj"
+VITE_REWARDS_SHARING_PERCENT = "10"
+VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
+DYNAMIC_ENVIROMENT_ID = "ef8d5320-bb51-49c8-9932-5926b6646175"
+ENVIRONMENT = "preview"
