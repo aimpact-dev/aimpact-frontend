@@ -310,17 +310,18 @@ export const Workbench = memo(
 
     useEffect(() => {
       // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
-      if (!parserState.get().parserRan) return;
+      if (!parserState.get().parserRunning) return;
 
       const removeSubscribe = workbenchStore.files.subscribe((files) => {
         const { initialMessagesIds } = chatStore.get();
         const currentParsingMessage = currentParsingMessageState.get();
-        if (!chatIdx || !initialMessagesIds.length) return;
+        if (!chatIdx) return;
 
-        if (!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) {
+        const snapshotHaveChanges = Object.keys(files).length > 0;
+        if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
           if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
             takeSnapshot(chatIdx, files, undefined, chatSummary);
-            console.debug('Snapshot was taken on file change');
+            console.log('Snapshot was taken on file change');
             lastSnapshotRef.current = Date.now();
           }
         }
@@ -378,6 +379,7 @@ export const Workbench = memo(
           continue;
         }
         artifact = a;
+        break;
       }
       if (!artifact) return { status: false, customMsg: false };
 
@@ -385,7 +387,11 @@ export const Workbench = memo(
       const unsubscribe = artifact.runner.actions.subscribe((state) => {
         const commands = Object.values(state);
         const installCmdAction = commands.find((a) => a.content.endsWith(installCmd));
-        if (installCmdAction?.status === 'complete') {
+        if (
+          installCmdAction?.status === 'complete' ||
+          installCmdAction?.status === 'failed' ||
+          installCmdAction?.status === 'aborted'
+        ) {
           isCompleted = true;
         }
       });
@@ -412,24 +418,20 @@ export const Workbench = memo(
 
         customPreviewState.current = 'Running...';
         const artifacts = Object.values(workbenchStore.artifacts.get());
-        console.log(artifacts);
         if (!artifacts.length) return { customMsg: false };
 
         const artifact = Object.values(artifacts).find((a) => a.runner);
-        console.log(artifact);
         if (!artifact) return { customMsg: false };
 
-        // const { initialMessagesIds } = chatStore.get();
         const currentParsingMessage = currentParsingMessageState.get();
-        const { parserRan } = parserState.get();
-        if (!parserRan || currentParsingMessage) {
+        if (currentParsingMessage) {
           customPreviewState.current = 'Wait for project initialization...';
           return { customMsg: true };
         }
 
+        customPreviewState.current = 'Wait for install...';
         let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
         if (waitForInstallRunned.current === false) {
-          customPreviewState.current = 'Wait for install...';
           waitForInstallRunned.current = true;
           waitForInstallRes = await waitForInstallCmd();
           waitForInstallRunned.current = false;
@@ -449,8 +451,8 @@ export const Workbench = memo(
         return { customMsg: waitForInstallRes?.customMsg || false };
       };
 
+      customPreviewState.current = 'Loading...';
       func().then((res) => {
-        console.log('func res', res);
         if (!hasPreview && !res.customMsg) {
           customPreviewState.current = 'No preview available.';
         }

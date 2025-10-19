@@ -112,7 +112,7 @@ const processSampledMessages = createSampler(
       return message.annotations ? !message.annotations.includes('ignore-actions') : true;
     });
     parseMessages(filteredMessages, isLoading);
-
+    
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
@@ -142,11 +142,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const deployAlert = useStore(workbenchStore.deployAlert);
   const supabaseAlert = useStore(workbenchStore.supabaseAlert);
   const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
-
-  /*
-   * console.log(`Auto select template: ${autoSelectTemplate}`)
-   * console.log(`Prompt id: ${promptId}`)
-   */
 
   useEffect(() => {
     return () => {
@@ -232,7 +227,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       setData(undefined);
 
       if (usage) {
-        console.log('Token usage:', usage);
+        logger.debug('Token usage:', usage);
         logStore.logProvider('Chat response completed', {
           component: 'Chat',
           action: 'response',
@@ -244,10 +239,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
 
       logger.debug('Finished streaming');
+      const chatIdx = lastChatIdx.get();
       if (!chatIdx) return;
-      takeSnapshot(chatIdx, files, undefined, chatSummary).then(() =>
-        logger.debug('Project saved after message on finish'),
-      );
+      takeSnapshot(chatIdx, files, undefined, chatSummary)
+        .then(() => logger.debug('Project saved after message on finish'))
+        .catch((e) => {
+          logger.error('error in take snapshot!!!');
+          logger.error(e);
+        });
     },
     initialMessages,
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',

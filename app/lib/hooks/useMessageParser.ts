@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 import { StreamingMessageParser } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
-import { parserState } from '../stores/parse';
+import { currentParsingMessageState, parserState } from '../stores/parse';
 
 const logger = createScopedLogger('useMessageParser');
 
@@ -12,12 +12,14 @@ const messageParser = new StreamingMessageParser({
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
 
+      currentParsingMessageState.set(data.messageId);
       workbenchStore.showWorkbench.set(true);
       workbenchStore.addArtifact(data);
     },
     onArtifactClose: (data) => {
       logger.trace('onArtifactClose');
 
+      currentParsingMessageState.set(null);
       workbenchStore.updateArtifact(data, { closed: true });
     },
     onActionOpen: (data) => {
@@ -59,10 +61,14 @@ export function useMessageParser() {
       messageParser.reset();
     }
 
-    parserState.setKey('parserRan', true);
+    parserState.setKey('parserRunning', true);
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant' || message.role === 'user') {
-        const newParsedContent = messageParser.parse(message.id, extractTextContent(message), messages.map(m => m.id));
+        const newParsedContent = messageParser.parse(
+          message.id,
+          extractTextContent(message),
+          messages.map((m) => m.id),
+        );
         setParsedMessages((prevParsed) => ({
           ...prevParsed,
           [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,

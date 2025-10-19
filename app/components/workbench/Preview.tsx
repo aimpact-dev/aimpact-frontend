@@ -94,6 +94,8 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const expoUrl = useStore(expoUrlAtom);
   const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
 
+  const [reloadedAfterLoad, setReloadedAfterLoad] = useState(false);
+
   useEffect(() => {
     if (!activePreview) {
       setIframeUrl(undefined);
@@ -123,9 +125,11 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   }, [previews, findMinPortIndex]);
 
   const reloadPreview = () => {
+    // we should skip if this function called after load and if we already reloaded this preview
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
       setIsPreviewLoading(true);
+      setReloadedAfterLoad(true);
     }
   };
 
@@ -619,6 +623,18 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
     };
   }, [showDeviceFrameInPreview]);
 
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  const onFrameLoad = async () => {
+    setIsPreviewLoading(false);
+    await sleep(2000);
+    if (!reloadedAfterLoad) {
+      reloadPreview();
+    }
+  };
+
   return (
     <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
       {isPortDropdownOpen && (
@@ -923,7 +939,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                       setIsPreviewLoading={setIsPreviewLoading}
                       iframeRef={iframeRef}
                       iframeUrl={iframeUrl}
-                      onLoad={() => setIsPreviewLoading(false)}
+                      onLoad={onFrameLoad}
                     />
                   </div>
                 </div>
@@ -933,7 +949,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   setIsPreviewLoading={setIsPreviewLoading}
                   iframeRef={iframeRef}
                   iframeUrl={iframeUrl}
-                  onLoad={() => setIsPreviewLoading(false)}
+                  onLoad={onFrameLoad}
                 />
               )}
               <ScreenshotSelector

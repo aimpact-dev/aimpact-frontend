@@ -949,7 +949,7 @@ export class WorkbenchStore {
 
     const previews = this.#previewsStore.previews;
     if (previews.get().find((preview) => preview.ready)) {
-      console.debug('Preview already runned');
+      console.log('Preview already runned');
       return;
     }
 

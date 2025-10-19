@@ -36,7 +36,6 @@ export class EditorStore {
   setDocuments(files: FileMap) {
     const previousDocuments = this.documents.value;
 
-    logger.info('Setting documents with files:', files);
     this.documents.set(
       Object.fromEntries<EditorDocument>(
         Object.entries(files)
