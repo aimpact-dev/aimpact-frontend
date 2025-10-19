@@ -31,6 +31,9 @@ import SmartContractView from '~/components/workbench/smartContracts/SmartContra
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { currentParsingMessageState, parserState } from '~/lib/stores/parse';
 import { chatStore } from '~/lib/stores/chat';
+import { detectStartCommand } from '~/utils/projectCommands';
+import { LazySandbox } from '~/lib/daytona/lazySandbox';
+import { getSandbox } from '~/lib/daytona';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -449,9 +452,12 @@ export const Workbench = memo(
           waitForInstallRunned.current = false;
         }
 
-        artifacts = Object.values(workbenchStore.artifacts.get());
-        const allActions = artifacts.flatMap((a) => Object.values(a.runner.actions.get()));
-        if (waitForInstallRes?.status) {
+        const shell = workbenchStore.getMainShell;
+        const startCommandName = detectStartCommand(packageJson);
+        const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
+        const startCommandInShell = shell.currentProcessingCommand?.endsWith(startCommand);
+
+        if (waitForInstallRes?.status && !startCommandInShell) {
           customPreviewState.current = 'Running...';
           try {
             workbenchStore.startProject(artifact.runner);

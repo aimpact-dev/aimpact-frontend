@@ -21,6 +21,7 @@ export type ExecutionResult = { output: string; exitCode: number } | undefined;
 export class AimpactShell {
   private terminal: ITerminal | undefined;
   private readonly sandboxPromise: Promise<AimpactSandbox>;
+  public currentProcessingCommand: string | null = null;
 
   // Handles terminal input processing, including tracking ITerminal onData events and managing command input.
   private commandBuffer: CommandBuffer;
@@ -97,6 +98,7 @@ export class AimpactShell {
 
     console.log('Executing command: ', commandRequest.command, 'in session:', sessionId);
     const response = await sandbox.executeSessionCommand(sessionId, commandRequest);
+    this.currentProcessingCommand = commandRequest.command;
     const commandId = response.cmdId;
     const executionPromise = this._pollCommandState(sessionId, commandId!);
     this.executionState = {
@@ -160,6 +162,8 @@ export class AimpactShell {
       this.executionState = undefined;
       this.lastLogLength = 0;
       return undefined;
+    } finally {
+      this.currentProcessingCommand = null;
     }
   }
 }
