@@ -414,18 +414,32 @@ export const Workbench = memo(
       if (selectedView !== 'preview') return;
 
       const func = async (): Promise<{ customMsg: boolean }> => {
+        console.log('waitForInstall', waitForInstallRunned.current)
         if (waitForInstallRunned.current === true) return { customMsg: true };
 
-        customPreviewState.current = 'Running...';
+        customPreviewState.current = 'Wait for project initialization...';
         const artifacts = Object.values(workbenchStore.artifacts.get());
-        if (!artifacts.length) return { customMsg: false };
 
-        const artifact = Object.values(artifacts).find((a) => a.runner);
+        let artifact: ArtifactState | undefined;
+        let tries = 0;
+        while (tries < 15) {
+          artifact = Object.values(artifacts).find((a) => a.runner);
+          if (artifact) {
+            break
+          }
+          await sleep(2000);
+        }
+        console.log(artifact);
         if (!artifact) return { customMsg: false };
 
         const currentParsingMessage = currentParsingMessageState.get();
+        tries = 0;
+        while (tries < 15) {
+          if (!currentParsingMessage) {
+            break;
+          }
+        }
         if (currentParsingMessage) {
-          customPreviewState.current = 'Wait for project initialization...';
           return { customMsg: true };
         }
 
@@ -453,6 +467,7 @@ export const Workbench = memo(
 
       customPreviewState.current = 'Loading...';
       func().then((res) => {
+        console.log(res);
         if (!hasPreview && !res.customMsg) {
           customPreviewState.current = 'No preview available.';
         }
