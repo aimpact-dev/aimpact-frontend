@@ -63,7 +63,7 @@ export class RemoteSandbox implements AimpactSandbox {
     const authToken = this.getAuthToken();
     const response = await this.callRemoteSandbox('getPreviewLink', args, authToken);
     if (!response.ok) {
-      throw new Error(`Failed to get preview link: ${response.statusText}`);
+      throw new Error(`Failed to get preview link: ${response.statusText}. Response text: ${await response.text()}`);
     }
     const data: { token?: string, url?: string } = await response.json();
     if (!data.token || !data.url) {
