@@ -18,8 +18,9 @@ VITE_REWARDS_SHARING_PERCENT = "10"
 VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
 DYNAMIC_ENVIROMENT_ID = "ef8d5320-bb51-49c8-9932-5926b6646175"
 ENVIRONMENT = "production"
+DAYTONA_PROXY_URL = "https://proxy.aimpact.dev"
 
 [env.preview]
 name = "aimpact-preview"
 [env.preview.vars]
-PUBLIC_BACKEND_URL = "https://p5c2vgrgn9emb2lbdukc6el728.ingress.d3akash.cloud"
+ENVIRONMENT = "preview"
