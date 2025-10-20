@@ -16,6 +16,7 @@ import { formatNumber } from '~/lib/utils';
 import TokenInfoForm from '~/components/chat/TokenInfoForm';
 import Popup from '~/components/common/Popup';
 import { LoadingDots } from '~/components/ui';
+import Footer from '~/components/footer/Footer';
 
 export default function Project() {
   const params = useParams();
@@ -335,12 +336,7 @@ export default function Project() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 border-t border-gray-800 p-6 text-center text-gray-500">
-        <p>
-          © {new Date().getFullYear()} Project Explorer. All information is provided for educational purposes only.
-        </p>
-      </footer>
+      <Footer withLabel />
     </div>
   );
 }

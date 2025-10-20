@@ -8,7 +8,7 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from '@remix-run/react';
 
 import { Button } from '@/components/ui/Button';
-import Footer from '~/components/footer/Footer.client';
+import SideMenu from '~/components/footer/SideMenu.client';
 import { useAuth } from '~/lib/hooks/useAuth';
 import type { ProjectFilters } from 'query/use-project-query';
 import ProjectFilter from '~/components/dashboard/ProjectFilter';
