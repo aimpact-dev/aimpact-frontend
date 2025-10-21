@@ -34,6 +34,7 @@ import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { getSandbox } from '~/lib/daytona';
+import { streamingState } from '~/lib/stores/streaming';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -359,7 +360,7 @@ export const Workbench = memo(
         if (!a.runner) continue;
         const actions = Object.values(a.runner.actions.get());
         //TODO: Check action type. Should be a shell action.
-        const installCmdAction = actions.find((action) => action.content.endsWith(installCmd));
+        const installCmdAction = actions.findLast((action) => action.content.endsWith(installCmd));
         if (!installCmdAction) {
           continue;
         }
@@ -395,6 +396,33 @@ export const Workbench = memo(
       return { installed: false, customMsg: false };
     }
 
+    /**
+     * Returns the first action runner created in the current chat.
+     */
+    function getFirstActionRunner(): ActionRunner | null {
+      const artifacts = Object.values(workbenchStore.artifacts.get());
+      const artifact = Object.values(artifacts).find((a) => a.runner);
+      if(artifact){
+        return artifact.runner;
+      }
+      else{
+        return null;
+      }
+    }
+
+    function isAiResponseInProgress(): boolean {
+      return streamingState.get();
+    }
+
+    function getPackageJson(): { content: Record<string, any>; packageManager: string } | null{
+      try{
+        return workbenchStore.getPackageJson();
+      } catch(e) {
+        console.log("package.json not found.");
+        return null;
+      }
+    }
+
     useEffect(() => {
       if (hasPreview) return;
       if (selectedView !== 'preview') return;
@@ -405,7 +433,8 @@ export const Workbench = memo(
         customPreviewState.current = 'Wait for project initialization...';
         let artifacts: ArtifactState[] = [];
 
-        //Waiting for any artifact with runner
+        // Step 1: Get a runner.
+        // Waiting for any artifact with runner
         let artifact: ArtifactState | undefined;
         let tries = 0;
         while (tries < 15) {
@@ -418,9 +447,10 @@ export const Workbench = memo(
         }
         if (!artifact) return { customMsg: false };
 
-        //Waiting for currentParsingMessageState to get empty
-        //Problem: it can be empty at the beginning of the AI response.
-        //Potential solution: find a robust way to ensure that no AI response is currently being parsed.
+        // Step 2: Ensure we are not processing AI response right now.
+        // Waiting for currentParsingMessageState to get empty
+        // Problem: it can be empty at the beginning of the AI response.
+        // Potential solution: find a robust way to ensure that no AI response is currently being parsed.
         let currentParsingMessage : string | null = null;
         tries = 0;
         while (tries < 15) {
@@ -434,6 +464,7 @@ export const Workbench = memo(
           return { customMsg: true };
         }
 
+        // Step 3: Find package json.
         let packageJson: { content: Record<string, any>; packageManager: string } | null = null;
         tries = 0;
         while (tries <= 15) {
@@ -452,6 +483,7 @@ export const Workbench = memo(
           return { customMsg: true };
         }
 
+        // Step 4: Make sure that dependencies installation is not ongoing
         customPreviewState.current = 'Wait for install...';
         let waitForInstallRes: { installed: boolean; customMsg: boolean } | null = null;
         //TODO: Rename waitForInstallRunned to waitingForInstall
@@ -465,16 +497,15 @@ export const Workbench = memo(
         const startCommandName = detectStartCommand(packageJson);
         const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
         //TODO: Rename currentProcessingCommand to currentlyRunningCommand
+        // Step 5: Make sure that preview command is not running right now
         const startCommandInShell = shell.currentProcessingCommand?.endsWith(startCommand);
 
         if (waitForInstallRes?.installed && !startCommandInShell) {
           customPreviewState.current = 'Running...';
-          try {
-            workbenchStore.startProject(artifact.runner);
-          } catch (e) {
-            console.error(e);
+          workbenchStore.startProject(artifact.runner).catch((err) => {
+            console.error(err);
             customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
-          }
+          });
           return { customMsg: true };
         }
 
