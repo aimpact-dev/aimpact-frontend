@@ -28,7 +28,7 @@ export function EventBanner({ className }: Props) {
   return (
     <div
       className={classNames(
-        'relative h-8 w-full bg-gradient-to-r from-accent-700 to-purple-700 text-white text-center py-2 px-2 flex items-center justify-center z-5000',
+        'relative h-[var(--banner-height)] w-full bg-gradient-to-r from-accent-700 to-purple-700 text-white text-center py-2 px-2 flex items-center justify-center z-5000',
         className,
       )}
     >
