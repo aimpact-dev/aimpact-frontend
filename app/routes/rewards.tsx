@@ -1,10 +1,9 @@
 import { useStore } from '@nanostores/react';
 import { useEffect, useRef, useState } from 'react';
 import Navbar from '~/components/dashboard/navbar';
-import Footer from '~/components/footer/Footer';
-import SideMenu from '~/components/footer/SideMenu.client';
 import ReferralsTab from '~/components/rewards/referralsTab';
 import SharingTab from '~/components/rewards/sharingTab';
+import GradientPage from '~/components/wrappers/GradientPage';
 import { useRewardsApi, type WithdrawRewardsResponse } from '~/lib/hooks/api-hooks/useRewardsApi';
 import { useAuth, userInfo } from '~/lib/hooks/useAuth';
 import { classNames } from '~/utils/classNames';
@@ -39,9 +38,8 @@ export default function Rewards() {
   }, [isAuthorized]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-black">
-      <Navbar />
-      <section id="rewards" className="py-16 md:py-24 relative">
+    <GradientPage>
+      <section id="rewards">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl font-bold text-white mb-2">Rewards</h1>
           <p className="text-sm text-gray-400 mb-8 font-normal">Invite friends to receive rewards in Aimpact way.</p>
@@ -79,8 +77,6 @@ export default function Rewards() {
           </div>
         </div>
       </section>
-      <SideMenu positionClass="fixed bottom-0 left-0 w-full" />
-      <Footer withLabel />
-    </main>
+    </GradientPage>
   );
 }

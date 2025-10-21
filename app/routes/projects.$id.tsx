@@ -8,15 +8,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useUpdateProjectInfoMutation } from 'query/use-project-query';
 import { formatUrl } from '~/utils/urlUtils';
 import LoadingScreen from '~/components/common/LoadingScreen';
-import { Tooltip } from '~/components/chat/Tooltip';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
-import { classNames } from '~/utils/classNames';
 import { twMerge } from 'tailwind-merge';
 import { formatNumber } from '~/lib/utils';
 import TokenInfoForm from '~/components/chat/TokenInfoForm';
 import Popup from '~/components/common/Popup';
 import { LoadingDots } from '~/components/ui';
 import Footer from '~/components/footer/Footer';
+import { EventBanner } from '~/components/ui/EventBanner';
 
 export default function Project() {
   const params = useParams();
@@ -28,10 +27,9 @@ export default function Project() {
     );
   }
   const auth = useAuth();
+  const navigate = useNavigate();
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
-
-  const navigate = useNavigate();
 
   const updateProjectMutation = useUpdateProjectInfoMutation(params.id, auth?.jwtToken);
   const isOwner = useMemo(() => {
@@ -109,14 +107,12 @@ export default function Project() {
 
   return (
     <div className="min-h-screen w-full bg-black text-gray-100 flex flex-col">
+      <EventBanner />
       <header className="bg-gradient-to-r from-gray-900 to-black p-8 border-b border-gray-800">
-        <div className="flex flex-col max-w-7xl mx-auto">
-          <div>
-            <a href="/" className="mr-4">
-              <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-8 w-auto" />
-            </a>
-          </div>
-
+        <div className="max-w-7xl mx-auto flex items-center gap-6">
+          <button onClick={() => navigate('/')} className="mr-4">
+            <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-12 w-auto" />
+          </button>
           {project.image && (
             <img
               src={project.image}

@@ -1,14 +1,11 @@
 'use client';
 
-import { useState, type FormEvent, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import ProjectGrid from '@/components/dashboard/project-grid';
-import Navbar from '@/components/dashboard/navbar';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { useNavigate } from '@remix-run/react';
-
 import { Button } from '@/components/ui/Button';
-import SideMenu from '~/components/footer/SideMenu.client';
 import { useAuth } from '~/lib/hooks/useAuth';
 import type { ProjectFilters } from 'query/use-project-query';
 import ProjectFilter from '~/components/dashboard/ProjectFilter';
