@@ -349,14 +349,16 @@ export const Workbench = memo(
       workbenchStore.currentView.set(view);
     };
 
-    async function waitForInstallCmd(packageJson: Record<string, any>) {
+    async function waitForInstallCmd(packageJson: Record<string, any>): Promise<{installed: boolean, customMsg: boolean}> {
       const artifacts = Object.values(workbenchStore.artifacts.get());
 
       const installCmd = `${packageJson.packageManager} install`;
+      //TODO: Save a list of artifacts that contain install actions. One of them may contain a not finished install action.
       let artifact: ArtifactState | null = null;
       for (const a of artifacts) {
         if (!a.runner) continue;
         const actions = Object.values(a.runner.actions.get());
+        //TODO: Check action type. Should be a shell action.
         const installCmdAction = actions.find((action) => action.content.endsWith(installCmd));
         if (!installCmdAction) {
           continue;
@@ -364,11 +366,12 @@ export const Workbench = memo(
         artifact = a;
         break;
       }
-      if (!artifact) return { status: false, customMsg: false };
+      if (!artifact) return { installed: false, customMsg: false };
 
       let isCompleted: boolean = false;
       const unsubscribe = artifact.runner.actions.subscribe((state) => {
         const commands = Object.values(state);
+        //TODO: Check action type. Should be shell.
         const installCmdAction = commands.find((a) => a.content.endsWith(installCmd));
         if (
           installCmdAction?.status === 'complete' ||
@@ -383,13 +386,13 @@ export const Workbench = memo(
       while (tries <= 15) {
         if (isCompleted) {
           unsubscribe();
-          return { status: true, customMsg: false };
+          return { installed: true, customMsg: false };
         }
         await sleep(2000);
         tries++;
       }
 
-      return { status: false, customMsg: false };
+      return { installed: false, customMsg: false };
     }
 
     useEffect(() => {
@@ -402,6 +405,7 @@ export const Workbench = memo(
         customPreviewState.current = 'Wait for project initialization...';
         let artifacts: ArtifactState[] = [];
 
+        //Waiting for any artifact with runner
         let artifact: ArtifactState | undefined;
         let tries = 0;
         while (tries < 15) {
@@ -414,12 +418,17 @@ export const Workbench = memo(
         }
         if (!artifact) return { customMsg: false };
 
-        const currentParsingMessage = currentParsingMessageState.get();
+        //Waiting for currentParsingMessageState to get empty
+        //Problem: it can be empty at the beginning of the AI response.
+        //Potential solution: find a robust way to ensure that no AI response is currently being parsed.
+        let currentParsingMessage : string | null = null;
         tries = 0;
         while (tries < 15) {
+          currentParsingMessage = currentParsingMessageState.get();
           if (!currentParsingMessage) {
             break;
           }
+          await sleep(2000);
         }
         if (currentParsingMessage) {
           return { customMsg: true };
@@ -427,7 +436,6 @@ export const Workbench = memo(
 
         let packageJson: { content: Record<string, any>; packageManager: string } | null = null;
         tries = 0;
-
         while (tries <= 15) {
           await sleep(2000);
           try {
@@ -445,7 +453,8 @@ export const Workbench = memo(
         }
 
         customPreviewState.current = 'Wait for install...';
-        let waitForInstallRes: { status: boolean; customMsg: boolean } | null = null;
+        let waitForInstallRes: { installed: boolean; customMsg: boolean } | null = null;
+        //TODO: Rename waitForInstallRunned to waitingForInstall
         if (waitForInstallRunned.current === false) {
           waitForInstallRunned.current = true;
           waitForInstallRes = await waitForInstallCmd(packageJson);
@@ -455,15 +464,16 @@ export const Workbench = memo(
         const shell = workbenchStore.getMainShell;
         const startCommandName = detectStartCommand(packageJson);
         const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
+        //TODO: Rename currentProcessingCommand to currentlyRunningCommand
         const startCommandInShell = shell.currentProcessingCommand?.endsWith(startCommand);
 
-        if (waitForInstallRes?.status && !startCommandInShell) {
+        if (waitForInstallRes?.installed && !startCommandInShell) {
           customPreviewState.current = 'Running...';
           try {
             workbenchStore.startProject(artifact.runner);
           } catch (e) {
             console.error(e);
-            customPreviewState.current = 'Failed to run preview. Maybe your project structure is not supported';
+            customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
           }
           return { customMsg: true };
         }

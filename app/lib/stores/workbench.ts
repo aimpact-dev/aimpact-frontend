@@ -940,7 +940,7 @@ export class WorkbenchStore {
     return { content, packageManager: detectPackageManager(content) };
   }
 
-  async startProject(actionRunenr: ActionRunner) {
+  async startProject(actionRunner: ActionRunner) {
     const packageJson = this.getPackageJson();
     const startCommandName = detectStartCommand(packageJson.content);
     if (!packageJson.packageManager || !startCommandName) {
@@ -956,7 +956,7 @@ export class WorkbenchStore {
     const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
     const abortController = new AbortController();
     await getSandbox();
-    await actionRunenr.runShellAction({
+    await actionRunner.runShellAction({
       status: 'running',
       executed: false,
       abort: () => {
