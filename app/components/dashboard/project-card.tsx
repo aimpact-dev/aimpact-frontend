@@ -19,6 +19,12 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   const akashDeployment = appDeployments?.find((d) => d.provider === 'Akash');
   const navigate = useNavigate();
 
+  const deployments = [
+    { name: 'AWS', tooltip: 'Deployed on AWS', data: s3Deployment },
+    { name: 'ICP', tooltip: 'Deployed on ICP', data: icpDeployment },
+    { name: 'Akash', tooltip: 'Deployed on Akash', data: akashDeployment },
+  ];
+
   function handleDeployLabelClick(e: React.MouseEvent, url: string) {
     e.stopPropagation();
     window.open(formatUrl(url), '_blank', 'noopener');
@@ -29,10 +35,11 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   };
 
   return (
-    <div className="group relative bg-black/65 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/5 dark:to-white/5 z-0 group-hover:opacity-100 opacity-0 transition-opacity duration-300" />
-
-      <div className="block p-6 relative z-10 cursor-pointer" onClick={() => navigate(`/projects/${project.id}`)}>
+    <div className="group relative bg-black/25 hover:bg-black/35 border-1 border-white/15 hover:border-bolt-elements-borderColorActive hover:scale-[1.02] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+      <div
+        className="flex flex-col justify-between h-full  p-6 relative z-10 cursor-pointer"
+        onClick={() => navigate(`/projects/${project.id}`)}
+      >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
             {image && (
@@ -57,49 +64,26 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
 
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
-            <BadgeCustom variant="secondary">{formatDistanceToNow(createdAt, { addSuffix: true })}</BadgeCustom>
+            <BadgeCustom variant="nft" className="flex gap-1">
+              {<div className="i-ph:calendar-blank"></div>}
+              {formatDistanceToNow(createdAt, { addSuffix: true })}
+            </BadgeCustom>
           </div>
 
           <div className="flex space-x-1">
-            {s3Deployment?.url && (
-              <Tooltip content="Deployed on AWS">
-                <>
-                  <BadgeCustom
-                    variant="secondary"
-                    onClick={(e) => handleDeployLabelClick(e, s3Deployment.url!)}
-                    className="hover:bg-gray-600 bg-gray-700"
-                  >
-                    AWS
-                  </BadgeCustom>
-                </>
-              </Tooltip>
-            )}
-            {icpDeployment?.url && (
-              <Tooltip content="Deployed on ICP">
-                <>
-                  {/* <a href='test'> */}
-                  <BadgeCustom
-                    variant="secondary"
-                    onClick={(e) => handleDeployLabelClick(e, icpDeployment.url!)}
-                    className="hover:bg-gray-600 bg-gray-700"
-                  >
-                    ICP
-                  </BadgeCustom>
-                </>
-              </Tooltip>
-            )}
-            {akashDeployment?.url && (
-              <Tooltip content="Deployed on Akash">
-                <>
-                  <BadgeCustom
-                    variant="secondary"
-                    onClick={(e) => handleDeployLabelClick(e, akashDeployment.url!)}
-                    className="hover:bg-gray-600 bg-gray-700"
-                  >
-                    Akash
-                  </BadgeCustom>
-                </>
-              </Tooltip>
+            {deployments.map(
+              (dep) =>
+                dep.data?.url && (
+                  <Tooltip key={dep.name} content={dep.tooltip}>
+                    <BadgeCustom
+                      variant="secondary"
+                      onClick={(e) => handleDeployLabelClick(e, dep.data!.url!)}
+                      className="hover:bg-gray-600 bg-gray-700"
+                    >
+                      {dep.name}
+                    </BadgeCustom>
+                  </Tooltip>
+                ),
             )}
           </div>
         </div>

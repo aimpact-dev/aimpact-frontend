@@ -3,7 +3,6 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
-import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import DepositButton from '../chat/DepositButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
@@ -14,8 +13,11 @@ import GetMessagesButton from '../chat/GetMessagesButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderboardNavButton from '../chat/LeaderboardNavButton';
-import { useNavigate } from '@remix-run/react';
+import DeployTokenNavButton from '../chat/DeployTokenNavButton';
+import { useNavigate, useParams } from '@remix-run/react';
 import { EventBanner } from '../ui/EventBanner';
+import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
+import TokenInfoNavButton from '../chat/TokenInfoButton';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -29,9 +31,11 @@ export type ButtonProps = PropsWithChildren<{
 
 export function Header() {
   const chat = useStore(chatStore);
-  const navigate = useNavigate();
   const { connected } = useWallet();
   const user = useStore(userInfo);
+  const params = useParams();
+  const navigate = useNavigate();
+  const tokenInfoQuery = params.id ? useGetHeavenToken(params.id) : null;
 
   return (
     <>
@@ -58,20 +62,21 @@ export function Header() {
               <LeaderboardNavButton />
             </>
           )}
+          {chat.started && params.id && !tokenInfoQuery?.data && (
+            <div className="h-full">
+              <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
+            </div>
+          )}
+          {chat.started && params.id && tokenInfoQuery?.data && (
+            <div className="h-full">
+              <TokenInfoNavButton tokenData={tokenInfoQuery.data} />
+            </div>
+          )}
         </div>
 
         {chat.started ? ( // Display ChatDescription and HeaderActionButtons only when the chat has started.
           <>
-            <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
-              <ClientOnly>{() => <ChatDescription />}</ClientOnly>
-            </span>
-            <ClientOnly>
-              {() => (
-                <div className="mr-1">
-                  <HeaderActionButtons />
-                </div>
-              )}
-            </ClientOnly>
+            <ClientOnly>{() => <HeaderActionButtons />}</ClientOnly>
           </>
         ) : (
           <div className="flex items-center justify-center"></div>
@@ -79,7 +84,7 @@ export function Header() {
         <div className="flex justify-center items-center gap-2.5">
           {connected && user && (
             <>
-              <div className="whitespace-nowrap text-base font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
+              <div className="whitespace-nowrap text-sm font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
                 {user.messagesLeft - user.pendingMessages} message
                 {user.messagesLeft - user.pendingMessages === 1 ? '' : 's'} left
               </div>

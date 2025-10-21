@@ -1,10 +1,9 @@
 import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
 import { basename } from 'node:path';
-import { defineConfig, presetIcons, presetUno, transformerDirectives, presetWind } from 'unocss';
+import { defineConfig, presetIcons, presetUno, transformerDirectives, presetWind} from 'unocss';
 import { getIcons } from '@iconify/utils';
 import type { IconifyJSON } from '@iconify/types';
-import phIcons from '@iconify-json/ph/icons.json';
 
 const iconPaths = globSync('./icons/*.svg');
 
@@ -106,6 +105,8 @@ const COLOR_PRIMITIVES = {
   },
 };
 
+
+
 export default defineConfig({
   safelist: [
     ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`),
@@ -128,34 +129,38 @@ export default defineConfig({
   theme: {
     colors: {
       ...COLOR_PRIMITIVES,
-      border: "hsl(var(--border))",
-      input: "hsl(var(--input))",
-      ring: "hsl(var(--ring))",
-      background: "hsl(var(--background))",
-      foreground: "hsl(var(--foreground))",
+      border: {
+        DEFAULT: "var(--border)",
+        light: "var(--border-light)"
+      },
+      input: "var(--input)",
+      ring: "var(--ring)",
+      background: "var(--background)",
+      foreground: "var(--foreground)",
       primary: {
-        DEFAULT: "hsl(var(--primary))",
-        foreground: "hsl(var(--primary-foreground))",
+        DEFAULT: "var(--primary)",
+        foreground: "var(--primary-foreground)",
       },
       secondary: {
-        DEFAULT: "hsl(var(--secondary))",
-        foreground: "hsl(var(--secondary-foreground))",
+        DEFAULT: "var(--secondary)",
+        foreground: "var(--secondary-foreground)",
       },
       destructive: {
-        DEFAULT: "hsl(var(--destructive))",
-        foreground: "hsl(var(--destructive-foreground))",
+        DEFAULT: "var(--destructive)",
+        foreground: "var(--destructive-foreground)",
+        light: "var(--destructive-light)",
       },
       muted: {
-        DEFAULT: "hsl(var(--muted))",
-        foreground: "hsl(var(--muted-foreground))",
+        DEFAULT: "var(--muted)",
+        foreground: "var(--muted-foreground)",
       },
       card: {
-        DEFAULT: "hsl(var(--card))",
-        foreground: "hsl(var(--card-foreground))",
+        DEFAULT: "var(--card)",
+        foreground: "var(--card-foreground)",
       },
       accent_t: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
       },
       bolt: {
         elements: {
@@ -291,8 +296,19 @@ export default defineConfig({
       },
       unit: 'em',
     }),
-    // presetWind(),
-  ]
+    presetWind(),
+  ],
+  variants: [
+    // aria-invalid:
+    (matcher) => {
+      if (!matcher.startsWith('aria-invalid:'))
+        return matcher
+      return {
+        matcher: matcher.slice('aria-invalid:'.length),
+        selector: (s) => `${s}[aria-invalid="true"]`,
+      }
+    },
+  ],
 });
 
 /**

@@ -4,7 +4,6 @@ import { generateId } from './fileUtils';
 export interface ProjectCommands {
   type: string;
   setupCommand?: string;
-  startCommand?: string;
   followupMessage: string;
 }
 
@@ -13,6 +12,33 @@ interface FileContent {
   path: string;
 }
 
+export function detectStartCommand(packageJson: Record<string, any>) {
+  const scripts = packageJson?.scripts || {};
+
+  // Check for preferred commands in priority order
+  const preferredCommands = ['dev', 'start', 'preview'];
+  let command: string | null = null;
+  for (const preferredCmd of preferredCommands) {
+    if (preferredCommands.find((cmd) => scripts[cmd])) {
+      command = preferredCmd;
+      break;
+    }
+  }
+  return command;
+}
+
+export function detectPackageManager(packageJson: Record<string, any>) {
+  let packageManager: string = packageJson?.packageManager || 'pnpm';
+  packageManager = packageManager.split('@')[0];
+  return packageManager;
+}
+
+/**
+ *
+ * @param files List of all project files to find a package.json
+ * @returns Setup command
+ * @deprecated use detectStartCommand instead
+ */
 export async function detectProjectCommands(files: FileContent[]): Promise<ProjectCommands> {
   const hasFile = (name: string) => files.some((f) => f.path.endsWith(name));
 
@@ -25,22 +51,7 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
 
     try {
       const packageJson = JSON.parse(packageJsonFile.content);
-      const scripts = packageJson?.scripts || {};
-      let packageManager: string = packageJson?.packageManager || "pnpm";
-      packageManager = packageManager.split("@")[0];
-
-      // Check for preferred commands in priority order
-      const preferredCommands = ['dev', 'start', 'preview'];
-      const availableCommand = preferredCommands.find((cmd) => scripts[cmd]);
-
-      if (availableCommand) {
-        return {
-          type: 'Node.js',
-          setupCommand: `${packageManager} install`,
-          startCommand: `${packageManager} run ${availableCommand}`,
-          followupMessage: `Found "${availableCommand}" script in package.json. Running "npm run ${availableCommand}" after installation.`,
-        };
-      }
+      const packageManager = detectPackageManager(packageJson);
 
       return {
         type: 'Node.js',
@@ -57,7 +68,6 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
   if (hasFile('index.html')) {
     return {
       type: 'Static',
-      startCommand: 'npx --yes serve',
       followupMessage: '',
     };
   }
@@ -66,7 +76,7 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
 }
 
 export function createCommandsMessage(commands: ProjectCommands): Message | null {
-  if (!commands.setupCommand && !commands.startCommand) {
+  if (!commands.setupCommand) {
     return null;
   }
 
@@ -75,12 +85,6 @@ export function createCommandsMessage(commands: ProjectCommands): Message | null
   if (commands.setupCommand) {
     commandString += `
 <boltAction type="shell">${commands.setupCommand}</boltAction>`;
-  }
-
-  if (commands.startCommand) {
-    commandString += `
-<boltAction type="start">${commands.startCommand}</boltAction>
-`;
   }
 
   return {
@@ -133,7 +137,7 @@ export function escapeBoltTags(input: string) {
 
 // We have this seperate function to simplify the restore snapshot process in to one single artifact.
 export function createCommandActionsString(commands: ProjectCommands): string {
-  if (!commands.setupCommand && !commands.startCommand) {
+  if (!commands.setupCommand) {
     // Return empty string if no commands
     return '';
   }
@@ -143,12 +147,6 @@ export function createCommandActionsString(commands: ProjectCommands): string {
   if (commands.setupCommand) {
     commandString += `
 <boltAction type="shell">${commands.setupCommand}</boltAction>`;
-  }
-
-  if (commands.startCommand) {
-    commandString += `
-<boltAction type="start">${commands.startCommand}</boltAction>
-`;
   }
 
   return commandString;

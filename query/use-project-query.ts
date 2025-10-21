@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { ky } from 'query';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { client } from '~/lib/api/backend/api';
 
 interface AppDeployments {
   provider: string;
@@ -14,7 +15,7 @@ interface ProjectsResponse {
     pageSize: number;
     total: number;
   };
-};
+}
 
 export type Project = {
   id: string;
@@ -24,7 +25,7 @@ export type Project = {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  appDeployments?: AppDeployments[],
+  appDeployments?: AppDeployments[];
 };
 
 export type ProjectWithOwner = Project & {
@@ -38,10 +39,39 @@ export type UpdateProjectInfoPayload = {
   featured?: string;
 };
 
-export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all' | 'owned', sortBy: 'createdAt' | 'updatedAt' | 'name', sortDirection: 'ASC' | 'DESC', jwtToken?: string) => {
+export type OwnershipFilter = 'all' | 'owned';
+export type DeploymentPlatform = 'S3' | 'Akash' | 'ICP';
+export type StatusFilter = 'deployed' | 'hackathonWinner' | 'featured';
+export type ProjectFilters = OwnershipFilter | DeploymentPlatform | StatusFilter;
+
+const deploymentPlatforms: DeploymentPlatform[] = ['S3', 'Akash', 'ICP'];
+
+export const useProjectsQuery = (
+  page: number,
+  pageSize: number,
+  filters: ProjectFilters[],
+  sortBy: 'createdAt' | 'updatedAt' | 'name',
+  sortDirection: 'ASC' | 'DESC',
+  jwtToken?: string,
+) => {
+  const ownership: OwnershipFilter = filters.includes('owned') ? 'owned' : 'all';
+
+  const provider = deploymentPlatforms.find((p) => filters.includes(p));
+
+  const statusFilters: Partial<Record<StatusFilter, boolean>> = {};
+
+  if (filters.includes('hackathonWinner')) {
+    statusFilters.hackathonWinner = true;
+  }
+  if (filters.includes('featured')) {
+    statusFilters.featured = true;
+  }
+  if (filters.includes('deployed')) {
+    statusFilters.deployed = true;
+  }
+
   return useQuery<ProjectsResponse>({
-    initialData: { data: [], pagination: { page: 1, pageSize, total: 0 } },
-    queryKey: ['projects', {page, pageSize, ownership, sortBy, sortDirection}],
+    queryKey: ['projects', { page, pageSize, ownership, statusFilters, provider, sortBy, sortDirection }],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
       if (jwtToken) {
@@ -52,11 +82,13 @@ export const useProjectsQuery = (page: number, pageSize: number, ownership: 'all
           page,
           pageSize,
           ownership,
+          ...(provider ? { provider } : {}),
+          ...statusFilters,
           sortBy,
           sortOrder: sortDirection,
         },
-        headers: requestHeaders
-      })
+        headers: requestHeaders,
+      });
       const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
@@ -96,7 +128,6 @@ export const useUpdateProjectInfoMutation = (id: string, jwtToken?: string) => {
 
 export const useProjectQuery = (id: string) => {
   return useQuery<ProjectWithOwner | null>({
-    initialData: null,
     queryKey: ['project', id],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
@@ -121,6 +152,8 @@ export const useDeploymentQuery = (projectId: string | undefined, provider: 's3'
     queryKey: ['getDeployment', projectId, provider],
     enabled: !!projectId,
     initialData: null,
+    retry: false,
+    refetchInterval: 30000,
     queryFn: async () => {
       if (!projectId) return null;
 
@@ -138,6 +171,21 @@ export const useDeploymentQuery = (projectId: string | undefined, provider: 's3'
 
       const data = await res.json<{ url: string }>();
       return data.url;
+    },
+  });
+};
+
+export interface SetProjectTokenPayload {
+  tokenAddress: string;
+}
+
+export const useSetProjectToken = (id: string) => {
+  return useMutation<{}, AxiosError, SetProjectTokenPayload>({
+    mutationFn: async (payload) => {
+      const { data } = await client.post<{}>(`projects/${id}/add-token`, {
+        json: payload,
+      });
+      return data;
     },
   });
 };

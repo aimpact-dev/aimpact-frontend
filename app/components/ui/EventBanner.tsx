@@ -34,7 +34,7 @@ export function EventBanner({ className }: Props) {
     >
       <FlowingParticlesBackground />
       <div className="bg-bolt-elements-background-depth-4 w-full py-1 rounded-md">
-        <p className="text-md">
+        <p className="text-sm">
           🎉 Join the{' '}
           <a
             href="https://earn.superteam.fun/listing/aimpact-sidetrack-build-tokenize-and-launch-on-solana-with-ai"

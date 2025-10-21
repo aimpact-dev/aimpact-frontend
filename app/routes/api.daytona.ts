@@ -1,13 +1,18 @@
 import type { ActionFunctionArgs } from '@remix-run/cloudflare';
 import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { Buffer } from 'buffer';
+import type { PersistentKV } from '~/lib/persistence/kv/persistentKV';
+import { RedisKV } from '~/lib/persistence/kv/redisKV';
+import jwt from 'jsonwebtoken';
+import { CloudflareKV } from '~/lib/persistence/kv/cloudflareKV';
+import { UpstashRedisKV } from '~/lib/persistence/kv/upstashRedisKV';
 
 /**
  * Parameters required for identifying a user's sandbox.
  */
 interface Identification {
   context: any;
-  authToken: string;
+  userId: string;
   uuid: string;
 }
 
@@ -35,42 +40,114 @@ const allowedMethods = [
   'dispose',
 ];
 
-const usersSandboxes = new Map<string, LazySandbox>();
+let persistentKv: PersistentKV | null = null;
+const usersSandboxPromises = new Map<string, Promise<LazySandbox>>();
 
-function getEnvVar(context: any, key: string): string | undefined {
+function getEnvVar(context: any, key: string): string {
+  let env: string | undefined;
   if (context.cloudflare?.env?.[key]) {
-    return context.cloudflare.env[key];
+    console.log(`Retrieving EnvVar with key ${key} from cloudflare.`);
+    env = context.cloudflare.env[key];
   }
-  return process.env[key];
+  else {
+    console.log(`Retrieving EnvVar with key ${key} from process.`);
+    env = process.env[key];
+  }
+  if(!env){
+    console.log(`Not found EnvVar with key ${key}.`);
+    throw new Error(`Environment variable "${key}" not found.`);
+  }
+  return env;
+}
+
+function getUserIdFromToken(authToken: string): string | null {
+  try {
+    const decoded = jwt.decode(authToken) as { sub?: string } | null;
+    return decoded?.sub || null;
+  } catch {
+    return null;
+  }
 }
 
 function getCompositeId(identification: Identification){
-  return `${identification.authToken}:${identification.uuid}`;
+  return `${identification.userId}:${identification.uuid}`;
 }
 
-function getSandbox(identification: Identification): LazySandbox {
+async function getSandbox(identification: Identification): Promise<LazySandbox> {
   const compositeId = getCompositeId(identification);
-  if (!usersSandboxes.has(compositeId)) {
-    throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
+  console.log(`Trying to retrieve a sandbox for user with id ${compositeId}`);
+  if (!usersSandboxPromises.has(compositeId)) {
+    console.log(`Sandbox promise not found for user with id ${compositeId}, checking kv storage.`);
+    const kv = getPersistentKv(identification.context);
+    console.log('Kv storage client received.');
+    const existsInKv = await kv.exists(compositeId);
+    console.log(`Sandbox id exists for user with id ${compositeId} in kv storage: ${existsInKv}`);
+    if (existsInKv) {
+      console.log(`Sandbox id for user with id ${compositeId} found in kv storage, retrieving.`);
+      const sandboxId = await kv.get(compositeId);
+      console.log(`User with id ${compositeId} has sandbox id in kv storage: ${sandboxId}`);
+      const context = identification.context;
+      const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
+      const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
+      const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
+      const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
+      const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
+      usersSandboxPromises.set(compositeId, Promise.resolve(sandbox));
+      console.log(`New sandbox promise added for user with id ${compositeId}.`);
+    }
+    else{
+      throw new Response('Sandbox not found for the provided auth token and uuid', { status: 404 });
+    }
   }
-  return usersSandboxes.get(compositeId)!;
+  console.log(`Sandbox promise found for user with id ${compositeId}`);
+  return usersSandboxPromises.get(compositeId)!;
 }
 
-function createSandboxIfNotExists(identification: Identification): LazySandbox{
+function getPersistentKv(context: any): PersistentKV {
+  if(!persistentKv){
+    const upstashRedisUrl = getEnvVar(context, 'UPSTASH_REDIS_REST_URL');
+    const upstashRedisToken = getEnvVar(context, 'UPSTASH_REDIS_REST_TOKEN');
+    persistentKv = new UpstashRedisKV(upstashRedisUrl, upstashRedisToken);
+  }
+  return persistentKv;
+}
+
+async function createSandboxPromiseIfNotExists(identification: Identification) {
   const compositeId = getCompositeId(identification);
   const {context} = identification;
-  if(!usersSandboxes.has(compositeId)) {
+
+  const createFunc = async (): Promise<LazySandbox> => {
+    console.log(`Creating new LazySandbox instance for user with id ${compositeId}`)
+    const kv = getPersistentKv(context);
+    console.log(`Key-value storage client created.`);
+    const existsInKv = await kv.exists(compositeId);
+    console.log(`Sandbox id for user with id ${compositeId} exists in kv: ${existsInKv}.`);
+    let sandboxId: string | null = null;
+    if(existsInKv){
+      console.log(`Retrieving sandbox id from kv for user with id ${compositeId}`)
+      sandboxId = await kv.get(compositeId);
+      console.log(`User with id ${compositeId} has sandbox id ${sandboxId} stored in kv.`);
+    }
     const apiKey = getEnvVar(context, 'DAYTONA_API_KEY');
     const apiUrl = getEnvVar(context, 'DAYTONA_API_URL');
     const orgId = getEnvVar(context, 'DAYTONA_ORG_ID');
     const proxyUrl = getEnvVar(context, 'DAYTONA_PROXY_URL');
-    if (!apiKey || !apiUrl || !orgId || !proxyUrl) {
-      throw new Error('Missing Daytona API configuration');
-    }
-    const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl);
-    usersSandboxes.set(compositeId, sandbox);
+    const sandbox = new LazySandbox(apiUrl, apiKey, orgId, proxyUrl, sandboxId);
+    console.log(`Initializing sandbox for user with id ${compositeId}`);
+    sandboxId = await sandbox.initialize();
+    console.log(`Sandbox for user with id ${compositeId} initialized successfully. Sandbox id: ${sandboxId}`);
+    //Setting actual sandbox id to kv. This way we handle both cases: when sandbox already exists and when new one is created.
+    await kv.set(compositeId, sandboxId);
+    console.log(`Sandbox id ${sandboxId} saved in kv for user with id ${compositeId}`);
+    return sandbox;
   }
-  return usersSandboxes.get(compositeId)!;
+
+  if(!usersSandboxPromises.has(compositeId)) {
+    console.log(`User with id ${compositeId} does not have sandbox promise, creating new one.`);
+    const promise = createFunc();
+    usersSandboxPromises.set(compositeId, promise);
+    await promise;
+  }
 }
 
 
@@ -94,14 +171,6 @@ export async function action({context, request}: ActionFunctionArgs) {
     return new Response('Invalid request format', { status: 400 });
   }
   const { method, args, authToken, uuid } = payload;
-  const params: MethodParams = {
-    args,
-    identification: {
-      context,
-      authToken,
-      uuid
-    }
-  }
 
   if (!allowedMethods.includes(method)) {
     throw new Response('Method not allowed', { status: 405 });
@@ -110,6 +179,19 @@ export async function action({context, request}: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
+  const userId = getUserIdFromToken(authToken);
+  if(!userId){
+    throw new Response('Could not retrieve user id from JWT token.', { status: 401 });
+  }
+  const params: MethodParams = {
+    args,
+    identification: {
+      context,
+      userId: userId,
+      uuid
+    }
+  }
+  console.log(`Executing method ${method} for user with id: ${userId}}`);
   switch (method){
     case 'createSandbox':
       return createSandbox(params);
@@ -151,7 +233,7 @@ export async function action({context, request}: ActionFunctionArgs) {
 async function createSandbox(params: MethodParams) {
   const { identification } = params;
   try{
-    createSandboxIfNotExists(identification);
+    await createSandboxPromiseIfNotExists(identification);
   }
   catch (error) {
     return new Response('Failed to create sandbox: ' + error, { status: 500 });
@@ -166,7 +248,7 @@ async function getPreviewLink(params: MethodParams){
     return new Response('Invalid port number for getPreviewLink method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try{
     const link = await sandbox.getPreviewLink(port);
     const result = {
@@ -178,6 +260,7 @@ async function getPreviewLink(params: MethodParams){
     });
   }
   catch (error) {
+    console.log(`Error occurred when getting preview link: ${JSON.stringify(error)}`);
     return new Response('Failed to get preview link', { status: 500 });
   }
 }
@@ -194,7 +277,7 @@ async function createFolder(params: MethodParams){
     return new Response('Invalid mode for createFolder method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.createFolder(path, mode);
     return new Response('Folder created successfully', { status: 200 });
@@ -209,7 +292,7 @@ async function fileExists(params: MethodParams){
   if (!filePath || typeof filePath !== 'string') {
     return new Response('Invalid file path for fileExists method.', { status: 400 });
   }
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const exists = await sandbox.fileExists(filePath);
     return new Response(JSON.stringify({ exists }),{
@@ -228,7 +311,7 @@ async function deleteFile(params: MethodParams){
     return new Response('Invalid path for deleteFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.deleteFile(path);
     return new Response('File deleted successfully', { status: 200 });
@@ -249,7 +332,7 @@ async function executeCommand(params: MethodParams){
     return new Response('Invalid command for executeCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const response = await sandbox.executeCommand(command, cwd, env, timeout);
     return new Response(JSON.stringify(response), {
@@ -274,7 +357,7 @@ async function uploadFile(params: MethodParams){
     return new Response('Invalid remote path for uploadFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.uploadFile(fileBuffer, remotePath);
     return new Response('File uploaded successfully', { status: 200 });
@@ -295,7 +378,7 @@ async function searchFiles(params: MethodParams){
     return new Response('Invalid pattern for searchFiles method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const response = await sandbox.searchFiles(path, pattern);
     return new Response(JSON.stringify(response), {
@@ -316,7 +399,7 @@ async function downloadFile(params: MethodParams){
     return new Response('Invalid remote path for downloadFile method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
 
   try {
     const fileBuffer = await sandbox.downloadFile(remotePath, timeout);
@@ -340,7 +423,7 @@ async function listFiles(params: MethodParams){
     return new Response('Invalid path for listFiles method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const files = await sandbox.listFiles(path);
     return new Response(JSON.stringify(files), {
@@ -358,7 +441,7 @@ async function createSession(params: MethodParams){
     return new Response('Invalid session ID for createSession method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.createSession(sessionId);
     return new Response('Session created successfully', { status: 200 });
@@ -374,7 +457,7 @@ async function deleteSession(params: MethodParams){
     return new Response('Invalid session ID for deleteSession method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     await sandbox.deleteSession(sessionId);
     return new Response('Session deleted successfully', { status: 200 });
@@ -396,7 +479,7 @@ async function executeSessionCommand(params: MethodParams){
     return new Response('Invalid command for executeSessionCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const response = await sandbox.executeSessionCommand(sessionId, requestObj, timeout);
     return new Response(JSON.stringify(response), {
@@ -419,7 +502,7 @@ async function getSessionCommand(params: MethodParams){
     return new Response('Invalid command ID for getSessionCommand method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const command = await sandbox.getSessionCommand(sessionId, commandId);
     return new Response(JSON.stringify(command), {
@@ -442,7 +525,7 @@ async function getSessionCommandLogs(params: MethodParams){
     return new Response('Invalid command ID for getSessionCommandLogs method.', { status: 400 });
   }
 
-  const sandbox = getSandbox(identification);
+  const sandbox = await getSandbox(identification);
   try {
     const logs = await sandbox.getSessionCommandLogs(sessionId, commandId);
     return new Response(logs, {
@@ -456,14 +539,20 @@ async function getSessionCommandLogs(params: MethodParams){
 async function disposeSandbox(params: MethodParams){
   const { identification } = params;
   const compositeId = getCompositeId(identification);
-  if(usersSandboxes.has(compositeId)){
-    const sandbox = usersSandboxes.get(compositeId);
+  const kv = getPersistentKv(identification.context);
+  if(usersSandboxPromises.has(compositeId)){
+    const sandbox = await usersSandboxPromises.get(compositeId);
     if(!sandbox){
       return new Response('Sandbox instance not found', { status: 404 });
     }
-    usersSandboxes.delete(compositeId);
+    usersSandboxPromises.delete(compositeId);
     try {
       await sandbox.dispose();
+      const existsInKv = await kv.exists(compositeId);
+      if(existsInKv){
+        await kv.delete(compositeId);
+      }
+      console.log("Sandbox deleted");
       return new Response('Sandbox disposed successfully', { status: 200 });
     } catch (error) {
       return new Response('Failed to dispose sandbox', { status: 500 });

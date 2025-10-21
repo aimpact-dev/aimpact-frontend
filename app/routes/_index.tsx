@@ -8,7 +8,6 @@ import UserPooling from '~/components/chat/UserPooling';
 import OnlyDesktopMessage from '~/components/common/OnlyDesktopMessage';
 import { Header } from '~/components/header/Header';
 import BackgroundRays from '~/components/ui/BackgroundRays';
-import { EventBanner } from '~/components/ui/EventBanner';
 
 export const meta: MetaFunction = () => {
   return [

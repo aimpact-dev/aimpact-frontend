@@ -5,7 +5,7 @@
   "tsx": true,
   "tailwind": {
     "config": "tailwind.config.ts",
-    "css": "template/vite-solana-app/src/index.css",
+    "css": "app/styles/index.scss",
     "baseColor": "neutral",
     "cssVariables": true,
     "prefix": ""

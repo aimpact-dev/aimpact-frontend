@@ -16,27 +16,40 @@ export class LazySandbox implements AimpactSandbox {
   private readonly previewProxyUrl: string;
   private sandboxId: string | null = null;
   private sandboxPromise: Promise<Sandbox> | null = null;
+  private dependenciesPromise: Promise<void> | null = null;
 
 
-  public constructor(apiUrl: string, apiKey: string, orgId: string, previewProxyUrl: string) {
+  public constructor(apiUrl: string, apiKey: string, orgId: string, previewProxyUrl: string, sandboxId: string | null = null) {
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
     this.orgId = orgId;
     this.previewProxyUrl = previewProxyUrl;
+    this.sandboxId = sandboxId;
   }
 
   private getSandboxPromise(): Promise<Sandbox>{
     if (this.sandboxPromise) {
       return this.sandboxPromise;
     }
-    this.sandboxPromise = this.initializeSandbox();
+    this.sandboxPromise = this.createSandbox();
     return this.sandboxPromise;
   }
 
-  private async initializeSandbox() : Promise<Sandbox>{
+  private async ensureDependenciesInstalled(): Promise<void> {
+    if(!this.dependenciesPromise) {
+      this.dependenciesPromise = this.installDependencies();
+    }
+    return this.dependenciesPromise;
+  }
+
+  private async createSandbox() : Promise<Sandbox>{
     const daytona = new Daytona({
       apiKey: this.apiKey,
     });
+    if(this.sandboxId){
+      const existingSandbox = await daytona.get(this.sandboxId);
+      return existingSandbox;
+    }
     const resources = {
       cpu: 1,
       memory: 2,
@@ -52,6 +65,11 @@ export class LazySandbox implements AimpactSandbox {
     });
     this.sandboxId = sandbox.id;
     console.log('Sandbox created with ID:', sandbox.id);
+    return sandbox;
+  }
+
+  private async installDependencies(){
+    const sandbox  = await this.getSandboxPromise();
     const corepackInstallResponse = await sandbox.process.executeCommand("npm install --global corepack@latest");
     if (corepackInstallResponse.exitCode !== 0) {
       console.error('Failed to install corepack:', corepackInstallResponse.result);
@@ -63,7 +81,6 @@ export class LazySandbox implements AimpactSandbox {
       console.error('Failed to enable pnpm:', pnpmInstallResponse.result);
       throw new Error('PNPM enable failed');
     }
-    return sandbox;
   }
 
   /**
@@ -78,33 +95,46 @@ export class LazySandbox implements AimpactSandbox {
     return path;
   }
 
-  getSandboxId(): string | null {
-    return this.sandboxId;
+  /**
+   * Use this function to force lazy sandbox to initialize and get it id.
+   * This function does not start dependencies installation.
+   */
+  async initialize(): Promise<string>{
+    const sandbox = await this.getSandboxPromise();
+    return sandbox.id;
   }
-
 
   async getPreviewLink(port: number){
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
-    const previewLink = await sandbox.getPreviewLink(port);
+    await this.ensureDependenciesInstalled();
 
+    console.log(`Getting preview link for port: ${port}`);
+    const previewLink = await sandbox.getPreviewLink(port);
+    console.log(`Got daytona preview link for port ${port}: ${JSON.stringify(previewLink)}`);
     const previewUrl = new URL(previewLink.url);
+    console.log(`Retrieved preview url: ${previewUrl}`);
+    console.log(`Creating proxy url from url string: ${this.previewProxyUrl}`);
     const proxyUrl = new URL(this.previewProxyUrl);
+    console.log(`Retrieved proxy url: ${proxyUrl}`);
     const proxyProtocol = proxyUrl.protocol;
     const proxyPort = proxyUrl.port;
     const proxyHost = proxyUrl.hostname;
     const previewDomainParts = previewUrl.hostname.split('.');
     const leftDomainPart = previewDomainParts[0];
     const customHost = `${leftDomainPart}.${proxyHost}`;
+    console.log(`Creating custom url from preview url string: ${previewUrl}`);
     const customPreviewUrl = new URL(previewUrl.toString());
+
     customPreviewUrl.protocol = proxyProtocol;
     customPreviewUrl.hostname = customHost;
     if (proxyPort) {
       customPreviewUrl.port = proxyPort;
     }
     previewLink.url = customPreviewUrl.toString();
+    console.log(`Modified preview link for port ${port} to use proxy. New link: ${JSON.stringify(previewLink)}`);
     return previewLink;
   }
 
@@ -113,6 +143,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     filePath = this.resolvePath(filePath);
     const fileName = filePath.split('/').pop();
     if(!fileName){
@@ -134,6 +166,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     path = this.resolvePath(path);
     return sandbox.fs.createFolder(path, mode);
   }
@@ -145,6 +179,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     path = this.resolvePath(path);
     return sandbox.fs.deleteFile(path);
   }
@@ -159,6 +195,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     return sandbox.process.executeCommand(command, cwd, env, timeout);
   }
 
@@ -192,6 +230,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     const fileName = remotePath.split('/').pop();
     if (!fileName) {
       throw new Error('Invalid remote path: file name is missing');
@@ -239,6 +279,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     path = this.resolvePath(path);
     return sandbox.fs.searchFiles(path, pattern);
   }
@@ -251,6 +293,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     path = this.resolvePath(path);
     return sandbox.fs.downloadFile(path, timeout);
   }
@@ -262,6 +306,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     path = this.resolvePath(path);
     return sandbox.fs.listFiles(path);
   }
@@ -273,6 +319,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     return sandbox.process.createSession(sessionId);
   }
 
@@ -283,6 +331,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     return sandbox.process.deleteSession(sessionId);
   }
 
@@ -295,6 +345,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     //For some reason commands are executed in the /root directory by default instead of /home/daytona (daytona working directory)
     req.command = 'cd /home/daytona && ' + req.command;
     return sandbox.process.executeSessionCommand(sessionId, req, timeout);
@@ -308,6 +360,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     return sandbox.process.getSessionCommand(sessionId, commandId);
   }
 
@@ -319,6 +373,8 @@ export class LazySandbox implements AimpactSandbox {
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
     }
+    await this.ensureDependenciesInstalled();
+
     return sandbox.process.getSessionCommandLogs(sessionId, commandId);
   }
 
