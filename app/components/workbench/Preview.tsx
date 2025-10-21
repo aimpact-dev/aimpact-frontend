@@ -94,6 +94,8 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   const expoUrl = useStore(expoUrlAtom);
   const [isExpoQrModalOpen, setIsExpoQrModalOpen] = useState(false);
 
+  const [reloadedAfterLoad, setReloadedAfterLoad] = useState(false);
+
   useEffect(() => {
     if (!activePreview) {
       setIframeUrl(undefined);
@@ -123,9 +125,11 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
   }, [previews, findMinPortIndex]);
 
   const reloadPreview = () => {
+    // we should skip if this function called after load and if we already reloaded this preview
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
       setIsPreviewLoading(true);
+      setReloadedAfterLoad(true);
     }
   };
 
@@ -619,6 +623,18 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
     };
   }, [showDeviceFrameInPreview]);
 
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  const onFrameLoad = async () => {
+    setIsPreviewLoading(false);
+    await sleep(2000);
+    if (!reloadedAfterLoad) {
+      reloadPreview();
+    }
+  };
+
   return (
     <div ref={containerRef} className={`w-full h-full flex flex-col relative`}>
       {isPortDropdownOpen && (
@@ -626,10 +642,10 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
       )}
       <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-2">
         <div className="flex items-center gap-2">
-          <Tooltip content="Reload page" side='bottom'>
+          <Tooltip content="Reload page" side="bottom">
             <IconButton icon="i-ph:arrow-clockwise" onClick={reloadPreview} />
           </Tooltip>
-          <Tooltip content="Send screenshot to chat" side='bottom'>
+          <Tooltip content="Send screenshot to chat" side="bottom">
             <IconButton
               icon="i-ph:selection"
               onClick={() => setIsSelectionMode(!isSelectionMode)}
@@ -639,7 +655,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
-          <Tooltip content="Ports" side='bottom'>
+          <Tooltip content="Ports" side="bottom">
             <PortDropdown
               activePreviewIndex={activePreviewIndex}
               setActivePreviewIndex={setActivePreviewIndex}
@@ -680,11 +696,8 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Tooltip content="Change layout" side='bottom'>
-            <IconButton
-              icon="i-ph:devices"
-              onClick={toggleDeviceMode}
-            />
+          <Tooltip content="Change layout" side="bottom">
+            <IconButton icon="i-ph:devices" onClick={toggleDeviceMode} />
           </Tooltip>
 
           {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
@@ -693,13 +706,10 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
 
           {isDeviceModeOn && (
             <>
-              <Tooltip content={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'} side='bottom'>
-                <IconButton
-                  icon="i-ph:device-rotate"
-                  onClick={() => setIsLandscape(!isLandscape)}
-                />
+              <Tooltip content={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'} side="bottom">
+                <IconButton icon="i-ph:device-rotate" onClick={() => setIsLandscape(!isLandscape)} />
               </Tooltip>
-              <Tooltip content={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'} side='bottom'>
+              <Tooltip content={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'} side="bottom">
                 <IconButton
                   icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
                   onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
@@ -708,19 +718,13 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
             </>
           )}
 
-          <Tooltip content={isFullscreen ? 'Exit Full Screen' : 'Full Screen'} side='bottom'>
-            <IconButton
-              icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
-              onClick={toggleFullscreen}
-            />
+          <Tooltip content={isFullscreen ? 'Exit Full Screen' : 'Full Screen'} side="bottom">
+            <IconButton icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'} onClick={toggleFullscreen} />
           </Tooltip>
 
           <div className="flex items-center relative">
-            <Tooltip content="Window options" side='bottom'>
-              <IconButton
-                icon="i-ph:list"
-                onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-              />
+            <Tooltip content="Window options" side="bottom">
+              <IconButton icon="i-ph:list" onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)} />
             </Tooltip>
 
             {isWindowSizeDropdownOpen && (
@@ -935,7 +939,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                       setIsPreviewLoading={setIsPreviewLoading}
                       iframeRef={iframeRef}
                       iframeUrl={iframeUrl}
-                      onLoad={() => setIsPreviewLoading(false)}
+                      onLoad={onFrameLoad}
                     />
                   </div>
                 </div>
@@ -945,7 +949,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
                   setIsPreviewLoading={setIsPreviewLoading}
                   iframeRef={iframeRef}
                   iframeUrl={iframeUrl}
-                  onLoad={() => setIsPreviewLoading(false)}
+                  onLoad={onFrameLoad}
                 />
               )}
               <ScreenshotSelector

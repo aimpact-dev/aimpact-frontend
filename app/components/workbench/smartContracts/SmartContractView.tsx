@@ -24,22 +24,12 @@ import {
   useGetDeployRequest,
   usePostDeployRequest,
 } from '~/lib/hooks/tanstack/useContractDeploy';
-// import {
-//   useGetBuild,
-//   useGetBuildRequest,
-//   usePostBuildRequest,
-// }from '~/lib/hooks/tanstack/mocks/useContractBuild';
-// import {
-//   useGetDeployment,
-//   useGetDeployRequest,
-//   usePostDeployRequest,
-// } from '~/lib/hooks/tanstack/mocks/useContractDeploy';
 import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios from 'axios';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import SmartContractAccordion from './SmartContractAccordion';
 
-//Represents anchor project found in user's files on the client
+// Represents anchor project found in user's files on the client
 interface LocalAnchorProject {
   path: string;
   programName: string;

@@ -1,4 +1,12 @@
-import type { ActionType, BoltAction, BoltActionData, FileAction, ShellAction, SupabaseAction } from '~/types/actions';
+import type {
+  ActionType,
+  BoltAction,
+  BoltActionData,
+  FileAction,
+  ShellAction,
+  UpdateAction,
+  UpdateActionOccurrences,
+} from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
@@ -68,12 +76,53 @@ function cleanoutMarkdownSyntax(content: string) {
 function cleanEscapedTags(content: string) {
   return content.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 }
+
+export function parseOldNewPairs(xmlBody: string) {
+  const cdataRe = /<!\[CDATA\[([\s\S]*?)\]\]>/g;
+  const tagRe = (tag: string) => new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'gi');
+
+  // replace html entities to default symbols
+  const decodeEntities = (s: string) =>
+    s
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'");
+
+  const extractOne = (tag: string) => {
+    let out: string = '';
+    let m: RegExpExecArray | null;
+    const re = tagRe(tag);
+    m = re.exec(xmlBody);
+    if (m === null) return out;
+    const inner = m[1] ?? '';
+    // collect CDATA parts if present
+    const parts: string[] = [];
+    let cm: RegExpExecArray | null;
+    cdataRe.lastIndex = 0;
+    while ((cm = cdataRe.exec(inner)) !== null) parts.push(cm[1]);
+    if (parts.length) {
+      // join multiple CDATA sections (handles split-CDATA pattern)
+      out = parts.join('');
+    } else {
+      out = decodeEntities(inner).trim();
+    }
+    return out;
+  };
+
+  const olds = extractOne('old');
+  const news = extractOne('new');
+  const pair: { old: string; new: string } = { old: olds, new: news };
+  return pair;
+}
+
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string) {
+  parse(messageId: string, input: string, messageList?: string[]) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -293,27 +342,7 @@ export class StreamingMessageParser {
       content: '',
     };
 
-    if (actionType === 'supabase') {
-      const operation = this.#extractAttribute(actionTag, 'operation');
-
-      if (!operation || !['migration', 'query'].includes(operation)) {
-        logger.warn(`Invalid or missing operation for Supabase action: ${operation}`);
-        throw new Error(`Invalid Supabase operation: ${operation}`);
-      }
-
-      (actionAttributes as SupabaseAction).operation = operation as 'migration' | 'query';
-
-      if (operation === 'migration') {
-        const filePath = this.#extractAttribute(actionTag, 'filePath');
-
-        if (!filePath) {
-          logger.warn('Migration requires a filePath');
-          throw new Error('Migration requires a filePath');
-        }
-
-        (actionAttributes as SupabaseAction).filePath = filePath;
-      }
-    } else if (actionType === 'file') {
+    if (actionType === 'file') {
       const filePath = this.#extractAttribute(actionTag, 'filePath') as string;
 
       if (!filePath) {
@@ -321,11 +350,26 @@ export class StreamingMessageParser {
       }
 
       (actionAttributes as FileAction).filePath = filePath;
-    } else if (!['shell', 'start'].includes(actionType)) {
+    } else if (actionType === 'update') {
+      const filePath = this.#extractAttribute(actionTag, 'filePath') as string;
+      const occurrences = this.#extractAttribute(actionTag, 'occurrences') as UpdateActionOccurrences;
+      const numberOfOccurrence = parseInt(this.#extractAttribute(actionTag, 'n') as string);
+
+      if (!filePath) {
+        logger.debug('File path not specified');
+      }
+      if (occurrences === 'nth' && (!numberOfOccurrence || isNaN(numberOfOccurrence) || numberOfOccurrence < 1)) {
+        logger.debug('Number of occurrence is not provided');
+      }
+
+      (actionAttributes as UpdateAction).filePath = filePath;
+      (actionAttributes as UpdateAction).occurrences = occurrences ?? 'all';
+      (actionAttributes as UpdateAction).n = numberOfOccurrence ?? undefined;
+    } else if (!['shell'].includes(actionType)) {
       logger.warn(`Unknown action type '${actionType}'`);
     }
 
-    return actionAttributes as FileAction | ShellAction;
+    return actionAttributes as FileAction | UpdateAction | ShellAction;
   }
 
   #extractAttribute(tag: string, attributeName: string): string | undefined {

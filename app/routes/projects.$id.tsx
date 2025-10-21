@@ -4,8 +4,7 @@ import { useNavigate, useParams } from '@remix-run/react';
 import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useUpdateProjectInfoMutation } from 'query/use-project-query';
+import { useMemo, useState } from 'react';
 import { formatUrl } from '~/utils/urlUtils';
 import LoadingScreen from '~/components/common/LoadingScreen';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
@@ -17,9 +16,9 @@ import { Button, LoadingDots } from '~/components/ui';
 import { TwitterShareButton } from '~/components/ui/TwitterShareButton';
 import { motion } from 'framer-motion';
 import Navbar from '~/components/dashboard/navbar';
-import Footer from '~/components/footer/Footer.client';
 import { Tooltip } from '~/components/chat/Tooltip';
 import ProjectInfoUpdateForm from '~/components/dashboard/ProjectInfoUpdateForm';
+import GradientPage from '~/components/wrappers/GradientPage';
 
 const InfoRow = ({ label, children, hidden }: { label: string; children: React.ReactNode; hidden?: boolean }) => {
   if (hidden) return null;
@@ -41,10 +40,9 @@ export default function Project() {
     );
   }
   const auth = useAuth();
+  const navigate = useNavigate();
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
-
-  const navigate = useNavigate();
 
   const isOwner = useMemo(() => {
     return !!(
@@ -55,18 +53,12 @@ export default function Project() {
     );
   }, [auth, connected, publicKey, projectQuery.data?.projectOwnerAddress]);
 
-  const [isEditing, setIsEditing] = useState(false);
-
   const [showInfoUpdateWindow, setShowInfoUpdateWindow] = useState(false);
 
   const s3Url = useDeploymentQuery(params.id, 's3').data;
   const icpUrl = useDeploymentQuery(params.id, 'icp').data;
   const akashUrl = useDeploymentQuery(params.id, 'akash').data;
-  const { data: tokenInfo, isLoading: tokenInfoLoading, error: tokenInfoError } = useGetHeavenToken(params.id);
-
-  useEffect(() => {
-    console.log(!!tokenInfo, tokenInfoLoading, tokenInfoError);
-  });
+  const { data: tokenInfo, isLoading: tokenInfoLoading } = useGetHeavenToken(params.id);
 
   const [showTokenWindow, setShowTokenWindow] = useState(false);
 
@@ -79,32 +71,6 @@ export default function Project() {
     icpUrl && { name: 'ICP', url: icpUrl },
     akashUrl && { name: 'Akash', url: akashUrl },
   ].filter(Boolean) as { name: string; url: string }[];
-
-  const endTriggerRef = useRef(null);
-  const [isFooterFixed, setIsFooterFixed] = useState(true);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsFooterFixed(!entry.isIntersecting);
-      },
-      {
-        root: null,
-        threshold: 0,
-        rootMargin: '0px 0px -100% 0px',
-      },
-    );
-
-    if (endTriggerRef.current) {
-      observer.observe(endTriggerRef.current);
-    }
-
-    return () => {
-      if (endTriggerRef.current) {
-        observer.unobserve(endTriggerRef.current);
-      }
-    };
-  }, []);
 
   if (projectQuery.isLoading || projectQuery.isPending) {
     return <LoadingScreen />;
@@ -129,7 +95,7 @@ export default function Project() {
   }
 
   return (
-    <main className="flex flex-col min-h-screen bg-gradient-to-br from-black via-purple-900 to-black">
+    <GradientPage>
       <Popup
         isShow={showInfoUpdateWindow}
         handleToggle={() => {
@@ -142,8 +108,7 @@ export default function Project() {
 
         <ProjectInfoUpdateForm projectId={params.id} jwtToken={auth?.jwtToken} setShowForm={setShowInfoUpdateWindow} />
       </Popup>
-      <Navbar />
-      <section id="project" className="flex-1 py-16 md:py-24 relative">
+      <section id="project">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -293,17 +258,7 @@ export default function Project() {
             </div>
           </section>
         </div>
-
-        <Footer positionClass={isFooterFixed ? 'fixed bottom-0 left-0 w-full' : 'absolute bottom-0 left-0 w-full'} />
-        <div ref={endTriggerRef} className="h-[1px] w-full absolute bottom-0" />
       </section>
-
-      {/* Second footer */}
-      <footer className="bg-black/50 border-t border-white/10 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm text-gray-400">© 2025 Aimpact. All rights reserved.</p>
-        </div>
-      </footer>
-    </main>
+    </GradientPage>
   );
 }

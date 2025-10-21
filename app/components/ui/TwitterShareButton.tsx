@@ -45,24 +45,10 @@ export function TwitterShareButton({
     window.open(fullUrl, '_blank');
   }
 
-  const baseButton = (
-    <Button
-      variant={customVariant ? customVariant : 'ghost'}
-      className={cn(
-        'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-black rounded-md hover:bg-gray-800 transition z-10',
-        classNames,
-      )}
-      {...props}
-    >
-      {withLabel && 'Share on'}
-      <div className="i-ph:x-logo" />
-    </Button>
-  );
-
   // Case: No deploys
   if (deployUrls.length === 0) {
     return (
-      <Tooltip content="Deploy your app to share it on X!">
+      <Tooltip content="Deploy your app to share it on X!" side="bottom">
         <Button
           variant={customVariant ? customVariant : 'ghost'}
           className={cn(
@@ -81,7 +67,19 @@ export function TwitterShareButton({
   if (deployUrls.length > 1) {
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>{baseButton}</DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant={customVariant ? customVariant : 'ghost'}
+            className={cn(
+              'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-black rounded-md hover:bg-gray-800 transition z-10',
+              classNames,
+            )}
+            {...props}
+          >
+            {withLabel && 'Share on'}
+            <div className="i-ph:x-logo" />
+          </Button>
+        </DropdownMenuTrigger>
         <DropdownMenuContent align="center" sideOffset={8} className="bg-black/50 border-white/10 backdrop-blur-sm">
           {deployUrls.map(({ name, url }) => (
             <DropdownMenuItem
@@ -96,4 +94,19 @@ export function TwitterShareButton({
       </DropdownMenu>
     );
   }
+
+  return (
+    <Button
+      variant={customVariant ? customVariant : 'ghost'}
+      className={cn(
+        'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-black rounded-md hover:bg-gray-800 transition z-10',
+        classNames,
+      )}
+      onClick={() => shareOnTwitter(deployUrls[0].url)}
+      {...props}
+    >
+      {withLabel && 'Share on'}
+      <div className="i-ph:x-logo" />
+    </Button>
+  );
 }

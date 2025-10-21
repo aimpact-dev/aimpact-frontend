@@ -25,7 +25,7 @@ export default function Popup({
   }
 
   return (
-    <div className="fixed inset-0 z-1000 overflow-y-auto">
+    <div className="fixed top-5 inset-0 z-1000 overflow-y-auto">
       <div className="flex relative items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         {backgroundElement && (
           <div

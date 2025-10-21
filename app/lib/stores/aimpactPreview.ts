@@ -27,19 +27,18 @@ export class AimpactPreviewStore {
     });
   }
 
-  private onPortRemoved(port: number){
+  private onPortRemoved(port: number) {
     this.previews.set([]);
   }
 
-  private async onPortChange(port: number){
+  private async onPortChange(port: number) {
     this.previews.set([]);
     const sandbox = await this.sandbox;
     const url = await sandbox.getPreviewLink(port);
-    console.log("Preview URL:", url.url);
     const previewInfo: PreviewInfo = {
       port: port,
       ready: true,
-      baseUrl: url.url
+      baseUrl: url.url,
     };
     this.previews.set([previewInfo]);
   }

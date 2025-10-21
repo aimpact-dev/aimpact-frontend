@@ -89,7 +89,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const clearDeployStatusInterval = () => {
     deployStatusInterval.current ? clearTimeout(deployStatusInterval.current) : undefined;
     deployStatusInterval.current = null;
-    console.log('Deploy status and interval', deployStatusInterval);
   };
 
   useEffect(() => {
@@ -338,35 +337,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
 
   return (
     <div className="flex gap-2 mr-1">
-      <Tooltip
-        content={
-          (isSaving && 'Saving...') ||
-          (!activePreview && 'Run a project before saving') ||
-          (isStreaming && 'Wait until streaming ends') ||
-          'Save current project'
-        }
-        side="bottom"
-      >
-        <Button
-          active
-          onClick={handleSaveSnapshot}
-          disabled={isSaving || !activePreview || isStreaming}
-          className="text-sm px-4 py-2 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2 bg-bolt-elements-item-backgroundAccent border border-bolt-elements-borderColor rounded-md"
-        >
-          {isSaving ? (
-            <>
-              <div className="i-ph-spinner animate-spin h-4 w-4" />
-              <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <div className="i-ph-download-simple h-4 w-4" />
-              <span>Save</span>
-            </>
-          )}
-        </Button>
-      </Tooltip>
-
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 text-sm h-full">
           <Button
