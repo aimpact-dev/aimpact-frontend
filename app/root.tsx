@@ -2,7 +2,6 @@ import { captureRemixErrorBoundaryError } from '@sentry/remix';
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteError } from '@remix-run/react';
-import '@unocss/reset/tailwind.css';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
 import { createHead } from 'remix-island';
@@ -17,11 +16,12 @@ import { AuthProvider } from './lib/hooks/useAuth';
 import { RefCodeProvider } from './lib/hooks/useRefCode';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
-import globalStyles from './styles/index.scss?url';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import '@unocss/reset/tailwind.css';
 
+import '@unocss/reset/tailwind.css';
+import './styles/index.scss';
 import 'virtual:uno.css';
+
 import LoadingScreen from './components/common/LoadingScreen';
 
 const SolanaProvider = React.lazy(() =>
@@ -37,7 +37,6 @@ export const links: LinksFunction = () => [
     type: 'image/svg+xml',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },
-  { rel: 'stylesheet', href: globalStyles },
   { rel: 'stylesheet', href: xtermStyles },
   {
     rel: 'preconnect',
