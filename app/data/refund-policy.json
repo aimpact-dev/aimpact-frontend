@@ -1,10 +1,16 @@
 {
     "title": "Refund Policy",
     "lastUpdated": "October 13th, 2025",
-    "intro": [
-      "This Refund Policy explains when and how refunds may be issued for purchases made on or through AImpact.dev \"AImpact,\" \"we,\" \"our,\" or \"us\"). This policy applies in addition to our Terms of Service and Privacy Policy."
-    ],
+    "intro": "This Refund Policy explains when and how refunds may be issued for purchases made on or through AImpact.dev \"AImpact,\" \"we,\" \"our,\" or \"us\"). This policy applies in addition to our Terms of Service and Privacy Policy.",
     "sections": [
+      {
+        "content": [
+          {
+          "type": "paragraph",
+          "value": "Until the official legal entity for AImpact is established, all payments, billing, and operational activities are temporarily handled by Sole Proprietor Oleksii Pitenko (FOP Pitenko Oleksii Yevheniyovych), registered in Ukraine, acting on behalf of the AImpact project."
+          }
+        ]
+      },
       {
         "heading": "1) Overview",
         "content": [

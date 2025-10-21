@@ -1,12 +1,16 @@
 {
     "title": "Terms of Service",
     "lastUpdated": "October 13th, 2025",
-    "intro": [
-      "Welcome to AImpact.dev (\"AImpact,\" \"we,\" \"our,\" or \"us\").",
-      "These Terms of Service (\"Terms\") govern your access to and use of AImpact.dev, our related services, AI systems, blockchain integrations, and associated applications (collectively, the \"Service\").",
-      "By accessing or using AImpact, you agree to these Terms. If you do not agree, you must not use the Service."
-    ],
+    "intro": "Welcome to AImpact.dev (\"AImpact,\" \"we,\" \"our,\" or \"us\"). These Terms of Service (\"Terms\") govern your access to and use of AImpact.dev, our related services, AI systems, blockchain integrations, and associated applications (collectively, the \"Service\"). By accessing or using AImpact, you agree to these Terms. If you do not agree, you must not use the Service. ",
     "sections": [
+      {
+        "content": [
+          {
+          "type": "paragraph",
+          "value": "Until the official legal entity for AImpact is established, all payments, billing, and operational activities are temporarily handled by Sole Proprietor Oleksii Pitenko (FOP Pitenko Oleksii Yevheniyovych), registered in Ukraine, acting on behalf of the AImpact project."
+          }
+        ]
+      },
       {
         "heading": "1. Overview of the Service",
         "content": [

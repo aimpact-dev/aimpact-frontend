@@ -1,4 +1,3 @@
-import { useNavigate } from '@remix-run/react';
 import GradientPage from './GradientPage';
 
 export interface PolicySection {
@@ -16,7 +15,7 @@ export interface PolicyData {
   sections: PolicySection[];
 }
 
-const policies = [
+export const POLICIES = [
   {
     name: 'Terms of Service',
     url: '/terms-of-service',
@@ -32,13 +31,13 @@ const policies = [
 ];
 
 export default function PolicyPage({ policy }: { policy: PolicyData }) {
-  const navigate = useNavigate();
-  const otherPolicies = policies.filter((p) => p.name !== policy.title);
-
   return (
     <GradientPage>
       <div className="flex flex-col gap-8 max-w-4xl mx-auto">
         <h1 className="text-3xl text-center">{policy.title}</h1>
+        <p className="text-right text-white/80">
+          <strong>Last updated:</strong> {policy.lastUpdated}
+        </p>
 
         <div className="flex flex-col gap-8 bg-black/15 rounded-xl p-8">
           {policy.intro && <p className="indent-5">{policy.intro}</p>}
@@ -88,18 +87,6 @@ export default function PolicyPage({ policy }: { policy: PolicyData }) {
                 }
               })}
             </section>
-          ))}
-        </div>
-
-        <p className="text-right text-white/80">
-          <strong>Last updated:</strong> {policy.lastUpdated}
-        </p>
-
-        <div className="mx-auto flex gap-5 text-white/80 ">
-          {otherPolicies.map((p) => (
-            <button onClick={() => navigate(p.url)} className="hover:text-white transition-all">
-              {p.name}{' '}
-            </button>
           ))}
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Navbar from '../dashboard/navbar';
-import Footer from '../footer/Footer.client';
+import SideMenu from '../footer/SideMenu.client';
+import Footer from '../footer/Footer';
 
 interface GradientPageProps {
   children: React.ReactNode;
@@ -40,16 +41,12 @@ export default function GradientPage({ children }: GradientPageProps) {
       <section id="projects" className="flex-1 py-16 md:py-24 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
 
-        <Footer positionClass={isFooterFixed ? 'fixed bottom-0 left-0 w-full' : 'absolute bottom-0 left-0 w-full'} />
+        <SideMenu positionClass={isFooterFixed ? 'fixed bottom-0 left-0 w-full' : 'absolute bottom-0 left-0 w-full'} />
 
         <div ref={endTriggerRef} className="h-[1px] w-full absolute bottom-0" />
       </section>
 
-      <footer className="bg-black/50 border-t border-white/10 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm text-gray-400">© 2025 Aimpact. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer withLabel />
     </main>
   );
 }

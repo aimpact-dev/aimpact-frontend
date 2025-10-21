@@ -31,10 +31,11 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
-import Footer from '../footer/Footer.client';
+import SideMenu from '../footer/SideMenu.client';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { userInfo } from '~/lib/hooks/useAuth';
 import CustomWalletButton from '../common/CustomWalletButton';
+import Footer from '../footer/Footer';
 
 const TEXTAREA_MIN_HEIGHT = 95;
 
@@ -274,21 +275,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const baseChat = (
       <div
         ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
+        className={classNames(styles.BaseChat, 'relative flex flex-col h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
         {/* <ClientOnly>{() => <Menu />}</ClientOnly> */}
         <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[8vh] max-w-chat mx-auto text-center px-4 lg:px-0">
+              <div id="intro" className="mt-[5vh] 2xl:mt-[8vh] max-w-chat mx-auto text-center px-4 lg:px-0">
                 <div className="flex justify-center mb-6">
                   <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-[72px] w-auto" />
                 </div>
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
                   Your AI co-founder
                 </h1>
-                <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
+                <p className="text-md lg:text-xl mb-4 2xl:mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
                   Where your Web3 dreams come true
                 </p>
               </div>
@@ -586,7 +587,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </ClientOnly>
         </div>
-        {!showWorkbench && <Footer positionClass="absolute" />}
+        {!showWorkbench && (
+          <>
+            <SideMenu positionClass="absolute" />
+            <Footer />
+          </>
+        )}
       </div>
     );
 
