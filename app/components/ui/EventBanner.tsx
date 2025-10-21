@@ -28,16 +28,16 @@ export function EventBanner({ className }: Props) {
   return (
     <div
       className={classNames(
-        'relative h-10 w-full bg-gradient-to-r from-accent-700 to-purple-700 text-white text-center py-2 px-2 flex items-center justify-center z-5000',
+        'relative h-8 w-full bg-gradient-to-r from-accent-700 to-purple-700 text-white text-center py-2 px-2 flex items-center justify-center z-5000',
         className,
       )}
     >
       <FlowingParticlesBackground />
       <div className="bg-bolt-elements-background-depth-4 w-full py-1 rounded-md">
-        <p className="text-sm md:text-base">
+        <p className="text-md">
           🎉 Join the{' '}
           <a
-            href="https://example.com/hackathon"
+            href="https://earn.superteam.fun/listing/aimpact-sidetrack-build-tokenize-and-launch-on-solana-with-ai"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-gray-200 transition-colors"
