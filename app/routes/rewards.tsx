@@ -7,20 +7,12 @@ import ReferralsTab from '~/components/rewards/referralsTab';
 import SharingTab from '~/components/rewards/sharingTab';
 import { useRewardsApi, type WithdrawRewardsResponse } from '~/lib/hooks/api-hooks/useRewardsApi';
 import { useAuth, userInfo } from '~/lib/hooks/useAuth';
-// import { createSampler } from "~/utils/sampler";
 import { classNames } from '~/utils/classNames';
 
 const TABS = {
   Referral: 'Referral',
   Sharing: 'Sharing',
 };
-
-// interface UpdateWithdrawalHistoryParams {
-//     isWithdrawing: boolean;
-//     interval: NodeJS.Timeout | null;
-// }
-
-// const WITHDRAWAL_HISTORY_INTERVAL_COUNT = 10;
 
 export default function Rewards() {
   const { getReferralsCount, getRewardsWithdrawalReceipts } = useRewardsApi();
@@ -34,27 +26,6 @@ export default function Rewards() {
   const { isAuthorized } = useAuth();
   const userInfoData = useStore(userInfo);
 
-  // const withdrawalHistorySamplerCount = useRef(0);
-  // const updateSampledWithdrawalHistory = createSampler(async (params: UpdateWithdrawalHistoryParams) => {
-  //     const { isWithdrawing, interval } = params;
-
-  //     if (isWithdrawing) {
-  //         withdrawalHistorySamplerCount.current = WITHDRAWAL_HISTORY_INTERVAL_COUNT;
-  //         if (interval) clearInterval(interval);
-  //         return;
-  //     }
-
-  //     if (!isWithdrawing && withdrawalHistorySamplerCount.current <= 0) {
-  //         if (interval) clearInterval(interval);
-  //         return;
-  //     }
-
-  //     const rewardsWithdrawalReceipts = await getRewardsWithdrawalReceipts();
-  //     setRewardsWithdrawalReceipts([...rewardsWithdrawalReceipts]);
-
-  //     withdrawalHistorySamplerCount.current--;
-  // }, 1000);
-
   useEffect(() => {
     const fetchData = async () => {
       const referralsCount = await getReferralsCount().catch(() => ({ referralsCount: 0 }));
@@ -66,16 +37,6 @@ export default function Rewards() {
 
     fetchData();
   }, [isAuthorized]);
-
-  // useEffect(() => {
-  //     const interval = setInterval(() => {
-  //         updateSampledWithdrawalHistory({ isWithdrawing, interval });
-  //     }, 1000);
-
-  //     return () => {
-  //         if (interval) clearInterval(interval);
-  //     };
-  // }, [isWithdrawing]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-purple-900 to-black">
@@ -119,7 +80,7 @@ export default function Rewards() {
         </div>
       </section>
       <SideMenu positionClass="fixed bottom-0 left-0 w-full" />
-      <Footer />
+      <Footer withLabel />
     </main>
   );
 }
