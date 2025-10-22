@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { publicKey, connected, signMessage, disconnect } = useWallet();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [jwtToken, setJwtToken] = useState('');
+  const [initialPublicKey, setInitialPublicKey] = useState<string | null>(null);
 
   useEffect(() => {
     const checkCreds = async () => {
@@ -124,11 +125,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkCreds().then(() => {
-       // console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
-       // console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
-       // console.log(`Public Key: ${publicKey}`);
+      // console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
+      // console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
+      // console.log(`Public Key: ${publicKey}`);
     });
-  }, [publicKey, connected, signMessage, disconnect]);
+  }, [publicKey, connected, isAuthorized, signMessage, disconnect]);
 
   useEffect(() => {
     if (!connected && isAuthorized) {
@@ -140,8 +141,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [connected, isAuthorized]);
 
   useEffect(() => {
+    if (!initialPublicKey) {
+      setInitialPublicKey(publicKey?.toBase58() ?? null);
+      return;
+    }
+
+    if (publicKey && publicKey.toBase58() !== initialPublicKey) {
+      handleDisconnect(false);
+      setInitialPublicKey(publicKey.toBase58());
+    }
+  }, [isAuthorized, publicKey]);
+
+  useEffect(() => {
     if (!connected || !isAuthorized) {
-        return;
+      return;
     }
 
     const req = async () => {
@@ -174,12 +187,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [connected, isAuthorized]);
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = async (disconnectWallet = true) => {
     Cookies.remove('authToken');
     setIsAuthorized(false);
     setJwtToken('');
     userInfo.set(undefined);
-    await disconnect();
+    if (disconnectWallet) {
+      await disconnect();
+    }
   };
 
   return (

@@ -452,11 +452,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                           event.preventDefault();
 
-                          if (isStreaming) {
-                            handleStop?.();
-                            return;
-                          }
-
                           // ignore if using input method engine
                           if (event.nativeEvent.isComposing) {
                             return;
@@ -553,12 +548,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </div>
             </StickToBottom>
             <div className="flex flex-col justify-center">
-              {/* {!chatStarted && (
-                <div className="flex justify-center gap-2">
-                  {ImportButtons(importChat)}
-                  <GitCloneButton importChat={importChat} />
-                </div>
-              )} */}
               <div className="flex flex-col gap-5">
                 {!chatStarted &&
                   !isDisabled &&
@@ -570,7 +559,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                     handleSendMessage?.(event, messageInput);
                   })}
-                {/* {!chatStarted && <StarterTemplates />} */}
               </div>
             </div>
           </div>

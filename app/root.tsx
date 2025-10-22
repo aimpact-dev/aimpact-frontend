@@ -86,17 +86,11 @@ function Providers({ children }: { children: React.ReactNode }) {
       {() => (
         <Suspense fallback={<LoadingScreen />}>
           <SolanaProvider>
-            {/*<CivicAuthProvider*/}
-            {/*  autoCreateWallet*/}
-            {/*  autoConnectEmbeddedWallet*/}
-            {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
-            {/*>*/}
             <RefCodeProvider>
               <AuthProvider>
                 <DndProvider backend={HTML5Backend}>{children}</DndProvider>
               </AuthProvider>
             </RefCodeProvider>
-            {/*</CivicAuthProvider>*/}
           </SolanaProvider>
         </Suspense>
       )}

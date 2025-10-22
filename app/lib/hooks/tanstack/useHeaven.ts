@@ -63,7 +63,7 @@ export const useGetHeavenToken = (projectId: string) =>
       return data;
     },
     refetchInterval: 30000,
-    retry: false,
+    retry: 0,
   });
 
 export interface SetTokenForProjectRequest {
