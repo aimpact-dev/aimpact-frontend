@@ -356,15 +356,6 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             </Button>
 
             <Button
-              disabled={isStreaming}
-              className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
-            >
-              <div className={`${providerToIconSlug[DeployProviders.AKASH]} h-6 w-6`}></div>
-              <span className="mx-auto">Whatever</span>
-            </Button>
-
-
-            <Button
               disabled={!finalDeployLink}
               onClick={handleClickFinalLink}
               className="flex items-center w-full px-4 py-2 text-sm text-gray-200 gap-2 rounded-md"

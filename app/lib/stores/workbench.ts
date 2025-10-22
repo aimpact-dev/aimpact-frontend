@@ -584,7 +584,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        //this.currentView.set('code');
+        this.currentView.set('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];
@@ -613,7 +613,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        //this.currentView.set('code');
+        this.currentView.set('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];

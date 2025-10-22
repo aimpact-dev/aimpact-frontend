@@ -305,7 +305,6 @@ export const Workbench = memo(
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
     const customPreviewState = useRef('');
-    const waitForInstallRunned = useRef(false);
     const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
