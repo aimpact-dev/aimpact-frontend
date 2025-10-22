@@ -77,6 +77,7 @@ export function useMessageParser() {
         }));
       }
     }
+    parserState.setKey('parserRunning', false);
   }, []);
 
   return { parsedMessages, parseMessages };

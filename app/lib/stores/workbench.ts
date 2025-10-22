@@ -45,9 +45,14 @@ export class WorkbenchStore {
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
+  /**
+   * Ids of messages that were added on project load.
+   * @private
+   */
   #reloadedMessages = new Set<string>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
+  totalActionsCount: WritableAtom<number> = atom(0);
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
@@ -527,7 +532,7 @@ export class WorkbenchStore {
   }
   addAction(data: ActionCallbackData) {
     // this._addAction(data);
-
+    this.totalActionsCount.set(this.totalActionsCount.get() + 1);
     this.addToExecutionQueue(() => this._addAction(data));
   }
   async _addAction(data: ActionCallbackData) {
@@ -579,7 +584,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        //this.currentView.set('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];
@@ -608,7 +613,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        //this.currentView.set('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];

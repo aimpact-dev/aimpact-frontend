@@ -21,7 +21,11 @@ export type ExecutionResult = { output: string; exitCode: number } | undefined;
 export class AimpactShell {
   private terminal: ITerminal | undefined;
   private readonly sandboxPromise: Promise<AimpactSandbox>;
-  public currentProcessingCommand: string | null = null;
+  public currentlyRunningCommand: string | null = null;
+  /**
+   * Command that was entered to the shell, but execution of which had not started yet.
+   */
+  public pendingCommand: string | null = null;
 
   // Handles terminal input processing, including tracking ITerminal onData events and managing command input.
   private commandBuffer: CommandBuffer;
@@ -67,8 +71,25 @@ export class AimpactShell {
     this.commandBuffer.setTerminal(terminal);
   }
 
+  /**
+   * Determines whether currently running or pending commands contain the given command.
+   * @param command
+   */
+  isRunningOrPending(command: string): boolean {
+    let running = false;
+    let pending = false;
+    if(this.currentlyRunningCommand){
+      running = this.currentlyRunningCommand.includes(command);
+    }
+    if(this.pendingCommand){
+      pending = this.pendingCommand.includes(command);
+    }
+    return running || pending;
+  }
+
   async executeCommand(command: string, abort?: () => void): Promise<ExecutionResult> {
     const sandbox = await this.sandboxPromise;
+    this.pendingCommand = command;
     if (this.executionState) {
       console.log('Execution state is already set, aborting previous command.');
       //Some command is currently running, we need to abort it first.
@@ -81,11 +102,20 @@ export class AimpactShell {
       await sandbox.deleteSession(this.executionState.sessionId);
       //Wait for previous command to finish executing.
       await this.executionState.executionPromise;
+
+      this.currentlyRunningCommand = null;
     }
 
     //We create a new session for each new command.
     const sessionId = uuidv4();
-    await sandbox.createSession(sessionId);
+    try{
+      await sandbox.createSession(sessionId);
+    }
+    catch (err){
+      console.error(`Error occurred when trying to create session for command ${command}`);
+      this.pendingCommand = null;
+      throw err;
+    }
 
     const commandRequest = {
       command: command,
@@ -97,18 +127,25 @@ export class AimpactShell {
     }
 
     console.log('Executing command: ', commandRequest.command, 'in session:', sessionId);
-    const response = await sandbox.executeSessionCommand(sessionId, commandRequest);
-    this.currentProcessingCommand = commandRequest.command;
-    const commandId = response.cmdId;
-    const executionPromise = this._pollCommandState(sessionId, commandId!);
-    this.executionState = {
-      sessionId: sessionId,
-      commandId: commandId!,
-      executionPromise: executionPromise,
-      abort: abort, // Allow to abort the command
-    };
+    try{
+      const response = await sandbox.executeSessionCommand(sessionId, commandRequest);
+      this.pendingCommand = null;
+      this.currentlyRunningCommand = commandRequest.command;
+      const commandId = response.cmdId;
+      const executionPromise = this._pollCommandState(sessionId, commandId!);
+      this.executionState = {
+        sessionId: sessionId,
+        commandId: commandId!,
+        executionPromise: executionPromise,
+        abort: abort, // Allow to abort the command
+      };
 
-    return await executionPromise;
+      return await executionPromise;
+    } catch(err){
+     console.error(`Error while executing command ${command}: `, err);
+     this.pendingCommand = null;
+     throw err;
+    }
   }
 
   //This method periodically checks the currently running command state, takes the logs
@@ -163,7 +200,7 @@ export class AimpactShell {
       this.lastLogLength = 0;
       return undefined;
     } finally {
-      this.currentProcessingCommand = null;
+      this.currentlyRunningCommand = null;
     }
   }
 }
