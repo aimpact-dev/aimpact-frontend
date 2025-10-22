@@ -44,7 +44,7 @@ export function EventBanner({ className }: Props) {
           >
             AImpact Hackathon
           </a>{' '}
-          — Oct 13–30!
+          till Oct 30 to win $10 000+
         </p>
         <button
           onClick={() => setVisible(false)}
