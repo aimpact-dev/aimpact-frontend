@@ -88,25 +88,25 @@ export class AimpactShell {
   }
 
   async executeCommand(command: string, abort?: () => void): Promise<ExecutionResult> {
+    this.pendingCommand = command; // This line has to remain before the first await to be executed during synchronous phase.
     const sandbox = await this.sandboxPromise;
-    this.pendingCommand = command;
     if (this.executionState) {
       console.log('Execution state is already set, aborting previous command.');
-      //Some command is currently running, we need to abort it first.
+      // Some command is currently running, we need to abort it first.
       if (this.executionState.abort) {
         this.executionState.abort();
       }
-      //Currently there is no way to kill running process in Daytona.io API,
-      //so we delete the session instead.
+      // Currently there is no way to kill running process in Daytona.io API,
+      // so we delete the session instead.
       console.log('Deleting session:', this.executionState.sessionId);
       await sandbox.deleteSession(this.executionState.sessionId);
-      //Wait for previous command to finish executing.
+      // Wait for previous command to finish executing.
       await this.executionState.executionPromise;
 
       this.currentlyRunningCommand = null;
     }
 
-    //We create a new session for each new command.
+    // We create a new session for each new command.
     const sessionId = uuidv4();
     try{
       await sandbox.createSession(sessionId);
@@ -119,9 +119,9 @@ export class AimpactShell {
 
     const commandRequest = {
       command: command,
-      runAsync: true, //If you run something like 'npm run dev' in sync mode you will wait for it forever.
+      runAsync: true, // If you run something like 'npm run dev' in sync mode you will wait for it forever.
     };
-    //Before executing the command, we pass it through all preprocessors.
+    // Before executing the command, we pass it through all preprocessors.
     for (const preprocessor of this.commandPreprocessors) {
       commandRequest.command = await preprocessor.process(commandRequest.command);
     }
@@ -148,20 +148,20 @@ export class AimpactShell {
     }
   }
 
-  //This method periodically checks the currently running command state, takes the logs
-  //and outputs new logs to the ITerminal instance.
+  // This method periodically checks the currently running command state, takes the logs
+  // and outputs new logs to the ITerminal instance.
   async _pollCommandState(sessionId: string, commandId: string): Promise<ExecutionResult> {
     const sandbox = await this.sandboxPromise;
     try {
       while (true) {
         const commandState = await sandbox.getSessionCommand(sessionId, commandId);
         const commandLogs = await sandbox.getSessionCommandLogs(sessionId, commandId);
-        //We need to output new logs to the terminal.
-        //These have to be new logs only, so we keep track of the last log length.
+        // We need to output new logs to the terminal.
+        // These have to be new logs only, so we keep track of the last log length.
         if (commandLogs) {
           let newLogs = commandLogs.slice(this.lastLogLength);
           if (newLogs) {
-            //Feed new logs to the logs processors.
+            // Feed new logs to the logs processors.
             for (const logsProcessor of this.logsProcessors) {
               logsProcessor.process(newLogs);
             }
@@ -182,9 +182,9 @@ export class AimpactShell {
             commandId,
           );
           console.log('Cleaning up session:', sessionId, 'after command execution.');
-          //If command finished running, then we need to delete its session
+          // If command finished running, then we need to delete its session
           await sandbox.deleteSession(sessionId);
-          //Reset the execution state
+          // Reset the execution state
           this.executionState = undefined;
           this.lastLogLength = 0;
           return {
@@ -205,8 +205,8 @@ export class AimpactShell {
   }
 }
 
-//Using this function for creating a new AimpactShell instance is preferable, because it attaches
-//log processor for capturing preview port from Daytona.io server.
+// Using this function for creating a new AimpactShell instance is preferable, because it attaches
+// log processor for capturing preview port from Daytona.io server.
 export function newAimpactShellProcess(
   sandboxPromise: Promise<AimpactSandbox>,
   fsPromise: Promise<AimpactFs>,

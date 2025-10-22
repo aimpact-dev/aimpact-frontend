@@ -37,6 +37,11 @@ import { getSandbox } from '~/lib/daytona';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 
+interface PackageJson {
+ content: Record<string, any>,
+ packageManager: string
+}
+
 interface WorkspaceProps {
   chatStarted?: boolean;
   isStreaming?: boolean;
@@ -301,7 +306,7 @@ export const Workbench = memo(
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
     const customPreviewState = useRef('');
     const waitForInstallRunned = useRef(false);
-    const startingPreview = useRef(false);
+    const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
     const chatIdx = useStore(lastChatIdx);
@@ -370,7 +375,7 @@ export const Workbench = memo(
       return streamingState.get();
     }
 
-    function getPackageJson(): { content: Record<string, any>; packageManager: string } | null{
+    function getPackageJson(): PackageJson | null{
       try{
         return workbenchStore.getPackageJson();
       } catch(e) {
@@ -404,15 +409,18 @@ export const Workbench = memo(
       return finishedCount === actionsCount;
     }
 
-    function installationRunningOrPending(packageJson: Record<string, any>, shell: AimpactShell): boolean{
+    function installationRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean{
       const installCmd = `${packageJson.packageManager} install`;
       return shell.isRunningOrPending(installCmd);
     }
 
-    function previewCommandIsRunningOrPending(packageJson: Record<string, any>, shell: AimpactShell): boolean{
-      const startCommandName = detectStartCommand(packageJson);
-      const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
-      return shell.isRunningOrPending(startCommand);
+    function previewCommandIsRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean{
+      return shell.isRunningOrPending(getPreviewStartCommand(packageJson));
+    }
+
+    function getPreviewStartCommand(packageJson: PackageJson){
+      const startCommandName = detectStartCommand(packageJson.content);
+      return `${packageJson.packageManager} run ${startCommandName}`;
     }
 
     useEffect(() => {
@@ -420,14 +428,12 @@ export const Workbench = memo(
       if (selectedView !== 'preview') return;
 
       const processPreviewStart = async (): Promise<void> => {
-        //Only one preview starting process should be running at a time.
-        if(startingPreview.current){
+        // Only one preview starting process should be running at a time.
+        if(previewStartInProgress.current){
           return;
         }
 
-        console.log(`Created preview start process. Random number ${Math.random()}.`)
-
-        //We should keep checking if project state allows for preview as long as user is in preview tab and no preview available.
+        // We should keep checking if project state allows for preview as long as user is in preview tab and no preview available.
         const shouldContinue = () => {
           const previewAvailable = workbenchStore.previews.get().length > 0;
           const previewTabOpen = workbenchStore.currentView.get() === 'preview';
@@ -435,15 +441,16 @@ export const Workbench = memo(
         }
 
         const skipTimeMs = 2000;
-        //If current project state is not suitable for running preview, then we set the message for user and wait for some time.
+        // If current project state is not suitable for running preview, then we set the message for user and wait for some time.
         const skip = async (message: string): Promise<void> =>{
           customPreviewState.current = message;
           await sleep(skipTimeMs);
         }
 
-        startingPreview.current = true;
+        previewStartInProgress.current = true;
 
         while(shouldContinue()){
+          customPreviewState.current = 'Checking if we can run the preview. Please wait...';
           const actionRunner = getFirstActionRunner();
           if(!actionRunner){
             await skip('Waiting for project initialization...');
@@ -455,14 +462,9 @@ export const Workbench = memo(
             continue;
           }
 
-          if(!allActionsFinished()){
-            await skip('Waiting for AI actions to finish, please wait...');
-            continue;
-          }
-
           const packageJson = getPackageJson();
           if(!packageJson){
-            await skip('Could not find package.json. Wait for it to be added or ask Aimpact to do so.');
+            await skip('Waiting for package.json to be added...');
             continue;
           }
 
@@ -471,18 +473,21 @@ export const Workbench = memo(
             continue;
           }
 
+          if(!allActionsFinished()){
+            await skip('Waiting for AI actions to finish, hang on...');
+            continue;
+          }
+
           customPreviewState.current = 'Starting the preview...';
           if(!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)){
-            workbenchStore.startProject(actionRunner).catch((err) => {
+            workbenchStore.getMainShell.executeCommand(getPreviewStartCommand(packageJson)).catch((err) => {
               console.error(err);
               customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
             });
           }
           break;
         }
-
-        console.log("Preview start process ended.");
-        startingPreview.current = false;
+        previewStartInProgress.current = false;
       }
 
       processPreviewStart().then(() => {
