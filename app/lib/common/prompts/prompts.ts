@@ -135,7 +135,7 @@ import { program, counterPDA, CounterData } from "../anchor/setup";
     };
   }, [program, counterPDA, connection]);
 \`\`\`
-`
+`;
 
   return ENABLE_SOLANA_PROMPT ? prompt : '';
 };
