@@ -78,10 +78,10 @@ export class AimpactShell {
   isRunningOrPending(command: string): boolean {
     let running = false;
     let pending = false;
-    if(this.currentlyRunningCommand){
+    if (this.currentlyRunningCommand) {
       running = this.currentlyRunningCommand.includes(command);
     }
-    if(this.pendingCommand){
+    if (this.pendingCommand) {
       pending = this.pendingCommand.includes(command);
     }
     return running || pending;
@@ -108,10 +108,9 @@ export class AimpactShell {
 
     // We create a new session for each new command.
     const sessionId = uuidv4();
-    try{
+    try {
       await sandbox.createSession(sessionId);
-    }
-    catch (err){
+    } catch (err) {
       console.error(`Error occurred when trying to create session for command ${command}`);
       this.pendingCommand = null;
       throw err;
@@ -127,7 +126,7 @@ export class AimpactShell {
     }
 
     console.log('Executing command: ', commandRequest.command, 'in session:', sessionId);
-    try{
+    try {
       const response = await sandbox.executeSessionCommand(sessionId, commandRequest);
       this.pendingCommand = null;
       this.currentlyRunningCommand = commandRequest.command;
@@ -141,10 +140,10 @@ export class AimpactShell {
       };
 
       return await executionPromise;
-    } catch(err){
-     console.error(`Error while executing command ${command}: `, err);
-     this.pendingCommand = null;
-     throw err;
+    } catch (err) {
+      console.error(`Error while executing command ${command}: `, err);
+      this.pendingCommand = null;
+      throw err;
     }
   }
 

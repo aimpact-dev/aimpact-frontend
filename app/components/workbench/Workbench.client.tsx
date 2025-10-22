@@ -38,8 +38,8 @@ import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 
 interface PackageJson {
- content: Record<string, any>,
- packageManager: string
+  content: Record<string, any>;
+  packageManager: string;
 }
 
 interface WorkspaceProps {
@@ -362,10 +362,9 @@ export const Workbench = memo(
     function getFirstActionRunner(): ActionRunner | null {
       const artifacts = Object.values(workbenchStore.artifacts.get());
       const artifact = Object.values(artifacts).find((a) => a.runner);
-      if(artifact){
+      if (artifact) {
         return artifact.runner;
-      }
-      else{
+      } else {
         return null;
       }
     }
@@ -374,11 +373,11 @@ export const Workbench = memo(
       return streamingState.get();
     }
 
-    function getPackageJson(): PackageJson | null{
-      try{
+    function getPackageJson(): PackageJson | null {
+      try {
         return workbenchStore.getPackageJson();
-      } catch(e) {
-        console.log("package.json not found.");
+      } catch (e) {
+        console.log('package.json not found.');
         return null;
       }
     }
@@ -389,15 +388,14 @@ export const Workbench = memo(
       const finishedStatuses = ['complete', 'failed', 'aborted'];
 
       let finishedCount: number = 0;
-      for(const artifact of artifacts){
-        if(!artifact.runner) continue;
+      for (const artifact of artifacts) {
+        if (!artifact.runner) continue;
 
         const actions = Object.values(artifact.runner.actions.get());
-        for(const action of actions){
-          if(finishedStatuses.includes(action.status)){
+        for (const action of actions) {
+          if (finishedStatuses.includes(action.status)) {
             finishedCount++;
-          }
-          else{
+          } else {
             return false;
           }
         }
@@ -408,16 +406,16 @@ export const Workbench = memo(
       return finishedCount === actionsCount;
     }
 
-    function installationRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean{
+    function installationRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean {
       const installCmd = `${packageJson.packageManager} install`;
       return shell.isRunningOrPending(installCmd);
     }
 
-    function previewCommandIsRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean{
+    function previewCommandIsRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean {
       return shell.isRunningOrPending(getPreviewStartCommand(packageJson));
     }
 
-    function getPreviewStartCommand(packageJson: PackageJson){
+    function getPreviewStartCommand(packageJson: PackageJson) {
       const startCommandName = detectStartCommand(packageJson.content);
       return `${packageJson.packageManager} run ${startCommandName}`;
     }
@@ -428,7 +426,7 @@ export const Workbench = memo(
 
       const processPreviewStart = async (): Promise<void> => {
         // Only one preview starting process should be running at a time.
-        if(previewStartInProgress.current){
+        if (previewStartInProgress.current) {
           return;
         }
 
@@ -437,48 +435,48 @@ export const Workbench = memo(
           const previewAvailable = workbenchStore.previews.get().length > 0;
           const previewTabOpen = workbenchStore.currentView.get() === 'preview';
           return !previewAvailable && previewTabOpen;
-        }
+        };
 
         const skipTimeMs = 2000;
         // If current project state is not suitable for running preview, then we set the message for user and wait for some time.
-        const skip = async (message: string): Promise<void> =>{
+        const skip = async (message: string): Promise<void> => {
           customPreviewState.current = message;
           await sleep(skipTimeMs);
-        }
+        };
 
         previewStartInProgress.current = true;
 
-        while(shouldContinue()){
+        while (shouldContinue()) {
           customPreviewState.current = 'Checking if we can run the preview. Please wait...';
           const actionRunner = getFirstActionRunner();
-          if(!actionRunner){
+          if (!actionRunner) {
             await skip('Waiting for project initialization...');
             continue;
           }
 
-          if(aiResponseInProgress()){
+          if (aiResponseInProgress()) {
             await skip('Processing AI response, please wait...');
             continue;
           }
 
           const packageJson = getPackageJson();
-          if(!packageJson){
+          if (!packageJson) {
             await skip('Waiting for package.json to be added...');
             continue;
           }
 
-          if(installationRunningOrPending(packageJson, workbenchStore.getMainShell)){
+          if (installationRunningOrPending(packageJson, workbenchStore.getMainShell)) {
             await skip('Installing dependencies, please wait...');
             continue;
           }
 
-          if(!allActionsFinished()){
+          if (!allActionsFinished()) {
             await skip('Waiting for AI actions to finish, hang on...');
             continue;
           }
 
           customPreviewState.current = 'Starting the preview...';
-          if(!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)){
+          if (!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)) {
             workbenchStore.getMainShell.executeCommand(getPreviewStartCommand(packageJson)).catch((err) => {
               console.error(err);
               customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
@@ -487,7 +485,7 @@ export const Workbench = memo(
           break;
         }
         previewStartInProgress.current = false;
-      }
+      };
 
       processPreviewStart().then(() => {
         console.log('After run preview');
