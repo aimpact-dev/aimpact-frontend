@@ -190,8 +190,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   );
 
   const { takeSnapshot } = useChatHistory();
-  const chatIdx = useStore(lastChatIdx);
-  const chatSummary = useStore(lastChatSummary);
 
   const {
     messages,
@@ -242,7 +240,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
       logger.debug('Finished streaming');
       const chatIdx = lastChatIdx.get();
-      if (!chatIdx) return;
+      const files = workbenchStore.files.get();
+      const chatSummary = lastChatSummary.get();
+      if (!chatIdx || Object.values(files).length === 0) return;
+
       takeSnapshot(chatIdx, files, undefined, chatSummary)
         .then(() => logger.debug('Project saved after message on finish'))
         .catch((e) => {
