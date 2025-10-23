@@ -31,6 +31,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -142,6 +143,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const deployAlert = useStore(workbenchStore.deployAlert);
   const supabaseAlert = useStore(workbenchStore.supabaseAlert);
   const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+  const { jwtToken } = useAuth();
 
   useEffect(() => {
     return () => {
@@ -182,9 +184,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       files,
       promptId,
       contextOptimization: contextOptimizationEnabled,
-      authToken: Cookies.get('authToken'),
+      authToken: jwtToken,
     }),
-    [files, promptId, contextOptimizationEnabled],
+    [files, promptId, contextOptimizationEnabled, jwtToken],
   );
 
   const { takeSnapshot } = useChatHistory();

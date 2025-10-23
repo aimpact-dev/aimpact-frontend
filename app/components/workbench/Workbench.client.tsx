@@ -384,26 +384,20 @@ export const Workbench = memo(
 
     function allActionsFinished(): boolean {
       const artifacts = Object.values(workbenchStore.artifacts.get());
-      const actionsCount = workbenchStore.totalActionsCount.get();
       const finishedStatuses = ['complete', 'failed', 'aborted'];
 
-      let finishedCount: number = 0;
       for (const artifact of artifacts) {
         if (!artifact.runner) continue;
 
         const actions = Object.values(artifact.runner.actions.get());
         for (const action of actions) {
-          if (finishedStatuses.includes(action.status)) {
-            finishedCount++;
-          } else {
+          if (!finishedStatuses.includes(action.status)) {
             return false;
           }
         }
       }
 
-      // By comparing finished actions count to total actions count added to workbench
-      // we handle the case when some action is in workbench queue, but haven't been added to the artifact runner.
-      return finishedCount === actionsCount;
+      return true;
     }
 
     function installationRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean {
