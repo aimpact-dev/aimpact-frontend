@@ -29,11 +29,10 @@ import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { currentParsingMessageState, parserState } from '~/lib/stores/parse';
+import { currentParsingMessageState } from '~/lib/stores/parse';
 import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
-import { LazySandbox } from '~/lib/daytona/lazySandbox';
-import { getSandbox } from '~/lib/daytona';
+import { streamingState } from '~/lib/stores/streaming';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -301,11 +300,10 @@ export const Workbench = memo(
     const waitForInstallRunned = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
-    const chatIdx = useStore(lastChatIdx);
     const chatSummary = useStore(lastChatSummary);
     const lastSnapshotRef = useRef<number | null>(null);
 
-    const snapshotTakeCooldown = 10000;
+    const snapshotTakeCooldown = 5000;
 
     function sleep(ms: number) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -313,12 +311,15 @@ export const Workbench = memo(
 
     useEffect(() => {
       // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
-      if (!parserState.get().parserRunning) return;
 
-      const removeSubscribe = workbenchStore.files.subscribe((files) => {
+      const removeSubscribe = workbenchStore.files.listen((files) => {
         const { initialMessagesIds } = chatStore.get();
         const currentParsingMessage = currentParsingMessageState.get();
+        const chatIdx = lastChatIdx.get();
+        console.log('chat idx in workbench', chatIdx);
         if (!chatIdx) return;
+        // if (streamingState.get()) return;
+        console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
 
         const snapshotHaveChanges = Object.keys(files).length > 0;
         if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
@@ -333,7 +334,7 @@ export const Workbench = memo(
       return () => {
         removeSubscribe();
       };
-    }, [chatIdx, chatSummary]);
+    }, [chatSummary]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
