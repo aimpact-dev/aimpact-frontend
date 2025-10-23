@@ -18,7 +18,6 @@ export default defineConfig({
   // Optimize Three.js imports
   optimizeDeps: {
     include: ['three'],
-    noDiscovery: true,
   },
   // Configure build for better Three.js performance
   build: {

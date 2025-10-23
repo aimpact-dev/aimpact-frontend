@@ -16,7 +16,4 @@ export default defineConfig({
       '@': __dirname,
     },
   },
-  optimizeDeps: {
-    noDiscovery: true,
-  },
 });

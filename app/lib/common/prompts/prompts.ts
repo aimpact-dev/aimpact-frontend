@@ -23,6 +23,7 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Prefer to use \`@coral-xyz/anchor\` and \`@solana/web3.js\` for smart contract integration
 
 ## Actual libs versions
+Please use only this versions of libs. Chaning versions of libs can be dangerous.
 - @solana/wallet-adapter-base: 0.9.27.
 - @coral-xyz/anchor: 0.30.1
 - @solana/web3.js: 1.98.4
@@ -138,7 +139,7 @@ import { program, counterPDA, CounterData } from "../anchor/setup";
 \`\`\`
 `;
 
-  return ENABLE_SOLANA_PROMPT ? prompt : '';
+  return prompt;
 };
 
 export const getSystemPrompt = (cwd: string = WORK_DIR) =>
