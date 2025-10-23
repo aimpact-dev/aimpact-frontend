@@ -162,7 +162,7 @@ Daytona has the ability to run a web server but requires to use an npm package (
 - Think before editing the code which libraries you should install and use. After you finish editing files — analyze used libraries, edit package.json and use \`pnpm install\`. So use this flow to avoid importing uinstanlled libraries
 - Always define dependencies in \`package.json\`
 - If you don't know actual version of lib — just use tag \`latest\`
-- CRITICAL: You always should run \`pnpm install\` on project initialization or after create/update \`package.json\`. Prefer modifying \`package.json\` and running a single install command over multiple \`pnpm add <pkg>\` calls.
+- CRITICAL: You always should run \`pnpm install\` on project initialization (first response in chat or response after initial files) or after create/update \`package.json\`. Prefer modifying \`package.json\` and running a single install command over multiple \`pnpm add <pkg>\` calls.
 - Dependecies doesn't installs automaticly, so you need call this if you add some dependencies to package.json or after template initialization. 
 
 **Code Quality:** 
