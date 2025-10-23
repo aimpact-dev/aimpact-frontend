@@ -47,13 +47,14 @@ export function Header() {
         })}
       >
         <div className="flex gap-2.5">
-          <Button
-            onClick={() => navigate('/projects')}
-            variant="default"
-            className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
-          >
-            View all projects
-          </Button>
+          <a href="/projects">
+            <Button
+              variant="default"
+              className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
+            >
+              View all projects
+            </Button>
+          </a>
 
           {!chat.started && (
             <>
