@@ -24,3 +24,4 @@ DAYTONA_PROXY_URL = "https://proxy.aimpact.dev"
 name = "aimpact-preview"
 [env.preview.vars]
 ENVIRONMENT = "preview"
+PUBLIC_BACKEND_URL = "https://eblo7vdluldh7a74tp8o30v31g.ingress.d3akash.cloud"
