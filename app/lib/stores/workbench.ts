@@ -45,9 +45,14 @@ export class WorkbenchStore {
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
+  /**
+   * Ids of messages that were added on project load.
+   * @private
+   */
   #reloadedMessages = new Set<string>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
+  totalActionsCount: WritableAtom<number> = atom(0);
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
@@ -527,7 +532,7 @@ export class WorkbenchStore {
   }
   addAction(data: ActionCallbackData) {
     // this._addAction(data);
-
+    this.totalActionsCount.set(this.totalActionsCount.get() + 1);
     this.addToExecutionQueue(() => this._addAction(data));
   }
   async _addAction(data: ActionCallbackData) {
@@ -940,7 +945,7 @@ export class WorkbenchStore {
     return { content, packageManager: detectPackageManager(content) };
   }
 
-  async startProject(actionRunenr: ActionRunner) {
+  async startProject(actionRunner: ActionRunner) {
     const packageJson = this.getPackageJson();
     const startCommandName = detectStartCommand(packageJson.content);
     if (!packageJson.packageManager || !startCommandName) {
@@ -949,14 +954,14 @@ export class WorkbenchStore {
 
     const previews = this.#previewsStore.previews;
     if (previews.get().find((preview) => preview.ready)) {
-      console.log('Preview already runned');
+      console.log('Preview already running');
       return;
     }
 
     const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
     const abortController = new AbortController();
     await getSandbox();
-    await actionRunenr.runShellAction({
+    await actionRunner.runShellAction({
       status: 'running',
       executed: false,
       abort: () => {

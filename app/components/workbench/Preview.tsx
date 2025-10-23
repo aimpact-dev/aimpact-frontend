@@ -960,7 +960,7 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
             </>
           ) : (
             <div className="flex w-full h-full justify-center items-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-              {customText || 'No preview available'}
+              {customText || 'Checking if we can run the preview. Please wait...'}
             </div>
           )}
 
