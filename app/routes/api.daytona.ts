@@ -260,6 +260,7 @@ async function getPreviewLink(params: MethodParams){
     });
   }
   catch (error) {
+    console.log(`Error occurred when getting preview link: ${JSON.stringify(error)}`);
     return new Response('Failed to get preview link', { status: 500 });
   }
 }

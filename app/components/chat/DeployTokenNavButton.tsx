@@ -41,14 +41,13 @@ export default function DeployTokenNavButton({ projectId, disabled = false }: De
         }}
       >
         <div className="mb-3">
-          <h1 className="text-2xl font-bold">Connect your app to a token </h1>
-          <h2 className="text-m text-muted-foreground">for transactions and integrations</h2>
+          <h1 className="text-2xl font-bold">Connect your token to an app</h1>
         </div>
 
         <Tabs defaultValue="new" className="items-center">
           <TabsList className="bg-input h-7 w-full box-content mb-5">
             <TabsTrigger value="new">New</TabsTrigger>
-            <TabsTrigger value="link">By link</TabsTrigger>
+            <TabsTrigger value="link">By existing token</TabsTrigger>
           </TabsList>
           <TabsContent value="new">
             <DeployNewTokenForm projectId={projectId} projectUrl={projectUrl} setShowTokenWindow={setShowTokenWindow} />

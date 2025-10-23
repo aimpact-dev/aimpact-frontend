@@ -157,7 +157,7 @@ export function addLockedItem(chatId: string, path: string, isFolder: boolean = 
   // Save the updated list (this will update the cache and maps)
   saveLockedItems(filteredItems);
 
-  logger.info(`Added locked ${isFolder ? 'folder' : 'file'}: ${path} for chat: ${chatId}`);
+  // logger.info(`Added locked ${isFolder ? 'folder' : 'file'}: ${path} for chat: ${chatId}`);
 }
 
 /**
@@ -429,7 +429,6 @@ export function migrateLegacyLocks(currentChatId: string): void {
 export function clearCache(): void {
   lockedItemsCache = null;
   lockedItemsMap.clear();
-  logger.info('Cleared locked items cache');
 }
 
 /**

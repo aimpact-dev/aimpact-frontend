@@ -1,11 +1,11 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { ActionRunner } from '~/lib/runtime/action-runner';
-import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { parseOldNewPairs, type ActionCallbackData, type ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import type { ITerminal } from '~/types/terminal';
 import { unreachable } from '~/utils/unreachable';
 import { EditorStore } from './editor';
-import { FilesStore, type FileMap } from './files';
+import { FilesStore, type Dirent, type File, type FileMap } from './files';
 import { TerminalStore } from './terminal';
 import JSZip from 'jszip';
 import fileSaver from 'file-saver';
@@ -21,6 +21,7 @@ import { getAimpactFs } from '~/lib/aimpactfs';
 import { BuildService } from '~/lib/services/buildService';
 import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
 import { getPortCatcher } from '~/utils/previewPortCatcher';
+import { detectPackageManager, detectStartCommand } from '~/utils/projectCommands';
 
 const { saveAs } = fileSaver;
 
@@ -44,9 +45,14 @@ export class WorkbenchStore {
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(getSandbox(), getAimpactFs());
 
+  /**
+   * Ids of messages that were added on project load.
+   * @private
+   */
   #reloadedMessages = new Set<string>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
+  totalActionsCount: WritableAtom<number> = atom(0);
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
@@ -151,7 +157,6 @@ export class WorkbenchStore {
     this.#terminalStore.attachAimpactTerminal(terminal);
   }
 
-
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
 
@@ -226,8 +231,8 @@ export class WorkbenchStore {
     if (document === undefined) {
       return;
     }
-    if(document.isBinary){
-      console.warn("Attempt to save changes in a binary file:", filePath, " Binary files should not be editable.");
+    if (document.isBinary) {
+      console.warn('Attempt to save changes in a binary file:', filePath, ' Binary files should not be editable.');
       return;
     }
 
@@ -290,12 +295,11 @@ export class WorkbenchStore {
     this.#filesStore.resetFileModifications();
   }
 
-
   /**
    * Use this function for the case when you need to lock a file right after adding it to the filesystem (AimpactFs).
    * @param filePath
    */
-  pendLockForFile(filePath: string){
+  pendLockForFile(filePath: string) {
     this.#filesStore.pendLockForFile(filePath);
   }
 
@@ -353,7 +357,7 @@ export class WorkbenchStore {
     return this.#filesStore.isFolderLocked(folderPath);
   }
 
-  getFile(filePath: string){
+  getFile(filePath: string) {
     return this.#filesStore.getFile(filePath);
   }
 
@@ -511,13 +515,6 @@ export class WorkbenchStore {
             return;
           }
 
-          this.supabaseAlert.set(alert);
-        },
-        (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
-            return;
-          }
-
           this.deployAlert.set(alert);
         },
       ),
@@ -535,7 +532,7 @@ export class WorkbenchStore {
   }
   addAction(data: ActionCallbackData) {
     // this._addAction(data);
-
+    this.totalActionsCount.set(this.totalActionsCount.get() + 1);
     this.addToExecutionQueue(() => this._addAction(data));
   }
   async _addAction(data: ActionCallbackData) {
@@ -603,6 +600,41 @@ export class WorkbenchStore {
       }
 
       if (!isStreaming) {
+        await artifact.runner.runAction(data);
+        this.resetAllFileModifications();
+      }
+    } else if (data.action.type === 'update') {
+      const aimpactFs = await getAimpactFs();
+      const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
+      const oldNewPair = parseOldNewPairs(data.action.content);
+
+      if (this.selectedFile.value !== fullPath) {
+        this.setSelectedFile(fullPath);
+      }
+
+      if (this.currentView.value !== 'code') {
+        this.currentView.set('code');
+      }
+
+      const doc = this.#editorStore.documents.get()[fullPath];
+
+      if (doc) {
+        await artifact.runner.runAction(data, isStreaming);
+        let replaceIndex: number;
+        if (data.action.occurrences === 'all') {
+          replaceIndex = -1;
+        } else if (data.action.occurrences === 'first') {
+          replaceIndex = 0;
+        } else {
+          replaceIndex = data.action.n ? data.action.n - 1 : 0;
+        }
+        if (oldNewPair.old) {
+          this.#editorStore.updateFile(fullPath, oldNewPair.new, oldNewPair.old, replaceIndex);
+        }
+      }
+
+      if (!isStreaming) {
+        await this.saveFile(fullPath);
         await artifact.runner.runAction(data);
         this.resetAllFileModifications();
       }
@@ -882,6 +914,63 @@ export class WorkbenchStore {
       console.error('Error pushing to GitHub:', error);
       throw error; // Rethrow the error for further handling
     }
+  }
+
+  getPackageJsonDirent(): File | null {
+    const files = this.files.get();
+
+    const packageJsonFileKey = Object.keys(files).find((key) => key.endsWith('package.json'));
+    if (!packageJsonFileKey) {
+      return null;
+    }
+
+    const packageJsonFile = files[packageJsonFileKey];
+    return !packageJsonFile || packageJsonFile.type !== 'file' ? null : packageJsonFile;
+  }
+
+  getPackageJson(): { content: Record<string, any>; packageManager: string } {
+    const packageJsonFile = this.getPackageJsonDirent();
+    let content: Record<any, string> | null = null;
+    if (packageJsonFile) {
+      try {
+        content = JSON.parse(packageJsonFile.content);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (!content) {
+      throw new Error('package.json not found or it is incorrect');
+    }
+    return { content, packageManager: detectPackageManager(content) };
+  }
+
+  async startProject(actionRunner: ActionRunner) {
+    const packageJson = this.getPackageJson();
+    const startCommandName = detectStartCommand(packageJson.content);
+    if (!packageJson.packageManager || !startCommandName) {
+      throw new Error('Failed to get packageManager and/or start command');
+    }
+
+    const previews = this.#previewsStore.previews;
+    if (previews.get().find((preview) => preview.ready)) {
+      console.log('Preview already running');
+      return;
+    }
+
+    const startCommand = `${packageJson.packageManager} run ${startCommandName}`;
+    const abortController = new AbortController();
+    await getSandbox();
+    await actionRunner.runShellAction({
+      status: 'running',
+      executed: false,
+      abort: () => {
+        abortController.abort();
+      },
+      abortSignal: abortController.signal,
+      content: startCommand,
+      type: 'shell',
+    });
   }
 }
 

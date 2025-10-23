@@ -1,4 +1,4 @@
-import { memo, Fragment } from 'react';
+import { memo, Fragment, useEffect } from 'react';
 import { Markdown } from './Markdown';
 import type { JSONValue } from 'ai';
 import Popover from '~/components/ui/Popover';
@@ -118,16 +118,6 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
                       onClick={() => onRewind(messageId)}
                       key="i-ph:arrow-u-up-left"
                       className="i-ph:arrow-u-up-left text-xl text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
-                    />
-                  </WithTooltip>
-                )}
-                {onFork && (
-                  <WithTooltip tooltip="Fork chat from this message">
-                    <button
-                      onClick={() => onFork(messageId)}
-                      disabled
-                      key="i-ph:git-fork"
-                      className="i-ph:git-fork text-xl text-bolt-elements-textSecondary disabled:text-gray-600 hover:text-bolt-elements-textPrimary transition-colors"
                     />
                   </WithTooltip>
                 )}

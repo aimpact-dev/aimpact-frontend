@@ -4,6 +4,7 @@ import { cn } from '~/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { useSearchParams } from '@remix-run/react';
 
 interface ProjectFiltersProps {
   activeFilters: ProjectFilters[];
@@ -27,7 +28,11 @@ const deploymentFilters: { key: DeploymentPlatform; label: string; color: string
 ];
 
 const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectFiltersProps) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const toggleFilter = (filter: ProjectFilters) => {
+    setSearchParams({ page: '1' });
+
     onFilterChange((prev: ProjectFilters[]) => {
       if (filter === 'all' || filter === 'owned') {
         // ownership filters are mutually exclusive
@@ -48,6 +53,8 @@ const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectF
   };
 
   const setDeploymentFilter = (platform: DeploymentPlatform | 'all-platforms') => {
+    setSearchParams({ page: '1' });
+
     onFilterChange((prev: ProjectFilters[]) => {
       // remove any existing deployment platform keys
       const withoutDeployment = prev.filter((f) => !deploymentFilters.some((d) => d.key === f));
@@ -61,6 +68,8 @@ const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectF
   };
 
   const clearAllFilters = () => {
+    setSearchParams({ page: '1' });
+
     onFilterChange((prev) => prev.filter((f) => f === 'all' || f === 'owned'));
   };
 

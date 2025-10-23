@@ -13,6 +13,7 @@ import { detectProjectCommands, createCommandActionsString } from '~/utils/proje
 import type { ContextAnnotation } from '~/types/context';
 import { useHttpDb } from './http-db';
 import { filterIgnoreFiles } from '~/utils/ignoreFiles';
+import { chatStore } from '../stores/chat';
 
 export interface ChatHistoryItem {
   id: string;
@@ -32,6 +33,7 @@ export const lastChatIdx = atom<string | undefined>(undefined);
 export const lastChatSummary = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
 export const chatMetadata = atom<IChatMetadata | undefined>(undefined);
+
 export function useChatHistory() {
   const navigate = useNavigate();
 
@@ -76,30 +78,39 @@ export function useChatHistory() {
 
               const rewindId = searchParams.get('rewindTo');
 
-              let startingIdx = -1;
-              const endingIdx = rewindId
+              let useProjectImport = false;
+              const endingIndex = rewindId
                 ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
-                : storedMessages.messages.length;
+                : storedMessages.messages.length - 1;
               const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
 
-              if (snapshotIndex >= 0 && snapshotIndex < endingIdx) {
-                startingIdx = snapshotIndex;
-              }
-
-              if (snapshotIndex > 0 && storedMessages.messages[snapshotIndex].id == rewindId) {
-                startingIdx = -1;
-              }
-
-              let filteredMessages = storedMessages.messages.slice(startingIdx + 1, endingIdx);
               let archivedMessages: Message[] = [];
-
-              if (startingIdx >= 0) {
-                archivedMessages = storedMessages.messages.slice(0, startingIdx + 1);
+              if (snapshotIndex >= 0 && snapshotIndex < endingIndex) {
+                useProjectImport = true;
+                archivedMessages = storedMessages.messages.slice(0, snapshotIndex + 1);
               }
+
+              let filteredMessages = storedMessages.messages.slice(
+                useProjectImport ? snapshotIndex : 0,
+                endingIndex + 1,
+              );
+              filteredMessages = filteredMessages.map((message) => {
+                if (!message.annotations) {
+                  message.annotations = ['no-snapshot-save'];
+                } else {
+                  if (!message.annotations.includes('no-snapshot-save')) {
+                    message.annotations.push('no-snapshot-save');
+                  }
+                  if (!message.annotations.includes('ignore-actions')) {
+                    message.annotations.push('ignore-actions');
+                  }
+                }
+                return message;
+              });
 
               setArchivedMessages(archivedMessages);
 
-              if (startingIdx > 0) {
+              if (useProjectImport) {
                 const files = Object.entries(validSnapshot?.files || {})
                   .map(([key, value]) => {
                     if (value?.type !== 'file') {
@@ -149,6 +160,7 @@ export function useChatHistory() {
                     `, // Added commandActionsString, followupMessage, updated id and title
                     annotations: [
                       'no-store',
+                      'no-snapshot-save',
                       ...(summary
                         ? [
                             {
@@ -160,19 +172,16 @@ export function useChatHistory() {
                         : []),
                     ],
                   },
-
-                  // Remove the separate user and assistant messages for commands
-                  /*
-                   *...(commands !== null // This block is no longer needed
-                   *  ? [ ... ]
-                   *  : []),
-                   */
                   ...filteredMessages,
                 ];
                 restoreSnapshot(mixedId);
               }
-
+              // setInitialMessages(storedMessages.messages);
               setInitialMessages(filteredMessages);
+              chatStore.setKey(
+                'initialMessagesIds',
+                filteredMessages.map((m) => m.id),
+              );
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);
@@ -189,7 +198,10 @@ export function useChatHistory() {
             console.error(error);
 
             logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-            toast.error('Failed to load chat: ' + error.message); // More specific error
+            console.log(error);
+            if (error?.status && error.status !== 404) {
+              toast.error('Failed to load chat: ' + error.message); // More specific error
+            }
             setError(error);
           });
       } else {
@@ -249,7 +261,7 @@ export function useChatHistory() {
           key = key.replace(workdir, '');
         }
 
-        await fs.writeFile(key, value.content, { encoding: value.isBinary ? 'base64' : 'utf-8' });
+        await fs.writeFile(key, value.content, value.isBinary ? 'base64' : 'utf-8');
       }
     });
   }, []);
@@ -259,7 +271,7 @@ export function useChatHistory() {
     initialMessages,
     error,
     takeSnapshot,
-    updateChatMestaData: async (metadata: IChatMetadata) => {
+    updateChatMetaData: async (metadata: IChatMetadata) => {
       const id = chatId.get();
 
       if (!id) {
@@ -288,23 +300,22 @@ export function useChatHistory() {
       if (initialMessages.length === 0 && !_chatId && !mixedId && !creatingProjectRef.current) {
         creatingProjectRef.current = true;
 
-        console.log("Creating a new project, calling createProject of http database.");
+        console.log('Creating a new project, calling createProject of http database.');
         try {
           _chatId = await createProject(`${firstArtifact?.title || `Sample Project ${Date.now()}`}`);
-        }
-        catch (error) {
+        } catch (error) {
           console.error('Failed to create project:', error);
           toast.error('Failed to create new chat project.');
           creatingProjectRef.current = false;
           return;
         }
-        console.log("New chat ID created: ", _chatId);
+        console.log('New chat ID created: ', _chatId);
 
         chatId.set(_chatId);
-        console.log("Navigating to chat with ID: ", _chatId);
+        console.log('Navigating to chat with ID: ', _chatId);
         navigateChat(_chatId);
-        console.log("Navigation completed.");
-        console.log("Chat id stored in atom: ", chatId.get());
+        console.log('Navigation completed.');
+        console.log('Chat id stored in atom: ', chatId.get());
 
         creatingProjectRef.current = false;
       }
@@ -330,9 +341,8 @@ export function useChatHistory() {
 
       // Ensure chatId.get() is used for the final setMessages call
       const finalChatId = _chatId;
-      console.log("Final chat ID to be used for storing messages: ", finalChatId);
 
-      if (creatingProjectRef.current){
+      if (creatingProjectRef.current) {
         console.warn('Creating project is in progress, cannot store messages yet.');
         return;
       }
@@ -353,11 +363,14 @@ export function useChatHistory() {
             [...archivedMessages, ...messages],
             description.get(),
             chatMetadata.get(),
-          ).then(async () => {
-            lastChatIdx.set(messages[messages.length - 1].id);
-            lastChatSummary.set(chatSummary);
-            return takeSnapshot(messages[messages.length - 1].id, workbenchStore.files.get(), finalChatId, chatSummary);
-          });
+          )
+            .then(async () => {
+              lastChatIdx.set(messages[messages.length - 1].id);
+              lastChatSummary.set(chatSummary);
+            })
+            .catch((e) => {
+              console.error('unexpected error', e);
+            });
 
           await settingProjectWorkaroundPromise.current;
         } finally {

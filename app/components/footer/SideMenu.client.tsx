@@ -8,7 +8,7 @@ interface FooterProps {
   positionClass?: string;
 }
 
-type PopupType = 'bugBounty' | 'custDev' | 'policies' | null;
+type PopupType = 'bugBounty' | 'custDev' | null;
 
 interface PopupConfig {
   icon: string;
@@ -20,14 +20,6 @@ interface PopupConfig {
 }
 
 const POPUP_CONFIGS: Record<Exclude<PopupType, null>, PopupConfig> = {
-  policies: {
-    icon: 'i-ph:file-text',
-    tooltip: 'Terms & Policies',
-    title: 'Legal Information',
-    link: '/policies',
-    linkText: 'View policies',
-    type: 'internal',
-  },
   bugBounty: {
     icon: 'i-bolt:bugbounty',
     tooltip: 'Bug bounty form',
@@ -52,7 +44,7 @@ const POLICIES_LINKS = [
   { label: 'Refund Policy', path: '/refund-policy' },
 ];
 
-export default function Footer({ positionClass }: FooterProps) {
+export default function SideMenu({ positionClass }: FooterProps) {
   const [activePopup, setActivePopup] = useState<PopupType>(null);
   const navigate = useNavigate();
 
@@ -108,11 +100,10 @@ export default function Footer({ positionClass }: FooterProps) {
   };
 
   return (
-    <footer className={classNames('pb-2.5 px-2.5 bottom-0 left-0 w-full z-50 pointer-events-none', positionClass)}>
+    <div className={classNames('pb-2.5 px-2.5 bottom-0 left-0 w-full z-50 pointer-events-none', positionClass)}>
       <div className="relative w-full flex justify-between items-end">
         {/* Left side - Action buttons */}
         <div className="flex flex-col gap-2 pointer-events-auto">
-          {renderPopupButton('policies')}
           {renderPopupButton('bugBounty')}
           {renderPopupButton('custDev')}
         </div>
@@ -135,6 +126,6 @@ export default function Footer({ positionClass }: FooterProps) {
           </Tooltip>
         </div>
       </div>
-    </footer>
+    </div>
   );
 }

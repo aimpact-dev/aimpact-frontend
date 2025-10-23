@@ -66,7 +66,6 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     'bg-bolt-elements-messages-background': isUserMessage || !isStreaming || (isStreaming && !isLast),
                     'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent':
                       isStreaming && isLast,
-                    'mt-4': !isFirst,
                   })}
                 >
                   {isUserMessage && (

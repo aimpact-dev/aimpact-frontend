@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect, useState, useMemo, useId, useRef } from 'react';
+import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
@@ -27,7 +27,20 @@ import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/comp
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
-import SmartContractView from '~/components/workbench/smartСontracts/SmartContractView';
+import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
+import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
+import { currentParsingMessageState } from '~/lib/stores/parse';
+import { chatStore } from '~/lib/stores/chat';
+import { detectStartCommand } from '~/utils/projectCommands';
+import { LazySandbox } from '~/lib/daytona/lazySandbox';
+import { getSandbox } from '~/lib/daytona';
+import { streamingState } from '~/lib/stores/streaming';
+import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+
+interface PackageJson {
+  content: Record<string, any>;
+  packageManager: string;
+}
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -288,14 +301,48 @@ export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
 
-    const [isSyncing, setIsSyncing] = useState(false);
     const [isPushDialogOpen, setIsPushDialogOpen] = useState(false);
     const [fileHistory, setFileHistory] = useState<Record<string, FileHistory>>({});
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
     const customPreviewState = useRef('');
-    const [waitForInstall, setWaitForInstall] = useState(false);
+    const previewStartInProgress = useRef(false);
 
-    // const modifiedFiles = Array.from(useStore(workbenchStore.unsavedFiles).keys());
+    const { takeSnapshot } = useChatHistory();
+    const chatSummary = useStore(lastChatSummary);
+    const lastSnapshotRef = useRef<number | null>(null);
+
+    const snapshotTakeCooldown = 5000;
+
+    function sleep(ms: number) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    useEffect(() => {
+      // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
+
+      const removeSubscribe = workbenchStore.files.listen((files) => {
+        const { initialMessagesIds } = chatStore.get();
+        const currentParsingMessage = currentParsingMessageState.get();
+        const chatIdx = lastChatIdx.get();
+        console.log('chat idx in workbench', chatIdx);
+        if (!chatIdx) return;
+        // if (streamingState.get()) return;
+        console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
+
+        const snapshotHaveChanges = Object.keys(files).length > 0;
+        if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
+          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
+            takeSnapshot(chatIdx, files, undefined, chatSummary);
+            console.log('Snapshot was taken on file change');
+            lastSnapshotRef.current = Date.now();
+          }
+        }
+      });
+
+      return () => {
+        removeSubscribe();
+      };
+    }, [chatSummary]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -311,92 +358,135 @@ export const Workbench = memo(
       workbenchStore.currentView.set(view);
     };
 
-    useEffect(() => {
-      if (hasPreview) {
-        setSelectedView('preview');
+    /**
+     * Returns the first action runner created in the current chat.
+     */
+    function getFirstActionRunner(): ActionRunner | null {
+      const artifacts = Object.values(workbenchStore.artifacts.get());
+      const artifact = Object.values(artifacts).find((a) => a.runner);
+      if (artifact) {
+        return artifact.runner;
+      } else {
+        return null;
       }
-    }, [hasPreview]);
-
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
-    async function getRunCommand(artifact: ArtifactState) {
-      const actions = artifact.runner.actions.get();
-      const runCommand = Object.values(actions).findLast((a) => a.content === 'pnpm run dev');
-
-      return runCommand;
+    function aiResponseInProgress(): boolean {
+      return streamingState.get();
     }
 
-    async function waitForInstallCmd(artifact: ArtifactState) {
-      setWaitForInstall(true);
-      let tries = 0;
-      let isCompleted: boolean;
-      let runCommand: ActionState | undefined;
-      const cooldown = 1 * 1000;
-      const unsubscribe = artifact.runner.actions.subscribe((state, prevState, key) => {
-        const commands = Object.values(state);
-        const installCmd = commands.find((a) => a.content === 'pnpm install');
-        runCommand = commands.find((a) => a.content === 'pnpm run dev');
-        // console.log(installCmd, installCmd?.status, installCmd?.status === 'complete');
-        if (installCmd?.status === 'complete') {
-          // console.log('command executed');
-          isCompleted = true;
-        }
-      });
+    function getPackageJson(): PackageJson | null {
+      try {
+        return workbenchStore.getPackageJson();
+      } catch (e) {
+        console.log('package.json not found.');
+        return null;
+      }
+    }
 
-      isCompleted = false;
-      while (tries <= 20) {
-        if (isCompleted) {
-          unsubscribe();
-          return { status: true, runCommand };
+    function allActionsFinished(): boolean {
+      const artifacts = Object.values(workbenchStore.artifacts.get());
+      const finishedStatuses = ['complete', 'failed', 'aborted'];
+
+      for (const artifact of artifacts) {
+        if (!artifact.runner) continue;
+
+        const actions = Object.values(artifact.runner.actions.get());
+        for (const action of actions) {
+          if (!finishedStatuses.includes(action.status)) {
+            return false;
+          }
         }
-        await sleep(cooldown);
       }
 
-      customPreviewState.current = 'Failed to run project';
-      return { status: false, runCommand };
+      return true;
+    }
+
+    function installationRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean {
+      const installCmd = `${packageJson.packageManager} install`;
+      return shell.isRunningOrPending(installCmd);
+    }
+
+    function previewCommandIsRunningOrPending(packageJson: PackageJson, shell: AimpactShell): boolean {
+      return shell.isRunningOrPending(getPreviewStartCommand(packageJson));
+    }
+
+    function getPreviewStartCommand(packageJson: PackageJson) {
+      const startCommandName = detectStartCommand(packageJson.content);
+      return `${packageJson.packageManager} run ${startCommandName}`;
     }
 
     useEffect(() => {
-      const func = async () => {
-        customPreviewState.current = 'Running...';
-        const artifact = workbenchStore.firstArtifact;
-        if (!artifact) return;
-        const actionCommand = 'pnpm run dev'; // for now it's constant. need to change it, but it's complex
-        const abortController = new AbortController();
-        let runCommand: ActionState | undefined;
+      if (hasPreview) return;
+      if (selectedView !== 'preview') return;
 
-        if (!waitForInstall) {
-          customPreviewState.current = 'Wait for install...';
-          const installResult = await waitForInstallCmd(artifact);
-          runCommand = installResult.runCommand;
-        } else {
-          runCommand = await getRunCommand(artifact);
+      const processPreviewStart = async (): Promise<void> => {
+        // Only one preview starting process should be running at a time.
+        if (previewStartInProgress.current) {
+          return;
         }
 
-        if (!hasPreview && (!runCommand || (runCommand.status === 'complete' && runCommand.executed === true))) {
-          artifact?.runner.runShellAction({
-            status: 'pending',
-            executed: false,
-            abort: () => {
-              abortController.abort();
-            },
-            abortSignal: abortController.signal,
-            content: actionCommand,
-            type: 'shell',
-          });
-          customPreviewState.current = '';
+        // We should keep checking if project state allows for preview as long as user is in preview tab and no preview available.
+        const shouldContinue = () => {
+          const previewAvailable = workbenchStore.previews.get().length > 0;
+          const previewTabOpen = workbenchStore.currentView.get() === 'preview';
+          return !previewAvailable && previewTabOpen;
+        };
+
+        const skipTimeMs = 2000;
+        // If current project state is not suitable for running preview, then we set the message for user and wait for some time.
+        const skip = async (message: string): Promise<void> => {
+          customPreviewState.current = message;
+          await sleep(skipTimeMs);
+        };
+
+        previewStartInProgress.current = true;
+
+        while (shouldContinue()) {
+          customPreviewState.current = 'Checking if we can run the preview. Please wait...';
+          const actionRunner = getFirstActionRunner();
+          if (!actionRunner) {
+            await skip('Waiting for project initialization...');
+            continue;
+          }
+
+          if (aiResponseInProgress()) {
+            await skip('Processing AI response, please wait...');
+            continue;
+          }
+
+          const packageJson = getPackageJson();
+          if (!packageJson) {
+            await skip('Waiting for package.json to be added...');
+            continue;
+          }
+
+          if (installationRunningOrPending(packageJson, workbenchStore.getMainShell)) {
+            await skip('Installing dependencies, please wait...');
+            continue;
+          }
+
+          if (!allActionsFinished()) {
+            await skip('Waiting for AI actions to finish, hang on...');
+            continue;
+          }
+
+          customPreviewState.current = 'Starting the preview...';
+          if (!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)) {
+            workbenchStore.getMainShell.executeCommand(getPreviewStartCommand(packageJson)).catch((err) => {
+              console.error(err);
+              customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
+            });
+          }
+          break;
         }
+        previewStartInProgress.current = false;
       };
 
-      // if (!hasPreview && selectedView === 'preview') {
-      //   func();
-      // }
-      if (!hasPreview) {
-        customPreviewState.current = 'No preview available.';
-      }
-    }, [selectedView]);
+      processPreviewStart().then(() => {
+        console.log('After run preview');
+      });
+    }, [selectedView, hasPreview]);
 
     useEffect(() => {
       workbenchStore.setDocuments(files);
@@ -427,21 +517,6 @@ export const Workbench = memo(
       workbenchStore.resetCurrentDocument();
     }, []);
 
-    const handleSyncFiles = useCallback(async () => {
-      setIsSyncing(true);
-
-      try {
-        const directoryHandle = await window.showDirectoryPicker();
-        await workbenchStore.syncFiles(directoryHandle);
-        toast.success('Files synced successfully');
-      } catch (error) {
-        console.error('Error syncing files:', error);
-        toast.error('Failed to sync files');
-      } finally {
-        setIsSyncing(false);
-      }
-    }, []);
-
     const handleSelectFile = useCallback((filePath: string) => {
       workbenchStore.setSelectedFile(filePath);
       workbenchStore.currentView.set('diff');
@@ -457,7 +532,7 @@ export const Workbench = memo(
         >
           <div
             className={classNames(
-              'fixed top-[calc(var(--header-height)+1.5rem)] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+              'absolute top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
               {
                 'w-full': isSmallViewport,
                 'left-0': showWorkbench && isSmallViewport,

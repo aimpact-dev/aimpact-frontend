@@ -66,11 +66,14 @@ export async function streamText(props: {
       content = content.replace(/<div class=\\"__boltThought__\\">.*?<\/div>/s, '');
       content = content.replace(/<think>.*?<\/think>/s, '');
 
-      // Remove package-lock.json content specifically keeping token usage MUCH lower
-      content = content.replace(
-        /<boltAction type="file" filePath="package-lock\.json">[\s\S]*?<\/boltAction>/g,
-        '[package-lock.json content removed]',
-      );
+      const filesToIgnore = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
+  
+      for (const file of filesToIgnore) {
+        content = content.replace(
+          /<boltAction type="file" filePath="/ + file + /">[\s\S]*?<\/boltAction>/g,
+          `[${file} content removed]`
+        );
+      }
 
       // Trim whitespace potentially left after removals
       content = content.trim();

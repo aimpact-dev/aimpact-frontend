@@ -7,7 +7,7 @@ import waterStyles from '../ui/WaterButton.module.scss';
 import { classNames } from '~/utils/classNames';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
-import { useLocation } from "@remix-run/react";
+import { useLocation, useNavigate } from '@remix-run/react';
 
 interface NavBarProps {
   searchQuery: string;
@@ -18,21 +18,22 @@ const Navbar = () => {
   const { scrollY } = useScroll();
   const backgroundColor = useTransform(scrollY, [0, 100], ['rgba(20, 20, 20, 0)', 'rgba(20, 20, 20, 0.8)']);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const isRewardsPage = location.pathname === "/rewards";
+  const isRewardsPage = location.pathname === '/rewards';
 
   return (
     <>
       <motion.header
         style={{ backgroundColor }}
-        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-sm transition-colors duration-300"
+        className="sticky top-0 left-0 right-0 z-50 backdrop-blur-sm transition-colors duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <a href="/" className="flex items-center space-x-2" aria-label="Home">
+              <button onClick={() => navigate('/')} className="flex items-center space-x-2" aria-label="Home">
                 <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-8 w-auto" />
-              </a>
+              </button>
             </div>
 
             <nav className="flex items-center space-x-8">

@@ -2,7 +2,7 @@
 import  Redis from 'ioredis';
 
 export class RedisKV implements PersistentKV {
-  protected readonly redisClient: Redis;
+  private readonly redisClient: Redis;
 
   constructor(redisUrl: string) {
     this.redisClient = new Redis(redisUrl);
