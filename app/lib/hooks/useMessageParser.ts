@@ -12,6 +12,8 @@ const messageParser = new StreamingMessageParser({
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
 
+      //TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
+      //The purpose of this store is to save id of the artifact currently being parsed.
       currentParsingMessageState.set(data.messageId);
       workbenchStore.showWorkbench.set(true);
       workbenchStore.addArtifact(data);
@@ -75,6 +77,7 @@ export function useMessageParser() {
         }));
       }
     }
+    parserState.setKey('parserRunning', false);
   }, []);
 
   return { parsedMessages, parseMessages };

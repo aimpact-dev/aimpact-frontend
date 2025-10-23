@@ -112,7 +112,7 @@ const processSampledMessages = createSampler(
       return message.annotations ? !message.annotations.includes('ignore-actions') : true;
     });
     parseMessages(filteredMessages, isLoading);
-    
+
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
