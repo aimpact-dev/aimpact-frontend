@@ -9,6 +9,7 @@ import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import type { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { isBinaryPath } from '~/utils/fileExtensionUtils';
+import { workbenchStore } from '../stores/workbench';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -219,6 +220,22 @@ export class ActionRunner {
     const shell = this.#shellTerminal();
     if (!shell) {
       unreachable('Shell terminal not found');
+    }
+    const packageManager = workbenchStore.getPackageJson();
+    const installCommand = `${packageManager} install`;
+
+    if (action.content.endsWith(installCommand)) {
+      const artifacts = workbenchStore.artifacts.get();
+      const actions = Object.values(artifacts)
+        .flatMap((a) => Object.values(a.runner.actions.get()))
+        .filter((a) => a.type === 'shell');
+
+      // need to understand how to find exactly current action. by running status? maybe not bad idea.
+      const currentIndex = actions.findIndex((a) => a.content.endsWith(installCommand) && a.status === 'running');
+      const lastIndex = actions.findLastIndex((a) => a.content.endsWith(installCommand));
+      if (currentIndex < lastIndex) {
+        return;
+      }
     }
 
     const resp = await shell.executeCommand(action.content, () => {
