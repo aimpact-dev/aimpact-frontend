@@ -53,7 +53,7 @@
       },
       "/home/project/vite.config.ts": {
         "type": "file",
-        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\nimport tailwindcss from '@tailwindcss/vite'\nimport { fileURLToPath } from 'node:url';\nimport { nodePolyfills } from \"vite-plugin-node-polyfills\";\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), nodePolyfills()],\n  resolve: {\n    alias: {\n      \"@\": __dirname\n    },\n  },\n})\n"
+        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport tailwindcss from '@tailwindcss/vite';\nimport { fileURLToPath } from 'node:url';\nimport { nodePolyfills } from 'vite-plugin-node-polyfills';\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), nodePolyfills()],\n  resolve: {\n    alias: {\n      '@': __dirname,\n    },\n  },\n  optimizeDeps: {\n    noDiscovery: true,\n  },\n});\n"
       }
     }
   },
@@ -165,7 +165,7 @@
       },
       "/home/project/vite.config.ts": {
         "type": "file",
-        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite'\nimport react from '@vitejs/plugin-react'\nimport tailwindcss from '@tailwindcss/vite'\nimport { fileURLToPath } from 'node:url';\nimport { nodePolyfills } from \"vite-plugin-node-polyfills\";\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), nodePolyfills()],\n  resolve: {\n    alias: {\n      \"@\": __dirname\n    },\n  },\n})\n"
+        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport tailwindcss from '@tailwindcss/vite';\nimport { fileURLToPath } from 'node:url';\nimport { nodePolyfills } from 'vite-plugin-node-polyfills';\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [react(), tailwindcss(), nodePolyfills()],\n  resolve: {\n    alias: {\n      '@': __dirname,\n    },\n  },\n  optimizeDeps: {\n    noDiscovery: true,\n  },\n});\n"
       }
     }
   },
@@ -200,7 +200,7 @@
       },
       "/home/project/vite.config.ts": {
         "type": "file",
-        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite'\nimport tailwindcss from '@tailwindcss/vite'\nimport { fileURLToPath } from 'node:url'\nimport { nodePolyfills } from 'vite-plugin-node-polyfills'\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url))\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [\n    tailwindcss(),\n    nodePolyfills()\n  ],\n  resolve: {\n    alias: {\n      \"@\": __dirname\n    },\n  },\n  // Optimize Three.js imports\n  optimizeDeps: {\n    include: ['three']\n  },\n  // Configure build for better Three.js performance\n  build: {\n    rollupOptions: {\n      output: {\n        manualChunks: {\n          'three': ['three']\n        }\n      }\n    }\n  },\n  // Enable source maps for development\n  css: {\n    devSourcemap: true\n  }\n})"
+        "content": "/// <reference types=\"vite/client\" />\n\nimport { defineConfig } from 'vite';\nimport tailwindcss from '@tailwindcss/vite';\nimport { fileURLToPath } from 'node:url';\nimport { nodePolyfills } from 'vite-plugin-node-polyfills';\n\nconst __dirname = fileURLToPath(new URL('.', import.meta.url));\n\n// https://vite.dev/config/\nexport default defineConfig({\n  plugins: [tailwindcss(), nodePolyfills()],\n  resolve: {\n    alias: {\n      '@': __dirname,\n    },\n  },\n  // Optimize Three.js imports\n  optimizeDeps: {\n    include: ['three'],\n    noDiscovery: true,\n  },\n  // Configure build for better Three.js performance\n  build: {\n    rollupOptions: {\n      output: {\n        manualChunks: {\n          three: ['three'],\n        },\n      },\n    },\n  },\n  // Enable source maps for development\n  css: {\n    devSourcemap: true,\n  },\n});\n"
       }
     }
   }
