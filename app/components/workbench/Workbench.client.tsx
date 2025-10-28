@@ -32,10 +32,11 @@ import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence'
 import { currentParsingMessageState } from '~/lib/stores/parse';
 import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
-import { LazySandbox } from '~/lib/daytona/lazySandbox';
-import { getSandbox } from '~/lib/daytona';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+import Popup from '../common/Popup';
+import { Checkbox } from '../ui';
+import ButtonWithTimer from '../ui/ButtonWithTimer';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -522,6 +523,19 @@ export const Workbench = memo(
       workbenchStore.currentView.set('diff');
     }, []);
 
+    const [showWarningPopup, setShowWarningPopup] = useState(false);
+
+    useEffect(() => {
+      const doNotShowPopup = localStorage.getItem('doNotShowWarningPopup');
+      if (!doNotShowPopup || doNotShowPopup === 'false') {
+        setShowWarningPopup(true);
+      }
+    }, []);
+
+    // useEffect(() => {
+    //   toast.success('123', { autoClose: false });
+    // }, []);
+
     return (
       chatStarted && (
         <motion.div
@@ -668,7 +682,73 @@ export const Workbench = memo(
                     initial={{ x: '100%' }}
                     animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
                   >
-                    <SmartContractView postMessage={postMessage} />
+                    <>
+                      <Popup
+                        handleToggle={() => {}}
+                        isShow={showWarningPopup}
+                        useAbsolute
+                        closeByTouch={false}
+                        closeTopButton={false}
+                        childrenClasses="sm:py-4"
+                        backgroundElement={false}
+                        positionClasses="mt-8"
+                        rootDivClasses='max-h-screen min-h-[0px]'
+                      >
+                        <div className="mb-3">
+                          <h3 className="lg:text-2xl text-lg font-semibold">Before you test your the app</h3>
+                        </div>
+                        <p className="text-left mb-3 lg:text-base text-sm">
+                          This is a page where appears generated contracts by AI (ussualy only one). <br />
+                          Default workflow with contracts: <br />
+                          <div className="pl-4">
+                            1. Ask AI to create a new contract <br />
+                            2. Build newly created contract (takes from 5 minutes) <br />
+                            3. Deploy builded contract <br />
+                          </div>
+                          <br />
+                          If you want to <span className="font-semibold">test your app</span> with contracts — there is{' '}
+                          some a few pitfalls. Check this guide to make it more clear: <br />
+                          We will need to use Phantom for testing. It will not be possible to test contracts in other{' '}
+                          wallets. <br />
+                          <div className="pl-4">
+                            • It is recommended to use a new wallet or a wallet without money in the mainnet. Just to be{' '}
+                            on the side of caution <br />• Go to the faucet, connect your GitHub account, and receive
+                            test SOL to your address (any amount will do) <br />• Open{' '}
+                            <span className="font-semibold">Phantom</span> → in the upper left corner, select{' '}
+                            <span className="font-semibold">Accounts</span> → at the bottom left, select{' '}
+                            <span className="font-semibold">Settings</span> → scroll down →{' '}
+                            <span className="font-semibold">Developer settings</span> →{' '}
+                            <span className="font-semibold">Testnet mode</span> and make sure Solana Devnet is selected{' '}
+                            <br />• Now you can test contracts. During transactions in preview, Phantom may warn you{' '}
+                            about a danger and this is normal. The application is running locally, so the wallet{' '}
+                            considers this to be atypical behavior <br />
+                          </div>
+                        </p>
+
+                        <div className="space-x-1 mb-3">
+                          <Checkbox
+                            onCheckedChange={(checked) => {
+                              const key = 'doNotShowWarningPopup';
+                              checked ? localStorage.setItem(key, 'true') : localStorage.removeItem(key);
+                            }}
+                          />
+                          <label>Do not show again</label>
+                        </div>
+
+                        <ButtonWithTimer
+                          onClick={() => {
+                            setShowWarningPopup((val) => !val);
+                          }}
+                          className="max-w-36 w-full"
+                          startTimer={selectedView === 'contracts'}
+                          timeToWait={4}
+                          variant="secondary"
+                        >
+                          Close
+                        </ButtonWithTimer>
+                      </Popup>
+                      <SmartContractView postMessage={postMessage} />
+                    </>
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
                     <Preview customText={customPreviewState.current} />
