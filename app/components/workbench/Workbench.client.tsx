@@ -532,10 +532,6 @@ export const Workbench = memo(
       }
     }, []);
 
-    // useEffect(() => {
-    //   toast.success('123', { autoClose: false });
-    // }, []);
-
     return (
       chatStarted && (
         <motion.div
