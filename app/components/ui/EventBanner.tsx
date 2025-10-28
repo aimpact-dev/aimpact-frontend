@@ -28,13 +28,13 @@ export function EventBanner({ className }: Props) {
   return (
     <div
       className={classNames(
-        'relative h-[var(--banner-height)] w-full bg-gradient-to-r from-accent-700 to-purple-700 text-white text-center py-2 px-2 flex items-center justify-center z-5000',
+        'relative md:h-[var(--banner-height)] w-full bg-gradient-to-r from-accent-700 to-purple-700 text-white text-center py-2 px-2 flex items-center justify-center z-5000',
         className,
       )}
     >
       <FlowingParticlesBackground />
       <div className="bg-bolt-elements-background-depth-4 w-full py-1 rounded-md">
-        <p className="text-sm">
+        <p className="text-md md:text-sm mr-8">
           🎉 Join the{' '}
           <a
             href="https://earn.superteam.fun/listing/aimpact-sidetrack-build-tokenize-and-launch-on-solana-with-ai"
@@ -44,7 +44,7 @@ export function EventBanner({ className }: Props) {
           >
             AImpact Hackathon
           </a>{' '}
-          till Oct 30 to win $10 000+
+          till Oct 30 to win&nbsp;$10 000+
         </p>
         <button
           onClick={() => setVisible(false)}

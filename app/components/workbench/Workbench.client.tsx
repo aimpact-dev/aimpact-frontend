@@ -343,6 +343,7 @@ export const Workbench = memo(
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
 
+    const isMobile = useViewport(768);
     const isSmallViewport = useViewport(1024);
 
     const setSelectedView = (view: WorkbenchViewType) => {
@@ -524,7 +525,7 @@ export const Workbench = memo(
         >
           <div
             className={classNames(
-              'absolute top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+              'absolute top-[3rem] md:top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
               {
                 'w-full': isSmallViewport,
                 'left-0': showWorkbench && isSmallViewport,
@@ -535,11 +536,11 @@ export const Workbench = memo(
           >
             <div className="absolute inset-0 px-2 lg:px-6">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
-                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
+                <div className="flex flex-col md:flex-row items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (
-                    <div className="flex items-center gap-2 overflow-y-auto">
+                    <div className="flex items-center gap-1 md:gap-2 overflow-y-auto">
                       <PanelHeaderButton
                         className={classNames('mr-1 text-sm flex items-center gap-2', {
                           'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
@@ -618,16 +619,18 @@ export const Workbench = memo(
                   {selectedView === 'diff' && (
                     <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
                   )}
-                  <Tooltip content="Close" side="left">
-                    <IconButton
-                      icon="i-ph:x-circle"
-                      className="-mr-1"
-                      size="xl"
-                      onClick={() => {
-                        workbenchStore.showWorkbench.set(false);
-                      }}
-                    />
-                  </Tooltip>
+                  {!isMobile && (
+                    <Tooltip content="Close" side="left">
+                      <IconButton
+                        icon="i-ph:x-circle"
+                        className="-mr-1"
+                        size="xl"
+                        onClick={() => {
+                          workbenchStore.showWorkbench.set(false);
+                        }}
+                      />
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="relative flex-1 overflow-hidden">
                   <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>

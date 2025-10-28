@@ -88,7 +88,7 @@ export default function ProjectInfoUpdateForm({ projectId, jwtToken, setShowForm
           </Button>
           <Button
             type="button"
-            className="flex-1"
+            className="flex-1 "
             onClick={() => {
               setShowForm(false);
               reset();

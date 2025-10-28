@@ -26,7 +26,7 @@ export default function Popup({
 
   return (
     <div className="fixed top-5 inset-0 z-1000 overflow-y-auto">
-      <div className="flex relative items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div className="flex relative items-center justify-center min-h-screen px-8 pt-8 pb-20 text-center sm:block sm:p-0">
         {backgroundElement && (
           <div
             className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75"
@@ -35,8 +35,8 @@ export default function Popup({
         )}
         <div
           className={twMerge(
-            'inline-block overflow-hidden text-left align-bottom transition-all transform border-2 border-bolt-elements-borderColor rounded-lg shadow-xl sm:align-middle sm:max-w-lg sm:w-full',
-            positionClasses ?? 'sm:my-8',
+            'inline-block overflow-hidden text-left transition-all transform border-2 border-bolt-elements-borderColor rounded-lg shadow-xl align-middle max-w-lg w-full',
+            positionClasses ?? 'my-8',
           )}
         >
           <button

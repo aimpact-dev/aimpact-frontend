@@ -3,12 +3,14 @@ import Navbar from '../dashboard/navbar';
 import SideMenu from '../footer/SideMenu.client';
 import Footer from '../footer/Footer';
 import { EventBanner } from '../ui/EventBanner';
+import BackButton from '../ui/BackButton';
 
 interface GradientPageProps {
   children: React.ReactNode;
+  withBackButton?: boolean;
 }
 
-export default function GradientPage({ children }: GradientPageProps) {
+export default function GradientPage({ children, withBackButton = false }: GradientPageProps) {
   const endTriggerRef = useRef<HTMLDivElement | null>(null);
   const [isFooterFixed, setIsFooterFixed] = useState(true);
 
@@ -40,8 +42,11 @@ export default function GradientPage({ children }: GradientPageProps) {
       <EventBanner />
       <Navbar />
 
-      <section id="projects" className="flex-1 py-16 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">{children}</div>
+      <section className="flex-1 py-8 md:py-16 relative">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          {withBackButton && <BackButton url="/">Back to chat</BackButton>}
+          {children}
+        </div>
 
         <SideMenu positionClass={isFooterFixed ? 'fixed bottom-0 left-0 w-full' : 'absolute bottom-0 left-0 w-full'} />
 

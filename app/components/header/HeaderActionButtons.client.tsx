@@ -336,7 +336,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   };
 
   return (
-    <div className="flex gap-2 mr-1">
+    <div className="flex gap-2">
       <div className="relative" ref={dropdownRef}>
         <div className="flex gap-2 text-sm h-full">
           <Button
@@ -394,7 +394,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
           </div>
         )}
       </div>
-      <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden mr-3">
+      <div className="flex border border-bolt-elements-borderColor rounded-md overflow-hidden">
         <Tooltip content={showChat ? 'Hide chat' : 'Show chat'} side="bottom">
           <Button
             active={showChat}
