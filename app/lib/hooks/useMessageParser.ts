@@ -4,6 +4,9 @@ import { StreamingMessageParser } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 import { currentParsingMessageState } from '../stores/parse';
+import { lastChatIdx, lastChatSummary } from '../persistence';
+import type { FileMap } from '../stores/files';
+import { chatStore } from '../stores/chat';
 
 const logger = createScopedLogger('useMessageParser');
 
@@ -12,36 +15,52 @@ const messageParser = new StreamingMessageParser({
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
 
+      // TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
+      // The purpose of this store is to save id of the artifact currently being parsed.
       currentParsingMessageState.set(data.messageId);
       workbenchStore.showWorkbench.set(true);
       workbenchStore.addArtifact(data);
     },
-    onArtifactClose: (data) => {
+    onArtifactClose: (data, skipArtifactSave) => {
       logger.trace('onArtifactClose');
 
       currentParsingMessageState.set(null);
+      if (!skipArtifactSave) {
+        chatStore.setKey('needToSave', data.messageId);
+      }
+
       workbenchStore.updateArtifact(data, { closed: true });
     },
-    onActionOpen: (data) => {
+    onActionOpen: (data, skipAction) => {
       logger.trace('onActionOpen', data.action);
 
       // we only add shell actions when when the close tag got parsed because only then we have the content
       if (data.action.type === 'file' || data.action.type === 'update') {
-        workbenchStore.addAction(data);
+        // we only add action data and ignore execution if skipAction = true
+        workbenchStore.addAction(data, skipAction);
+      }
+
+      if (skipAction) {
+        workbenchStore.skipAction(data);
       }
     },
-    onActionClose: (data) => {
+    onActionClose: (data, skipAction) => {
       logger.trace('onActionClose', data.action);
-
       if (data.action.type !== 'file' && data.action.type !== 'update') {
-        workbenchStore.addAction(data);
+        workbenchStore.addAction(data, skipAction);
       }
 
-      workbenchStore.runAction(data);
+      if (skipAction) {
+        workbenchStore.skipAction(data);
+      } else {
+        workbenchStore.runAction(data);
+      }
     },
-    onActionStream: (data) => {
+    onActionStream: (data, skipAction) => {
       logger.trace('onActionStream', data.action);
-      workbenchStore.runAction(data, true);
+      if (!skipAction) {
+        workbenchStore.runAction(data, true);
+      }
     },
   },
 });
@@ -66,7 +85,7 @@ export function useMessageParser() {
         const newParsedContent = messageParser.parse(
           message.id,
           extractTextContent(message),
-          messages.map((m) => m.id),
+          message.annotations?.includes('ignore-actions'),
         );
         setParsedMessages((prevParsed) => ({
           ...prevParsed,

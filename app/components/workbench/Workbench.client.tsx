@@ -30,9 +30,9 @@ import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { currentParsingMessageState } from '~/lib/stores/parse';
-import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
 import { streamingState } from '~/lib/stores/streaming';
+import { chatStore } from '~/lib/stores/chat';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -302,8 +302,57 @@ export const Workbench = memo(
     const { takeSnapshot } = useChatHistory();
     const chatSummary = useStore(lastChatSummary);
     const lastSnapshotRef = useRef<number | null>(null);
+    const chatState = useStore(chatStore);
+    const [waitForActionRunned, setWaitForActionRunned] = useState(false);
 
-    const snapshotTakeCooldown = 5000;
+    useEffect(() => {
+      const waitForActions = async () => {
+        const maxAttempts = 60;
+        const cooldown = 1000;
+        let attempt = 0;
+        while (attempt < maxAttempts) {
+          await sleep(cooldown);
+          const artifacts = workbenchStore.artifacts.get();
+          const messageToActions = Object.fromEntries(
+            Object.entries(artifacts).map(([key, artifact]) => [key, Object.values(artifact.runner.actions.get())]),
+          );
+          const pendingAction = Object.entries(messageToActions).find(([key, actions]) =>
+            actions.some((val) => val.status === 'pending' || val.status === 'running'),
+          );
+          if (pendingAction) {
+            attempt += 1;
+            continue;
+          }
+
+          const chatIdx = lastChatIdx.get();
+          if (!chatIdx) return;
+          const chatSummary = lastChatSummary.get();
+          const files = workbenchStore.files.get();
+
+          takeSnapshot(chatIdx, files, undefined, chatSummary)
+            .then(() => {
+              chatStore.setKey('needToSave', null);
+              console.log('Snapshot was taken on wait for actions');
+            })
+            .catch((e) => {
+              console.error('error in take snapshot!!!');
+              console.error(e);
+            });
+          break;
+        }
+      };
+
+      if (
+        chatState.needToSave &&
+        !waitForActionRunned &&
+        !chatState.initialMessagesIds.includes(chatState.needToSave)
+      ) {
+        waitForActions().then(() => setWaitForActionRunned(false));
+        setWaitForActionRunned(true);
+      }
+    }, [chatState]);
+
+    const snapshotTakeCooldown = 2500;
 
     function sleep(ms: number) {
       return new Promise((resolve) => setTimeout(resolve, ms));
@@ -313,16 +362,26 @@ export const Workbench = memo(
       // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
 
       const removeSubscribe = workbenchStore.files.listen((files) => {
-        const { initialMessagesIds } = chatStore.get();
-        const currentParsingMessage = currentParsingMessageState.get();
         const chatIdx = lastChatIdx.get();
-        console.log('chat idx in workbench', chatIdx);
         if (!chatIdx) return;
-        // if (streamingState.get()) return;
-        console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
+
+        const artifacts = workbenchStore.artifacts.get();
+        const messageToActions = Object.fromEntries(
+          Object.entries(artifacts).map(([key, artifact]) => [key, Object.values(artifact.runner.actions.get())]),
+        );
+        const pendingActions = Object.entries(messageToActions).find(([key, actions]) =>
+          actions.some((val) => val.status === 'pending' || val.status === 'running'),
+        );
+
+        let isMessageInitial = true;
+        if (pendingActions) {
+          const initialMessages = chatStore.get().initialMessagesIds;
+          isMessageInitial = initialMessages.includes(pendingActions[0]);
+          console.log('initial messages', initialMessages);
+        }
 
         const snapshotHaveChanges = Object.keys(files).length > 0;
-        if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
+        if (pendingActions && !isMessageInitial && snapshotHaveChanges) {
           if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
             takeSnapshot(chatIdx, files, undefined, chatSummary);
             console.log('Snapshot was taken on file change');
@@ -500,7 +559,13 @@ export const Workbench = memo(
     const onFileSave = useCallback(() => {
       workbenchStore
         .saveCurrentDocument()
-        .then(() => {})
+        .then(() => {
+          const chatIdx = lastChatIdx.get();
+          if (!chatIdx) return;
+          takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, lastChatSummary.get()).then(() => {
+            console.log('Snapshot was taken on file save'); // this log is usefull
+          });
+        })
         .catch(() => {
           toast.error('Failed to update file content');
         });

@@ -42,7 +42,8 @@ const logger = createScopedLogger('Chat');
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, storeMessageHistory, importChat, exportChat, error } = useChatHistory();
+  const { ready, initialMessages, actionMessages, storeMessageHistory, importChat, exportChat, error } =
+    useChatHistory();
 
   const title = useStore(description);
   useEffect(() => {
@@ -62,6 +63,7 @@ export function Chat() {
         <ChatImpl
           description={title}
           initialMessages={initialMessages}
+          actionMessages={actionMessages}
           exportChat={exportChat}
           storeMessageHistory={storeMessageHistory}
           importChat={importChat}
@@ -102,17 +104,15 @@ export function Chat() {
 const processSampledMessages = createSampler(
   (options: {
     messages: UIMessage[];
+    actionMessages: Message[];
     initialMessages: Message[];
     isLoading: boolean;
     parseMessages: (messages: Message[], isLoading: boolean) => void;
     storeMessageHistory: (messages: Message[]) => Promise<void>;
   }) => {
-    const { messages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
-    const filteredMessages = messages.filter((message) => {
-      return message.annotations ? !message.annotations.includes('ignore-actions') : true;
-    });
-    parseMessages(filteredMessages, isLoading);
-    
+    const { messages, actionMessages, initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
+    parseMessages([...messages, ...actionMessages], isLoading);
+
     if (messages.length > initialMessages.length) {
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
@@ -122,13 +122,14 @@ const processSampledMessages = createSampler(
 
 interface ChatProps {
   initialMessages: Message[];
+  actionMessages: Message[];
   storeMessageHistory: (messages: Message[]) => Promise<void>;
   importChat: (description: string, messages: Message[]) => Promise<void>;
   exportChat: () => void;
   description?: string;
 }
 
-export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProps) => {
+export const ChatImpl = memo(({ initialMessages, actionMessages, storeMessageHistory }: ChatProps) => {
   useShortcuts();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -187,8 +188,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     [files, promptId, contextOptimizationEnabled],
   );
 
-  const { takeSnapshot } = useChatHistory();
-
   const {
     messages,
     status,
@@ -237,17 +236,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
 
       logger.debug('Finished streaming');
-      const chatIdx = lastChatIdx.get();
-      const files = workbenchStore.files.get();
-      const chatSummary = lastChatSummary.get();
-      if (!chatIdx || Object.values(files).length === 0) return;
-
-      takeSnapshot(chatIdx, files, undefined, chatSummary)
-        .then(() => logger.debug('Project saved after message on finish'))
-        .catch((e) => {
-          logger.error('error in take snapshot!!!');
-          logger.error(e);
-        });
     },
     initialMessages,
     initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
@@ -283,6 +271,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   useEffect(() => {
     processSampledMessages({
       messages: messages as UIMessage[],
+      actionMessages,
       initialMessages,
       isLoading: status == 'streaming',
       parseMessages,
