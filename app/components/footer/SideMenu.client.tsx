@@ -4,6 +4,7 @@ import { classNames } from '~/utils/classNames';
 import Popup from '../common/Popup';
 import { Tooltip } from '../chat/Tooltip';
 import { useNavigate } from '@remix-run/react';
+import useViewport from '~/lib/hooks';
 interface FooterProps {
   positionClass?: string;
 }
@@ -47,6 +48,7 @@ const POLICIES_LINKS = [
 export default function SideMenu({ positionClass }: FooterProps) {
   const [activePopup, setActivePopup] = useState<PopupType>(null);
   const navigate = useNavigate();
+  const isMobile = useViewport(768);
 
   const handleToggle = (type: PopupType) => {
     setActivePopup(activePopup === type ? null : type);
@@ -100,32 +102,34 @@ export default function SideMenu({ positionClass }: FooterProps) {
   };
 
   return (
-    <div className={classNames('pb-2.5 px-2.5 bottom-0 left-0 w-full z-50 pointer-events-none', positionClass)}>
-      <div className="relative w-full flex justify-between items-end">
-        {/* Left side - Action buttons */}
-        <div className="flex flex-col gap-2 pointer-events-auto">
-          {renderPopupButton('bugBounty')}
-          {renderPopupButton('custDev')}
-        </div>
+    !isMobile && (
+      <div className={classNames('pb-2.5 px-2.5 bottom-0 left-0 w-full z-50 pointer-events-none', positionClass)}>
+        <div className="relative w-full flex justify-between items-end">
+          {/* Left side - Action buttons */}
+          <div className="flex flex-col gap-2 pointer-events-auto">
+            {renderPopupButton('bugBounty')}
+            {renderPopupButton('custDev')}
+          </div>
 
-        <div className="flex gap-2 text-4xl flex-col pointer-events-auto">
-          <Tooltip content="Subscribe on X">
-            <a href="https://x.com/aimpact_dev" target="_blank" rel="noopener noreferrer">
-              <IconButton>
-                <div className="i-ph:x-logo text-gray-400 hover:text-purple-400" />
-              </IconButton>
-            </a>
-          </Tooltip>
+          <div className="flex gap-2 text-4xl flex-col pointer-events-auto">
+            <Tooltip content="Subscribe on X">
+              <a href="https://x.com/aimpact_dev" target="_blank" rel="noopener noreferrer">
+                <IconButton>
+                  <div className="i-ph:x-logo text-gray-400 hover:text-purple-400" />
+                </IconButton>
+              </a>
+            </Tooltip>
 
-          <Tooltip content="Join the community" side="left">
-            <a href="https://discord.gg/MFTPPm3gwY" target="_blank" rel="noopener noreferrer">
-              <IconButton>
-                <div className="i-ph:discord-logo text-gray-400 hover:text-purple-400 text-4xl" />
-              </IconButton>
-            </a>
-          </Tooltip>
+            <Tooltip content="Join the community" side="left">
+              <a href="https://discord.gg/MFTPPm3gwY" target="_blank" rel="noopener noreferrer">
+                <IconButton>
+                  <div className="i-ph:discord-logo text-gray-400 hover:text-purple-400 text-4xl" />
+                </IconButton>
+              </a>
+            </Tooltip>
+          </div>
         </div>
       </div>
-    </div>
+    )
   );
 }

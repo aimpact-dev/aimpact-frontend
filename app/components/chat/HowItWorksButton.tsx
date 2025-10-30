@@ -13,7 +13,11 @@ function Markdown({ children }: PropsWithChildren) {
   );
 }
 
-export default function HowItWorksButton() {
+interface Props {
+  isMobile?: boolean;
+}
+
+export default function HowItWorksButton({ isMobile = false }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -32,13 +36,19 @@ So, just describe your idea to AI. Try to give precise queries. Keep modifying i
 
   return (
     <>
-      <Button
-        className="text-gray-200 bg-transparent py-2 px-4 text-bolt-elements-textPrimary bg-bolt-elements-background 
+      {isMobile ? (
+        <button onClick={handleToggle} className="text-gray-200 text-left py-2 px-4 font-medium">
+          How it works?
+        </button>
+      ) : (
+        <Button
+          className="text-gray-200 bg-transparent py-2 px-4 text-bolt-elements-textPrimary bg-bolt-elements-background 
           rounded-md border-none border-bolt-elements-borderColor opacity-85"
-        onClick={handleToggle}
-      >
-        How it works?
-      </Button>
+          onClick={handleToggle}
+        >
+          How it works?
+        </Button>
+      )}
 
       {isOpen && (
         <div className="fixed min-h-screen inset-0 top-20 z-10 overflow-auto">

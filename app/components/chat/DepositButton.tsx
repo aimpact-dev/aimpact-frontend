@@ -15,20 +15,18 @@ const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SO
 
 interface DepositButtonProps {
   discountPercent?: number;
+  isMobile?: boolean;
 }
 
-export default function DepositButton({ discountPercent }: DepositButtonProps) {
+export default function DepositButton({ discountPercent, isMobile = false }: DepositButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [promocode, setPromocode] = useState("");
+  const [promocode, setPromocode] = useState('');
   const [promocodeApplied, setPromocodeApplied] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const navigation = useNavigation();
   const { publicKey, signTransaction } = useWallet();
   const { getRecentBlockhash, sendTransaction } = useSolanaProxy();
   const { mutateAsync: applyPromocode } = useApplyPromocode();
-  const detectMobileScreen = () => {
-    return window.innerWidth <= 768;
-  };
 
   const isSubmitting = navigation.state === 'submitting';
 
@@ -42,22 +40,22 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
-    setPromocode("");
+    setPromocode('');
     setPromocodeApplied(false);
-    setError("");
+    setError('');
   };
 
   const handlePromocodeInput = (event: FormEvent<HTMLInputElement>) => {
     setPromocode(event.currentTarget.value.toUpperCase());
     setPromocodeApplied(false);
-    setError("");
+    setError('');
   };
 
   const handleApplyPromocode = async () => {
-    setError("");
+    setError('');
 
     if (!promocode) {
-      setError("Promocode is required.");
+      setError('Promocode is required.');
       return;
     }
 
@@ -65,23 +63,27 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
       const response = await applyPromocode({ promocode });
       const messagesApplied = response.messagesApplied;
       toast.success(`Promocode applied! You got ${messagesApplied} free messages!`);
-      (window as any).plausible('apply_promocode', { props: {
-        success: true,
-        messages_applied: messagesApplied,
-        promocode: promocode,
-        error: null,
-      }});
+      (window as any).plausible('apply_promocode', {
+        props: {
+          success: true,
+          messages_applied: messagesApplied,
+          promocode: promocode,
+          error: null,
+        },
+      });
       setPromocodeApplied(true);
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message;
       toast.error(errorMessage);
       setError(errorMessage);
-      (window as any).plausible('apply_promocode', { props: {
-        success: false,
-        messages_applied: 0,
-        promocode: promocode,
-        error: `Failed due to server error: ${errorMessage}`,
-      }});
+      (window as any).plausible('apply_promocode', {
+        props: {
+          success: false,
+          messages_applied: 0,
+          promocode: promocode,
+          error: `Failed due to server error: ${errorMessage}`,
+        },
+      });
     }
   };
 
@@ -160,7 +162,8 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
           variant="default"
           className="flex items-center gap-2 border border-bolt-elements-borderColor font-medium"
         >
-          Buy Messages
+          {isMobile && <div className="i-ph:plus-circle i-ph:fill h-5 w-5 "></div>}
+          Buy {!isMobile && 'Messages'}
         </Button>
       </Tooltip>
 
@@ -197,21 +200,21 @@ export default function DepositButton({ discountPercent }: DepositButtonProps) {
                   <div className="flex flex-col gap-2">
                     <div className="flex gap-2 items-center justify-center mb-2">
                       <div className="border border-bolt-elements-borderColor rounded-md flex p-2 bg-white flex-1">
-                        <input 
-                          className="border-none outline-none flex-1 text-base text-gray-900 placeholder-gray-500" 
-                          required 
-                          onInput={handlePromocodeInput} 
-                          value={promocode} 
-                          placeholder="Enter promocode" 
+                        <input
+                          className="border-none outline-none flex-1 text-base text-gray-900 placeholder-gray-500"
+                          required
+                          onInput={handlePromocodeInput}
+                          value={promocode}
+                          placeholder="Enter promocode"
                         />
                       </div>
-                      <Button 
-                        variant="default" 
+                      <Button
+                        variant="default"
                         disabled={promocodeApplied || !promocode}
                         onClick={handleApplyPromocode}
                         className="px-4 py-2 text-sm"
                       >
-                        {promocodeApplied ? "Applied" : "Apply"}
+                        {promocodeApplied ? 'Applied' : 'Apply'}
                       </Button>
                     </div>
 
