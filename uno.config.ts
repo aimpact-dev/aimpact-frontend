@@ -4,7 +4,6 @@ import { basename } from 'node:path';
 import { defineConfig, presetIcons, presetUno, transformerDirectives, presetWind } from 'unocss';
 import { getIcons } from '@iconify/utils';
 import type { IconifyJSON } from '@iconify/types';
-import phIcons from '@iconify-json/ph/icons.json';
 
 const iconPaths = globSync('./icons/*.svg');
 
@@ -22,7 +21,7 @@ const customIconCollection = iconPaths.reduce(
   {} as Record<string, Record<string, () => Promise<string>>>,
 );
 
-const phosphorIconsFile = await fs.readFile("./icons.json", "utf-8");
+const phosphorIconsFile = await fs.readFile('./icons.json', 'utf-8');
 const phosphorIcons = JSON.parse(phosphorIconsFile) as string[];
 
 const range = (start: number, stop: number, step = 1) =>
@@ -109,8 +108,8 @@ const COLOR_PRIMITIVES = {
 export default defineConfig({
   safelist: [
     ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`),
-    ...range(1, 9).map(i => `bg-green-${100 * i}`),
-    'bg-green-950'
+    ...range(1, 9).map((i) => `bg-green-${100 * i}`),
+    'bg-green-950',
   ],
   shortcuts: {
     'bolt-ease-cubic-bezier': 'ease-[cubic-bezier(0.4,0,0.2,1)]',
@@ -128,34 +127,42 @@ export default defineConfig({
   theme: {
     colors: {
       ...COLOR_PRIMITIVES,
-      border: "hsl(var(--border))",
-      input: "hsl(var(--input))",
-      ring: "hsl(var(--ring))",
-      background: "hsl(var(--background))",
-      foreground: "hsl(var(--foreground))",
+      border: {
+        DEFAULT: 'var(--border)',
+        light: 'var(--border-light)',
+      },
+      input: 'var(--input)',
+      ring: 'var(--ring)',
+      background: 'var(--background)',
+      foreground: 'var(--foreground)',
+      popover: {
+        DEFAULT: 'var(--popover)',
+        foreground: 'var(--popover-foreground)',
+      },
       primary: {
-        DEFAULT: "hsl(var(--primary))",
-        foreground: "hsl(var(--primary-foreground))",
+        DEFAULT: 'var(--primary)',
+        foreground: 'var(--primary-foreground)',
       },
       secondary: {
-        DEFAULT: "hsl(var(--secondary))",
-        foreground: "hsl(var(--secondary-foreground))",
+        DEFAULT: 'var(--secondary)',
+        foreground: 'var(--secondary-foreground)',
       },
       destructive: {
-        DEFAULT: "hsl(var(--destructive))",
-        foreground: "hsl(var(--destructive-foreground))",
+        DEFAULT: 'var(--destructive)',
+        foreground: 'var(--destructive-foreground)',
+        light: 'var(--destructive-light)',
       },
       muted: {
-        DEFAULT: "hsl(var(--muted))",
-        foreground: "hsl(var(--muted-foreground))",
+        DEFAULT: 'var(--muted)',
+        foreground: 'var(--muted-foreground)',
       },
       card: {
-        DEFAULT: "hsl(var(--card))",
-        foreground: "hsl(var(--card-foreground))",
+        DEFAULT: 'var(--card)',
+        foreground: 'var(--card-foreground)',
       },
-      accent_t: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+      accentT: {
+        DEFAULT: 'var(--accent)',
+        foreground: 'var(--accent-foreground)',
       },
       bolt: {
         elements: {
@@ -270,6 +277,9 @@ export default defineConfig({
         },
       },
     },
+    boxShadow: {
+      glow: '0 0 10px rgba(147, 51, 234, 0.5)',
+    },
   },
   transformers: [transformerDirectives()],
   presets: [
@@ -283,16 +293,26 @@ export default defineConfig({
       warn: true,
       collections: {
         ...customIconCollection,
-        ph: async () => 
+        ph: async () =>
           getIcons(
-            await import("@iconify-json/ph/icons.json").then(i => i.default) as IconifyJSON,
+            (await import('@iconify-json/ph/icons.json').then((i) => i.default)) as IconifyJSON,
             phosphorIcons,
-          ) as IconifyJSON
+          ) as IconifyJSON,
       },
       unit: 'em',
     }),
-    // presetWind(),
-  ]
+    presetWind(),
+  ],
+  variants: [
+    // aria-invalid:
+    (matcher) => {
+      if (!matcher.startsWith('aria-invalid:')) return matcher;
+      return {
+        matcher: matcher.slice('aria-invalid:'.length),
+        selector: (s) => `${s}[aria-invalid="true"]`,
+      };
+    },
+  ],
 });
 
 /**

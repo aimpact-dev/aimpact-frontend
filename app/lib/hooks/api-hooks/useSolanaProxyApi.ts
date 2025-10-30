@@ -1,4 +1,4 @@
-import { useFetch } from '../hooks/useFetch';
+import { useFetch } from '../../hooks/useFetch';
 
 const host = import.meta.env.PUBLIC_BACKEND_URL;
 
@@ -28,8 +28,30 @@ export const useSolanaProxy = () => {
     }) as Promise<SendTransactionResponse>;
   };
 
+  const fetchBalance = async (address: string) => {
+    return fetchDataAuthorized(`${host}/proxy/balance`, {
+      method: 'POST',
+      body: JSON.stringify({ address }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }) as Promise<{ balance: number }>;
+  };
+
+  const minRentBalance = async (dataLength: number) => {
+    return fetchDataAuthorized(`${host}/proxy/min-balance-for-rent`, {
+      method: 'POST',
+      body: JSON.stringify({ bytes: dataLength }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }) as Promise<{ lamports: number }>;
+  };
+
   return {
     getRecentBlockhash,
     sendTransaction,
+    fetchBalance,
+    minRentBalance,
   };
 };

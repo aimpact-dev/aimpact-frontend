@@ -30,8 +30,8 @@ const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
 
 export interface File {
   type: 'file';
-  pending: boolean;
   content: string;
+  pending?: boolean;
   isBinary?: boolean;
   isLocked?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this file
@@ -39,7 +39,7 @@ export interface File {
 
 export interface Folder {
   type: 'folder';
-  pending: boolean;
+  pending?: boolean;
   isLocked?: boolean;
   lockedByFolder?: string; // Path of the folder that locked this folder (for nested folders)
 }
@@ -133,7 +133,7 @@ export class FilesStore {
       const lockedFolders = lockedItems.filter((item) => item.isFolder);
 
       if (lockedItems.length === 0) {
-        logger.info(`No locked items found for chat ID: ${currentChatId}`);
+        // logger.info(`No locked items found for chat ID: ${currentChatId}`);
         return;
       }
 
@@ -251,7 +251,7 @@ export class FilesStore {
     // Persist to localStorage with chat ID
     addLockedFile(currentChatId, filePath);
 
-    logger.info(`File locked: ${filePath} for chat: ${currentChatId}`);
+    // logger.info(`File locked: ${filePath} for chat: ${currentChatId}`);
 
     return true;
   }

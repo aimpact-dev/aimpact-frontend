@@ -149,11 +149,11 @@ export default function getMessagesButton() {
                   <div className="flex flex-col gap-2 mb-2">
                     <div className="flex justify-between items-center px-0.5 mb-1">
                       <div className="flex gap-2 items-center justify-center">
-                        <p>Subscribe to @ostolex on X</p>
+                        <p>Subscribe to @AImpact_dev on X</p>
                         {tasksCompleted && <div className="i-ph:check-circle text-green text-xl" />}
                       </div>
                       <VerifyButtons completed={tasksCompleted} actionClicked={actionClicked}
-                        handleVerifyClick={handleVerifyClicked} actionLink="https://x.com/ostolex" handleActionClicked={handleActionClicked} />
+                        handleVerifyClick={handleVerifyClicked} actionLink="https://x.com/AImpact_dev" handleActionClicked={handleActionClicked} />
                     </div>
                   </div>
 

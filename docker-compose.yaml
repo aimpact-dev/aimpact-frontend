@@ -90,3 +90,23 @@ services:
     command: pnpm run dockerstart
     profiles:
       - prebuilt
+
+  redis:
+    image: redis:alpine3.22
+    container_name: aimpact-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - aimpact-redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  aimpact-redis-data:
+
+

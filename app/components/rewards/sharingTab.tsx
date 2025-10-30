@@ -3,7 +3,7 @@
 import { toast } from 'react-toastify';
 import { Button } from '../ui/Button';
 import { classNames } from '~/utils/classNames';
-import { useRewardsApi, type WithdrawRewardsResponse } from '~/lib/api-hooks/useRewardsApi';
+import { useRewardsApi, type WithdrawRewardsResponse } from '~/lib/hooks/api-hooks/useRewardsApi';
 import CustomWalletButton from '../common/CustomWalletButton';
 import { useAuth } from '~/lib/hooks/useAuth';
 

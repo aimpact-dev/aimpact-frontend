@@ -22,11 +22,11 @@ export function useFetch<T = any>() {
   });
   const { disconnect, isAuthorized } = useAuth();
 
-  const handleError = useCallback((error: unknown, showError: boolean) => {
+  const handleError = useCallback((error: any, showError: boolean) => {
     const errorMessage = error instanceof Error ? error.message : 'An error occurred';
     setState({ data: null, error: error as Error, loading: false });
 
-    if (showError) {
+    if (showError && (error.status ? error.status !== 404 : true)) {
       toast.error(errorMessage);
     }
 
@@ -50,7 +50,7 @@ export function useFetch<T = any>() {
         }
 
         headers.set('Authorization', `Bearer ${authToken}`);
-        if (!headers.get('Accep')) {
+        if (!headers.get('Accept')) {
           headers.set('Accept', 'application/json');
         }
 
@@ -69,7 +69,9 @@ export function useFetch<T = any>() {
 
         if (!response.ok) {
           const msg = `HTTP error! status: ${response.status}`;
-          toast.error(msg);
+          if (response.status !== 404) {
+            toast.error(msg);
+          }
           throw new HttpError(msg, { status: response.status });
         }
 
