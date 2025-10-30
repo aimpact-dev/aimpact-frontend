@@ -38,7 +38,7 @@ export default function Index() {
       <BackgroundRays />
       <Header />
       <UserPooling />
-      {isMobile && <OnlyDesktopMessage />}
+      {/* {isMobile && <OnlyDesktopMessage />} */}
       <IntroPopup />
       <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
     </div>
