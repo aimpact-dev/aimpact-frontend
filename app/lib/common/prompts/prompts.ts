@@ -12,7 +12,7 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Generate solana smart contract code for the app in the \`src-anchor\` directory (lib.rs file)
 - Never try to use solana and anchor cli tools, because those are not installed in the system
 - Never try to install anchor or solana cli tools
-- To integrate solana wallets into app use libraries such as @solana/wallet-adapter-base and @solana/wallet-adapter-react. Make sure to properly integrate provider and context components so that user's can connect their wallets to the generated app.
+- To integrate solana wallets into app use libraries such as \`@solana/wallet-adapter-base\` and \`@solana/wallet-adapter-react\`. Make sure to properly integrate provider and context components so that user's can connect their wallets to the generated app.
 - To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
 
 ## Smart contract integration into frontend:
