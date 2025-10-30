@@ -7,8 +7,11 @@ interface CustDevPopupProps extends PropsWithChildren {
   isShow: boolean;
   backgroundElement?: boolean;
   positionClasses?: string;
+  rootDivClasses?: string;
   closeByTouch?: boolean;
   childrenClasses?: string;
+  closeTopButton?: boolean;
+  useAbsolute?: boolean;
 }
 
 export default function Popup({
@@ -16,20 +19,26 @@ export default function Popup({
   backgroundElement = true,
   positionClasses,
   childrenClasses,
+  rootDivClasses,
   handleToggle,
   children,
   closeByTouch = true,
+  closeTopButton = true,
+  useAbsolute = false,
 }: CustDevPopupProps) {
   if (!isShow) {
     return null;
   }
 
   return (
-    <div className="fixed top-5 inset-0 z-1000 overflow-y-auto">
-      <div className="flex relative items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+    <div className={classNames(useAbsolute ? 'absolute' : 'fixed', 'top-5 inset-0 z-1000 overflow-y-auto')}>
+      <div className={twMerge("flex relative items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0", rootDivClasses)}>
         {backgroundElement && (
           <div
-            className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75"
+            className={classNames(
+              useAbsolute ? 'absolute' : 'fixed',
+              'inset-0 transition-opacity bg-gray-900 bg-opacity-75',
+            )}
             onClick={closeByTouch ? handleToggle : undefined}
           />
         )}
@@ -39,17 +48,19 @@ export default function Popup({
             positionClasses ?? 'sm:my-8',
           )}
         >
-          <button
-            onClick={handleToggle}
-            className="flex absolute right-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
-          >
-            <div className="i-ph:x md:w-4 md:h-4 w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
-          </button>
+          {closeTopButton && (
+            <button
+              onClick={handleToggle}
+              className="flex absolute right-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
+            >
+              <div className="i-ph:x md:w-4 md:h-4 w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
+            </button>
+          )}
 
           <div
-            className={classNames(
+            className={twMerge(
+              'sm:px-4 sm:py-5 bg-bolt-elements-background bg-bolt-elements-background-depth-3 text-center',
               childrenClasses,
-              'px-4 py-5 sm:p-6 bg-bolt-elements-background bg-bolt-elements-background-depth-3 text-center',
             )}
           >
             {children}

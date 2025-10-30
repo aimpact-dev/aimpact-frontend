@@ -92,6 +92,7 @@ export function Chat() {
           return undefined;
         }}
         position="bottom-right"
+        theme="dark"
         pauseOnFocusLoss
         transition={toastAnimation}
         autoClose={3000}
