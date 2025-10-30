@@ -53,7 +53,7 @@ export class LazySandbox implements AimpactSandbox {
     const resources = {
       cpu: 1,
       memory: 2,
-      disk: 2
+      disk: 3
     };
     const image = Image.base('node:20-alpine').workdir(DAYTONA_WORK_DIR);
     const sandbox = await daytona.create({

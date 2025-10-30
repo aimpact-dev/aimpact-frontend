@@ -50,7 +50,7 @@ export function useFetch<T = any>() {
         }
 
         headers.set('Authorization', `Bearer ${authToken}`);
-        if (!headers.get('Accep')) {
+        if (!headers.get('Accept')) {
           headers.set('Accept', 'application/json');
         }
 
