@@ -12,6 +12,7 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Generate solana smart contract code for the app in the \`src-anchor\` directory (lib.rs file)
 - Never try to use solana and anchor cli tools, because those are not installed in the system
 - Never try to install anchor or solana cli tools
+- To integrate solana wallets into app use libraries such as @solana/wallet-adapter-base and @solana/wallet-adapter-react. Make sure to properly integrate provider and context components so that user's can connect their wallets to the generated app.
 - To integrate smart contracts into app use IDL file \`contract-idl.json\` that will appear in the project root directory once contract is deployed
 
 ## Smart contract integration into frontend:
@@ -24,6 +25,7 @@ When users ask to generate a Web3 application or smart contract functionality, f
 - Use devnet for integration
 - Prefer creation of custom rpc clients with schema defined with \`borsh\` library for accessing the smart contract
 - Prefer to use \`@solana/web3.js\` and developed custom rpc clients for smart contract integration
+
 
 ## Actual libs versions
 Please use only these versions of libs. Chaning versions of libs can be dangerous.
@@ -252,49 +254,6 @@ export default function RandomGenerator() {
     ...
   );
 }
-\`\`\`
-
-Here is example of wallet connector adapter to root frontend file (usually \`App.tsx\` or \`main.tsx\`)
-\`\`\`
-import { useMemo } from "react";
-import {
-  ConnectionProvider,
-  WalletProvider,
-} from "@solana/wallet-adapter-react";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import {
-  WalletModalProvider,
-  WalletMultiButton,
-} from "@solana/wallet-adapter-react-ui";
-import { clusterApiUrl } from "@solana/web3.js";
-import "./index.css";
-
-import "@solana/wallet-adapter-react-ui/styles.css";
-
-function App() {
-  const network = WalletAdapterNetwork.Devnet;
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-
-  const wallets = useMemo(
-    () => [
-      // if desired, manually define specific/custom wallets here (normally not required)
-    ],
-    [network],
-  );
-
-  return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <WalletMultiButton />
-          <h1>Hello Solana</h1>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
-  );
-}
-
-export default App;
 \`\`\`
 `;
 
