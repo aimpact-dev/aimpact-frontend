@@ -52,7 +52,13 @@ export function Header() {
         >
           <div className="flex gap-2.5">
             <Button
-              onClick={() => navigate('/projects')}
+              onClick={() => {
+                if (chat.started) {
+                  window.location.href = '/projects';
+                } else {
+                  navigate('/projects');
+                }
+              }}
               variant="default"
               className="flex items-center gap-2 px-4 py-2 border border-[#5c5c5c40]"
             >
