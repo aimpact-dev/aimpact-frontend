@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { ky } from 'query';
+import { type KyResponse } from 'ky';
 import { client } from '~/lib/api/backend/api';
 
 interface AppDeployments {
@@ -163,8 +164,7 @@ export const useDeploymentQuery = (projectId: string | undefined, provider: 's3'
         akash: `deploy-app/akash-deployment`,
       };
 
-      const res = await ky.get(`${endpointMap[provider]}?projectId=${projectId}`);
-      console.log(provider, res);
+      const res = await ky.get(`${endpointMap[provider]}?projectId=${projectId}`, { throwHttpErrors: false });
 
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`Failed to fetch ${provider} deployment`);

@@ -530,12 +530,15 @@ export class WorkbenchStore {
 
     this.artifacts.setKey(messageId, { ...artifact, ...state });
   }
-  addAction(data: ActionCallbackData) {
+  addAction(data: ActionCallbackData, ignoreExecute = false) {
     // this._addAction(data);
-    this.totalActionsCount.set(this.totalActionsCount.get() + 1);
-    this.addToExecutionQueue(() => this._addAction(data));
+    if (ignoreExecute) {
+      this._addAction(data, true);
+    } else {
+      this.addToExecutionQueue(() => this._addAction(data));
+    }
   }
-  async _addAction(data: ActionCallbackData) {
+  async _addAction(data: ActionCallbackData, ignoreExecute = false) {
     const { messageId } = data;
 
     const artifact = this.#getArtifact(messageId);
@@ -544,7 +547,19 @@ export class WorkbenchStore {
       unreachable('Artifact not found');
     }
 
-    return artifact.runner.addAction(data);
+    return artifact.runner.addAction(data, ignoreExecute);
+  }
+
+  async skipAction(data: ActionCallbackData) {
+    const { messageId } = data;
+
+    const artifact = this.#getArtifact(messageId);
+
+    if (!artifact) {
+      unreachable('Artifact not found');
+    }
+
+    return artifact.runner.skipAction(data);
   }
 
   runAction(data: ActionCallbackData, isStreaming: boolean = false) {

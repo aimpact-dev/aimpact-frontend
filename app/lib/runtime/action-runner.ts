@@ -90,7 +90,7 @@ export class ActionRunner {
     this.onDeployAlert = onDeployAlert;
   }
 
-  addAction(data: ActionCallbackData) {
+  addAction(data: ActionCallbackData, ignoreExecute = false) {
     const { actionId } = data;
 
     const actions = this.actions.get();
@@ -114,9 +114,11 @@ export class ActionRunner {
       abortSignal: abortController.signal,
     });
 
-    this.#currentExecutionPromise.then(() => {
-      this.#updateAction(actionId, { status: 'running' });
-    });
+    if (!ignoreExecute) {
+      this.#currentExecutionPromise.then(() => {
+        this.#updateAction(actionId, { status: 'running' });
+      });
+    }
   }
 
   async runAction(data: ActionCallbackData, isStreaming: boolean = false) {
@@ -339,6 +341,12 @@ export class ActionRunner {
     const actions = this.actions.get();
 
     this.actions.setKey(id, { ...actions[id], ...newState });
+  }
+
+  skipAction(data: ActionCallbackData) {
+    const { actionId } = data;
+    const actions = this.actions.get();
+    this.actions.setKey(actionId, { ...actions[actionId], ...data.action, executed: true, status: 'complete' });
   }
 
   async getFileHistory(filePath: string): Promise<FileHistory | null> {

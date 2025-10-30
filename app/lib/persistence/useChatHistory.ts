@@ -49,6 +49,7 @@ export function useChatHistory() {
 
   const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
   const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [actionMessages, setActionMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -96,51 +97,44 @@ export function useChatHistory() {
               );
               filteredMessages = filteredMessages.map((message) => {
                 if (!message.annotations) {
-                  message.annotations = ['no-snapshot-save'];
-                } else {
-                  if (!message.annotations.includes('no-snapshot-save')) {
-                    message.annotations.push('no-snapshot-save');
-                  }
-                  if (!message.annotations.includes('ignore-actions')) {
-                    message.annotations.push('ignore-actions');
-                  }
+                  message.annotations = [];
                 }
+                if (!message.annotations.includes('no-snapshot-save')) {
+                  message.annotations.push('no-snapshot-save');
+                }
+                if (!message.annotations.includes('ignore-actions')) {
+                  message.annotations.push('ignore-actions');
+                }
+
                 return message;
               });
 
               setArchivedMessages(archivedMessages);
 
-              if (useProjectImport) {
-                const files = Object.entries(validSnapshot?.files || {})
-                  .map(([key, value]) => {
-                    if (value?.type !== 'file') {
-                      return null;
-                    }
+              const files = Object.entries(validSnapshot?.files || {})
+                .map(([key, value]) => {
+                  if (value?.type !== 'file') {
+                    return null;
+                  }
 
-                    return {
-                      content: value.content,
-                      path: key,
-                    };
-                  })
-                  .filter((x): x is { content: string; path: string } => !!x); // Type assertion
-                const projectCommands = await detectProjectCommands(files);
+                  return {
+                    content: value.content,
+                    path: key,
+                  };
+                })
+                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
+              const projectCommands = await detectProjectCommands(files);
 
-                // Call the modified function to get only the command actions string
-                const commandActionsString = createCommandActionsString(projectCommands);
+              // Call the modified function to get only the command actions string
+              const commandActionsString = createCommandActionsString(projectCommands);
 
-                filteredMessages = [
-                  {
-                    id: generateId(),
-                    role: 'user',
-                    content: `Restore project from snapshot`, // Removed newline
-                    annotations: ['no-store', 'hidden'],
-                  },
-                  {
-                    id: storedMessages.messages[snapshotIndex].id,
-                    role: 'assistant',
+              let actionMessages: Message[] = [
+                {
+                  id: (filteredMessages.at(-1)?.id || '') + '-restore-message',
+                  role: 'assistant',
 
-                    // Combine followup message and the artifact with files and command actions
-                    content: `AImpact Restored your chat from a snapshot. You can revert this message to load the full chat history.
+                  // Combine followup message and the artifact with files and command actions
+                  content: `AImpact Restored your chat from a snapshot.
                     <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
                     ${Object.entries(snapshot?.files || {})
                       .map(([key, value]) => {
@@ -158,30 +152,32 @@ export function useChatHistory() {
                     ${commandActionsString}
                     </boltArtifact>
                     `, // Added commandActionsString, followupMessage, updated id and title
-                    annotations: [
-                      'no-store',
-                      'no-snapshot-save',
-                      ...(summary
-                        ? [
-                            {
-                              chatId: storedMessages.messages[snapshotIndex].id,
-                              type: 'chatSummary',
-                              summary,
-                            } satisfies ContextAnnotation,
-                          ]
-                        : []),
-                    ],
-                  },
-                  ...filteredMessages,
-                ];
-                restoreSnapshot(mixedId);
+                  annotations: [
+                    'no-store',
+                    'no-snapshot-save',
+                    ...(summary
+                      ? [
+                          {
+                            chatId: storedMessages.messages[snapshotIndex].id,
+                            type: 'chatSummary',
+                            summary,
+                          } satisfies ContextAnnotation,
+                        ]
+                      : []),
+                  ],
+                },
+              ];
+
+              if (useProjectImport) {
+                filteredMessages = actionMessages.concat(filteredMessages);
               }
-              // setInitialMessages(storedMessages.messages);
+
+              restoreSnapshot(mixedId);
               setInitialMessages(filteredMessages);
-              chatStore.setKey(
-                'initialMessagesIds',
-                filteredMessages.map((m) => m.id),
-              );
+              setActionMessages(actionMessages);
+
+              console.log('before change initialMessageIdx', actionMessages[0].id);
+              chatStore.setKey('initialMessagesIds', [...filteredMessages.map((m) => m.id), actionMessages[0].id]);
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);
@@ -269,6 +265,7 @@ export function useChatHistory() {
   return {
     ready: !mixedId || ready,
     initialMessages,
+    actionMessages,
     error,
     takeSnapshot,
     updateChatMetaData: async (metadata: IChatMetadata) => {

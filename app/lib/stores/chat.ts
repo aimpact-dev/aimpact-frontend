@@ -5,4 +5,5 @@ export const chatStore = map({
   aborted: false,
   showChat: true,
   initialMessagesIds: [] as string[],
+  needToSave: null as null | string,
 });

@@ -10,6 +10,7 @@ import type {
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
+import { chatStore } from '../stores/chat';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
 const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
@@ -29,8 +30,8 @@ export interface ActionCallbackData {
   action: BoltAction;
 }
 
-export type ArtifactCallback = (data: ArtifactCallbackData) => void;
-export type ActionCallback = (data: ActionCallbackData) => void;
+export type ArtifactCallback = (data: ArtifactCallbackData, skipArtifactSave?: boolean) => void;
+export type ActionCallback = (data: ActionCallbackData, skipAction?: boolean) => void;
 
 export interface ParserCallbacks {
   onArtifactOpen?: ArtifactCallback;
@@ -122,7 +123,7 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string, messageList?: string[]) {
+  parse(messageId: string, input: string, skipMessage = false) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -141,6 +142,7 @@ export class StreamingMessageParser {
     let i = state.position;
     let earlyBreak = false;
 
+    console.log('on parse', messageId, skipMessage);
     while (i < input.length) {
       if (state.insideArtifact) {
         const currentArtifact = state.currentArtifact;
@@ -171,19 +173,22 @@ export class StreamingMessageParser {
 
             currentAction.content = content;
 
-            this._options.callbacks?.onActionClose?.({
-              artifactId: currentArtifact.id,
-              messageId,
+            this._options.callbacks?.onActionClose?.(
+              {
+                artifactId: currentArtifact.id,
+                messageId,
 
-              /**
-               * We decrement the id because it's been incremented already
-               * when `onActionOpen` was emitted to make sure the ids are
-               * the same.
-               */
-              actionId: String(state.actionId - 1),
+                /**
+                 * We decrement the id because it's been incremented already
+                 * when `onActionOpen` was emitted to make sure the ids are
+                 * the same.
+                 */
+                actionId: String(state.actionId - 1),
 
-              action: currentAction as BoltAction,
-            });
+                action: currentAction as BoltAction,
+              },
+              skipMessage,
+            );
 
             state.insideAction = false;
             state.currentAction = { content: '' };
@@ -198,16 +203,19 @@ export class StreamingMessageParser {
                 content = cleanEscapedTags(content);
               }
 
-              this._options.callbacks?.onActionStream?.({
-                artifactId: currentArtifact.id,
-                messageId,
-                actionId: String(state.actionId - 1),
-                action: {
-                  ...(currentAction as FileAction),
-                  content,
-                  filePath: currentAction.filePath,
+              this._options.callbacks?.onActionStream?.(
+                {
+                  artifactId: currentArtifact.id,
+                  messageId,
+                  actionId: String(state.actionId - 1),
+                  action: {
+                    ...(currentAction as FileAction),
+                    content,
+                    filePath: currentAction.filePath,
+                  },
                 },
-              });
+                skipMessage,
+              );
             }
 
             break;
@@ -224,19 +232,26 @@ export class StreamingMessageParser {
 
               state.currentAction = this.#parseActionTag(input, actionOpenIndex, actionEndIndex);
 
-              this._options.callbacks?.onActionOpen?.({
-                artifactId: currentArtifact.id,
-                messageId,
-                actionId: String(state.actionId++),
-                action: state.currentAction as BoltAction,
-              });
+              if (skipMessage) {
+              }
+              this._options.callbacks?.onActionOpen?.(
+                {
+                  artifactId: currentArtifact.id,
+                  messageId,
+                  actionId: String(state.actionId++),
+                  action: state.currentAction as BoltAction,
+                },
+                skipMessage,
+              );
 
               i = actionEndIndex + 1;
             } else {
               break;
             }
           } else if (artifactCloseIndex !== -1) {
-            this._options.callbacks?.onArtifactClose?.({ messageId, ...currentArtifact });
+            const chatState = chatStore.get();
+            const skipMessage = chatState.initialMessagesIds.includes(messageId);
+            this._options.callbacks?.onArtifactClose?.({ messageId, ...currentArtifact }, skipMessage);
 
             state.insideArtifact = false;
             state.currentArtifact = undefined;
