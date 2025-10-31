@@ -36,6 +36,7 @@ export const links: LinksFunction = () => [
     href: '/favicon.svg',
     type: 'image/svg+xml',
   },
+  { rel: 'manifest', href: '/manifest.json' },
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: xtermStyles },
   {
