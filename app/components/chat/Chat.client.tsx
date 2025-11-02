@@ -34,7 +34,7 @@ import { DaytonaCleanup } from '~/components/common/cleanup/DaytonaCleanup';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { ZenfsCleanup } from '~/components/common/cleanup/ZenfsCleanup';
 import { WorkbenchCleanup } from '~/components/common/cleanup/WorkbenchCleanup';
-import { ChatStoresCleanup } from '~/components/common/cleanup/ChatStoresCleanup';
+import { ChatHistoryCleanup } from '~/components/common/cleanup/ChatHistoryCleanup';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -624,7 +624,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       <DaytonaCleanup/>
       <ZenfsCleanup/>
       <WorkbenchCleanup/>
-      <ChatStoresCleanup/>
+      <ChatHistoryCleanup/>
     </>
   );
 });

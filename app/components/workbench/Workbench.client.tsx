@@ -325,16 +325,16 @@ export const Workbench = memo(
         const { initialMessagesIds } = chatStore.get();
         const currentParsingMessage = currentParsingMessageState.get();
         const chatIdx = lastChatIdx.get();
-        console.log('chat idx in workbench', chatIdx);
+        //console.log('chat idx in workbench', chatIdx);
         if (!chatIdx) return;
         // if (streamingState.get()) return;
-        console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
+        //console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
 
         const snapshotHaveChanges = Object.keys(files).length > 0;
         if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
           if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
             takeSnapshot(chatIdx, files, undefined, chatSummary);
-            console.log('Snapshot was taken on file change');
+            //console.log('Snapshot was taken on file change');
             lastSnapshotRef.current = Date.now();
           }
         }
@@ -485,7 +485,7 @@ export const Workbench = memo(
       };
 
       processPreviewStart().then(() => {
-        console.log('After run preview');
+        //console.log('After run preview');
       });
     }, [selectedView, hasPreview]);
 

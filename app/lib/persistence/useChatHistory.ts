@@ -5,7 +5,7 @@ import { generateId, type JSONValue, type Message } from 'ai';
 import { toast } from 'react-toastify';
 import { getWorkbenchStore } from '~/lib/stores/workbench';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
-import { openDatabase, duplicateChat, createChatFromMessages, type IChatMetadata } from './db';
+import { openDatabase, duplicateChat, createChatFromMessages, type IChatMetadata, clearDatabase } from './db';
 import type { FileMap } from '~/lib/stores/files';
 import type { Snapshot } from './types';
 import { getAimpactFs } from '~/lib/aimpactfs';
@@ -438,6 +438,21 @@ export function useChatHistory() {
       URL.revokeObjectURL(url);
     },
   };
+}
+
+/**
+ * Set's chat history related nanostores and the indexedDB to the default state.
+ */
+export async function resetChatHistory(){
+  chatId.set(undefined);
+  lastChatIdx.set(undefined);
+  lastChatSummary.set(undefined);
+  description.set(undefined);
+  chatMetadata.set(undefined);
+
+  if(db){
+    await clearDatabase(db);
+  }
 }
 
 function navigateChat(nextId: string) {

@@ -51,6 +51,22 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
   });
 }
 
+async function clearStore(db: IDBDatabase, storeName: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, 'readwrite');
+    const chatsStore = transaction.objectStore(storeName);
+    const request = chatsStore.clear();
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function clearDatabase(db: IDBDatabase) {
+  await clearStore(db, 'chats');
+  await clearStore(db, 'snapshots');
+}
+
 export async function getAll(db: IDBDatabase): Promise<ChatHistoryItem[]> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');

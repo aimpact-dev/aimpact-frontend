@@ -276,7 +276,6 @@ export class ZenfsImpl extends AimpactFs {
         fs.readdir(path, options, (err: any, dirents: Dirent<string, ArrayBufferLike>[]) => {
           if (err) reject(err);
           else {
-            console.log("Dirents:", dirents);
             resolve(dirents);
           }
         });

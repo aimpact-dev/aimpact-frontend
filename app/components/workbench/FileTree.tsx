@@ -66,7 +66,6 @@ export const FileTree = memo(
     });
 
     useEffect(() => {
-      console.log("Files on mount: ", files);
       return () => {
         console.log("FileTree component unmount.");
       }

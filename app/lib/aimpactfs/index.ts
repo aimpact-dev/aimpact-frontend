@@ -22,6 +22,5 @@ export async function cleanupZenfs(){
   if(zenfsImpl) {
     const workDir = await zenfsImpl.workdir();
     await zenfsImpl.rm(workDir, {force: true, recursive: true});
-    zenfsImpl = null;
   }
 }
