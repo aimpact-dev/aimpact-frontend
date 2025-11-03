@@ -1,6 +1,6 @@
 'use client';
 
-import { useNavigate, useParams } from '@remix-run/react';
+import { useParams } from '@remix-run/react';
 import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -15,10 +15,10 @@ import Popup from '~/components/common/Popup';
 import { Button, LoadingDots } from '~/components/ui';
 import { TwitterShareButton } from '~/components/ui/TwitterShareButton';
 import { motion } from 'framer-motion';
-import Navbar from '~/components/dashboard/navbar';
 import { Tooltip } from '~/components/chat/Tooltip';
 import ProjectInfoUpdateForm from '~/components/dashboard/ProjectInfoUpdateForm';
 import GradientPage from '~/components/wrappers/GradientPage';
+import DeployButton from '~/components/deploy/DeployButton';
 import BackButton from '~/components/ui/BackButton';
 import useViewport from '~/lib/hooks';
 
@@ -164,13 +164,14 @@ export default function Project() {
               </p>
 
               {isOwner && (
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex items-end gap-2">
                   <a href={`/chat/${project.id}`}>
                     <Button variant="glowing" className="gap-1 px-3">
                       <div className="i-ph:code w-4 h-4" />
                       Open editor
                     </Button>
                   </a>
+                  <DeployButton customVariant="glowing" />
                 </div>
               )}
             </div>
