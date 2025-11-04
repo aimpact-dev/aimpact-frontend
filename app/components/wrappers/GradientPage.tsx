@@ -39,7 +39,7 @@ export default function GradientPage({ children, withBackButton = false }: Gradi
 
   return (
     <main className="flex flex-col min-h-screen bg-gradient-to-br from-[#1B082A] via-purple-900 to-[#1B082A]">
-      <EventBanner />
+      {/* <EventBanner /> */}
       <Navbar />
 
       <section className="flex-1 py-8 md:py-16 relative">
