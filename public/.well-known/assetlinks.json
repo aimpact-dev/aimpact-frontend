@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "dev.aimpact.twa",
+        "sha256_cert_fingerprints": ["B2:58:29:E1:6B:A7:FA:4C:66:81:E9:0B:F5:A6:10:18:C0:3E:0E:A1:8A:6A:86:80:E7:92:A9:7D:36:48:09:0F"]
+      }
+    }]
