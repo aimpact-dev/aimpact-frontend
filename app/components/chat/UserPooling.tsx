@@ -1,95 +1,86 @@
-import { useEffect, useState } from "react";
-import Popup from "../common/Popup";
-import { classNames } from "~/utils/classNames";
-import { range } from "~/utils/range";
-import { usePostNPS } from "~/lib/hooks/tanstack/useAnalytics";
-import { useAuth } from "~/lib/hooks/useAuth";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '~/lib/hooks/useAuth';
+import Popup from '../common/Popup';
+import useNPSLogic from '~/lib/hooks/user-pooling/useNPSLogic';
+import usePMFLogic from '~/lib/hooks/user-pooling/usePMFLogic';
 
-function UserPoolingPopup() {
-  <div className="fixed inset-0 z-10 overflow-y-auto">
-    <div className="flex relative items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+const FormWrapper = ({ dataForm }: { dataForm: string }) => (
+  <div className="relative w-full h-[600px] flex items-center justify-center my-2">
+    {/* Spinner that stays under the form */}
+    <div className="absolute i-ph:circle-notch-duotone scale-98 animate-spin"></div>
 
-    </div>
+    <div
+      data-youform-embed
+      data-form={dataForm}
+      data-width="100%"
+      data-height="600"
+      className="relative z-10 w-full h-full"
+    ></div>
   </div>
-}
+);
 
 export default function UserPooling() {
-  const [showNPS, setShowNPS] = useState(false);
-  const [showPMF, setShowPMF] = useState(false);
-  const { mutateAsync: postNPS } = usePostNPS();
   const { connected } = useWallet();
   const { isAuthorized } = useAuth();
-  
-  const npsColors = [
-    'bg-red-600',
-    'bg-red-500',
-    'bg-orange-500', 
-    'bg-amber-500',
-    'bg-yellow-500',
-    'bg-lime-500',
-    'bg-green-500',
-    'bg-green-600',
-    'bg-green-700',
-    'bg-green-800',
-  ];
 
-  const handleGradeClick = async (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    const grade = parseInt(event.currentTarget.id);
-    try {
-      if (isNaN(grade)) {
-        throw new Error("WTF, grade is string");
-      }
-      await postNPS({ grade });
-    } catch (error) {
-      console.error("Failed to post NPS data", error);
-    } finally {
-      setShowNPS(false);  
-    }
-  }
+  const nps = useNPSLogic();
+  const pmf = usePMFLogic();
 
-  const handleNPS = () => {
-    setShowNPS(!showNPS);
-  }
-
-  const handlePMF = () => {
-    setShowPMF(!showPMF);
-  }
+  const [showIntro, setShowIntro] = useState(false);
 
   useEffect(() => {
-    const userVisitCooldown = 3 * 60 * 60 * 1000;
-    let userVisits = parseInt(localStorage.getItem("userVisits") || "0");
-    const lastUserVisit = parseInt(localStorage.getItem("lastUserVisit") || "0");
-    const isNewVisit = lastUserVisit + userVisitCooldown < Date.now();
+    const cooldown = 3 * 60 * 60 * 1000;
+    const last = parseInt(localStorage.getItem('lastUserVisit') || '0');
+    const visits = parseInt(localStorage.getItem('userVisits') || '0');
+    const isNew = last + cooldown < Date.now();
 
-    if (isNewVisit) {
-      localStorage.setItem("userVisits", (userVisits + 1).toString());
-      localStorage.setItem("lastUserVisit", Date.now().toString())
-      userVisits++;
+    if (isNew) {
+      localStorage.setItem('userVisits', (visits + 1).toString());
+      localStorage.setItem('lastUserVisit', Date.now().toString());
     }
+  }, []);
 
-    if (userVisits % 5 === 0 && isNewVisit) {
-      setShowNPS(true);
-    } else if (userVisits === 3 || userVisits % 18 === 0) {
-      setShowPMF(true);
+  // Show intro form only once per user (first-time connection)
+  useEffect(() => {
+    if (connected && isAuthorized) {
+      const hasSeenIntro = localStorage.getItem('introShown') === 'true';
+
+      if (!hasSeenIntro) {
+        setShowIntro(true);
+        localStorage.setItem('introShown', 'true');
+      }
     }
-  }, [])
+  }, [connected, isAuthorized]);
+
+  useEffect(() => {
+    if (connected && isAuthorized && (showIntro || nps.shouldShow || pmf.shouldShow)) {
+      console.log('initting youform', showIntro, nps.shouldShow, pmf.shouldShow);
+      // @ts-ignore
+      window.YouformEmbed.init();
+    }
+  }, [connected, isAuthorized, showIntro, nps.shouldShow, pmf.shouldShow]);
+
+  const handleIntroClose = () => {
+    setShowIntro(false);
+  };
 
   return (
-    <Popup isShow={showNPS && connected && isAuthorized} handleToggle={handleNPS} positionClasses="sm:my-12">
-      <h3 className="text-2xl mb-8">How likely you are to recommend Aimpact to a friend?</h3>
-      <div className="flex w-full justify-between mb-4">
-        {range(0, 9).map(i => (
-          <div
-            key={i}
-            id={i.toString()}
-            className={classNames(`${npsColors[i]} px-3 py-2 rounded-sm cursor-pointer text-white
-              transition-transform hover:scale-[108%] duration-200 ease-in-out`)}
-            onClick={handleGradeClick}>
-            <p>{i + 1}</p>
-          </div>
-        ))}
-      </div>
-    </Popup>
-  )
+    <>
+      {/* Intro popup */}
+      <Popup isShow={showIntro} handleToggle={handleIntroClose}>
+        <FormWrapper dataForm="axqnjquv" />
+      </Popup>
+
+      {/* NPS popup */}
+      <Popup isShow={nps.shouldShow && connected && isAuthorized} handleToggle={nps.markShown}>
+        <FormWrapper dataForm="kethzhkx" />
+      </Popup>
+
+      {/* PMF popup */}
+      <Popup isShow={pmf.shouldShow && connected && isAuthorized} handleToggle={pmf.markShown}>
+        <FormWrapper dataForm="yd2oc3hx" />
+      </Popup>
+    </>
+  );
 }

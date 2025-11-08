@@ -80,7 +80,7 @@ export const Head = createHead(() => (
     <Meta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-    <script src="https://app.youform.com/widgets/widget.js" />
+    <script src="https://app.youform.com/embed.js" async></script>
     <script defer data-domain="aimpact.dev" src="https://plausible.io/js/script.js" />
     <script>{`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}</script>
   </>

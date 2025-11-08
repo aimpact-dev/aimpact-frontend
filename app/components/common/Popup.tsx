@@ -9,6 +9,7 @@ interface CustDevPopupProps extends PropsWithChildren {
   positionClasses?: string;
   closeByTouch?: boolean;
   childrenClasses?: string;
+  className?: string;
 }
 
 export default function Popup({
@@ -18,6 +19,7 @@ export default function Popup({
   childrenClasses,
   handleToggle,
   children,
+  className,
   closeByTouch = true,
 }: CustDevPopupProps) {
   if (!isShow) {
@@ -25,7 +27,7 @@ export default function Popup({
   }
 
   return (
-    <div className="fixed top-5 inset-0 z-1000 overflow-y-auto">
+    <div className={classNames('fixed top-5 inset-0 z-1000 overflow-y-auto', className)}>
       <div className="flex relative items-center justify-center min-h-screen px-8 pt-8 pb-20 text-center sm:block sm:p-0">
         {backgroundElement && (
           <div
@@ -43,7 +45,7 @@ export default function Popup({
             onClick={handleToggle}
             className="flex absolute right-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
           >
-            <div className="i-ph:x md:w-4 md:h-4 w-6 h-6 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
+            <div className="i-ph:x w-4 h-4 md:w-6 md:h-6 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
           </button>
 
           <div
