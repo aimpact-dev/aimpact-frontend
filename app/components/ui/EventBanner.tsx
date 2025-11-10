@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FlowingParticlesBackground } from './FlowingParticlesBackground';
 import { classNames } from '~/utils/classNames';
 
 interface Props {
   className?: string;
+  children: React.ReactNode;
 }
 
-export function EventBanner({ className }: Props) {
+export function EventBanner({ className, children }: Props) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -34,18 +35,7 @@ export function EventBanner({ className }: Props) {
     >
       <FlowingParticlesBackground />
       <div className="bg-bolt-elements-background-depth-4 w-full py-1 rounded-md">
-        <p className="text-md md:text-sm mr-8">
-          🎉 Join the{' '}
-          <a
-            href="https://earn.superteam.fun/listing/aimpact-sidetrack-build-tokenize-and-launch-on-solana-with-ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline hover:text-gray-200 transition-colors"
-          >
-            AImpact Hackathon
-          </a>{' '}
-          till Oct 30 to win&nbsp;$10 000+
-        </p>
+        <p className="text-md md:text-sm mr-8">{children}</p>
         <button
           onClick={() => setVisible(false)}
           className="absolute right-3 top-1/2 -translate-y-1/2 p-1  rounded-full hover:bg-white/10 transition-colors z-10000"

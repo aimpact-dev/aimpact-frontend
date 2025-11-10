@@ -42,7 +42,7 @@ export function Header() {
 
   return (
     <>
-      <EventBanner />
+      {/* <EventBanner /> */}
       {!isMobile ? (
         <header
           className={classNames('flex items-center px-2 py-2 border-b h-[var(--header-height)] justify-between', {
