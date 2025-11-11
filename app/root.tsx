@@ -23,6 +23,7 @@ import './styles/index.scss';
 import 'virtual:uno.css';
 
 import LoadingScreen from './components/common/LoadingScreen';
+import { WhatsNewProvider } from './lib/hooks/useWhatsNew';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then((mod) => ({
@@ -97,11 +98,13 @@ function Providers({ children }: { children: React.ReactNode }) {
             {/*  autoConnectEmbeddedWallet*/}
             {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
             {/*>*/}
-            <RefCodeProvider>
-              <AuthProvider>
-                <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-              </AuthProvider>
-            </RefCodeProvider>
+            <WhatsNewProvider>
+              <RefCodeProvider>
+                <AuthProvider>
+                  <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+                </AuthProvider>
+              </RefCodeProvider>
+            </WhatsNewProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
         </Suspense>

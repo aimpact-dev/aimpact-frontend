@@ -1,20 +1,42 @@
 import { forwardRef } from 'react';
 import { classNames } from '~/utils/classNames';
 
-export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
+type CardVariant = 'default' | 'accented';
 
-const Card = forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={classNames(
-        'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-sm',
-        className,
-      )}
-      {...props}
-    />
-  );
-});
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: CardVariant;
+  withHoverEffect?: boolean;
+}
+
+const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, variant = 'default', withHoverEffect = false, ...props }, ref) => {
+    const baseClasses = 'rounded-lg border border-bolt-elements-borderColor text-bolt-elements-textPrimary shadow-sm';
+
+    const variantClasses = {
+      default: 'bg-gray-900/50 border-gray-700 backdrop-blur-sm',
+      accented: 'group relative bg-black/20 border border-white/15 rounded-xl overflow-hidden shadow-lg',
+    };
+
+    const hoverClasses = {
+      default: '',
+      accented:
+        'hover:bg-black/35 hover:border-bolt-elements-borderColorActive hover:scale-[1.02] hover:shadow-xl transition-all duration-300',
+    };
+
+    return (
+      <div
+        ref={ref}
+        className={classNames(
+          baseClasses,
+          variantClasses[variant],
+          withHoverEffect ? hoverClasses[variant] : '',
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);
 Card.displayName = 'Card';
 
 const CardHeader = forwardRef<HTMLDivElement, CardProps>(({ className, ...props }, ref) => {
