@@ -4,7 +4,7 @@ import { paymentMiddleware } from './x402_convex';
 import { Address } from '@solana/kit';
 
 const x402Middleware = paymentMiddleware(
-  'place_your_wallet_address_here' as Address,
+  'place_your_solana_devnet_wallet_address_here' as Address,
   {
     '/paid-content': {
       price: '$0.01', // USDC
@@ -23,7 +23,7 @@ const x402Middleware = paymentMiddleware(
 export const paidContentHandler = httpAction(
   x402Middleware(async (ctx, request) => {
     const randomId = Math.floor(Math.random() * 1000);
-    const imageUrl = `https://picsum.photos/800/600?random=${randomId}`;
+    const imageUrl = `https://picsum.photos/400/300?random=${randomId}`;
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -48,23 +48,20 @@ export const paidContentHandler = httpAction(
               box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             }
             h1 { color: #333; }
-            a {
-              display: inline-block;
-              margin-top: 20px;
-              padding: 12px 24px;
-              background: #667eea;
-              color: white;
-              text-decoration: none;
-              border-radius: 6px;
+            img {
+              max-width: 100%;
+              height: auto;
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              margin: 20px 0;
             }
-            a:hover { background: #5568d3; }
           </style>
         </head>
         <body>
           <div class="container">
             <h1>🎉 Payment Successful!</h1>
             <p>Here's your exclusive random picture:</p>
-            <a href="${imageUrl}" target="_blank">View Your Random Picture</a>
+            <img src="${imageUrl}" alt="Your exclusive random picture" />
           </div>
         </body>
       </html>
@@ -73,6 +70,8 @@ export const paidContentHandler = httpAction(
     return new Response(htmlContent, {
       headers: {
         'Content-Type': 'text/html',
+        'Access-Control-Allow-Origin': '*',
+        Vary: 'origin',
       },
     });
   }),
