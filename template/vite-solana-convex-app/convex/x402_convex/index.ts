@@ -182,7 +182,7 @@ export function paymentMiddleware(
               });
             return new Response(html, {
               status: 402,
-              headers: { 'Content-Type': 'text/html' },
+              headers: { 'Content-Type': 'text/html', 'Access-Control-Allow-Origin': '*', Vary: 'origin' },
             });
           }
         }
@@ -193,7 +193,10 @@ export function paymentMiddleware(
             error: errorMessages?.paymentRequired || 'X-PAYMENT header is required',
             accepts: paymentRequirements,
           }),
-          { status: 402, headers: { 'Content-Type': 'application/json' } },
+          {
+            status: 402,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', Vary: 'origin' },
+          },
         );
       }
 
@@ -209,7 +212,10 @@ export function paymentMiddleware(
             error: errorMessages?.invalidPayment || (error instanceof Error ? error : 'Invalid payment'),
             accepts: paymentRequirements,
           }),
-          { status: 402, headers: { 'Content-Type': 'application/json' } },
+          {
+            status: 402,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', Vary: 'origin' },
+          },
         );
       }
 
@@ -221,7 +227,10 @@ export function paymentMiddleware(
             error: errorMessages?.noMatchingRequirements || 'Unable to find matching payment requirements',
             accepts: toJsonSafe(paymentRequirements),
           }),
-          { status: 402, headers: { 'Content-Type': 'application/json' } },
+          {
+            status: 402,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', Vary: 'origin' },
+          },
         );
       }
 
@@ -235,7 +244,10 @@ export function paymentMiddleware(
             accepts: paymentRequirements,
             payer: verification.payer,
           }),
-          { status: 402, headers: { 'Content-Type': 'application/json' } },
+          {
+            status: 402,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', Vary: 'origin' },
+          },
         );
       }
 
@@ -271,7 +283,10 @@ export function paymentMiddleware(
             error: errorMessages?.settlementFailed || (error instanceof Error ? error : 'Settlement failed'),
             accepts: paymentRequirements,
           }),
-          { status: 402, headers: { 'Content-Type': 'application/json' } },
+          {
+            status: 402,
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', Vary: 'origin' },
+          },
         );
       }
 
