@@ -164,7 +164,6 @@ export const useDeploymentQuery = (projectId: string | undefined, provider: 's3'
       };
 
       const res = await ky.get(`${endpointMap[provider]}?projectId=${projectId}`);
-      console.log(provider, res);
 
       if (res.status === 404) return null;
       if (!res.ok) throw new Error(`Failed to fetch ${provider} deployment`);

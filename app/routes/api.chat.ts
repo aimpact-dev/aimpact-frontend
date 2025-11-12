@@ -41,9 +41,8 @@ async function mockDataStream(responseMessage: string) {
     execute(dataStream) {
       dataStream.merge(stream);
     },
-  })
+  });
 }
-
 
 const logger = createScopedLogger('api.chat');
 
@@ -54,9 +53,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     promptId?: string;
     contextOptimization: boolean;
     authToken: string;
+    convexTeamName?: string;
   }>();
   let { messages } = body;
-  const { files, promptId, contextOptimization, authToken } = body;
+  const { files, promptId, contextOptimization, authToken, convexTeamName } = body;
 
   const apiKeys: Record<string, string> = {
     OpenAI: getEnvVar(context, 'OPENAI_API_KEY') as string,
@@ -89,7 +89,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     throw new Response('Unauthorized', { status: 401 });
   }
 
-  const user = (await userResponse.json()) as { id: string; messagesLeft: number; pendingMessages: number };
+  const user = (await userResponse.json()) as {
+    id: string;
+    messagesLeft: number;
+    pendingMessages: number;
+    wallet: string;
+  };
   const usableMessages = user.messagesLeft - user.pendingMessages;
   if (usableMessages <= 0) {
     throw new Response('No messages left', { status: 402 });
@@ -309,6 +314,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               contextFiles: filteredFiles,
               summary,
               messageSliceId,
+              userAddress: user.wallet,
+              convexTeamName,
             });
 
             result.mergeIntoDataStream(dataStream);
@@ -350,6 +357,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           contextFiles: filteredFiles,
           summary,
           messageSliceId,
+          userAddress: user.wallet,
+          convexTeamName,
         });
 
         (async () => {
