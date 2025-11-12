@@ -18,7 +18,7 @@ import { motion } from 'framer-motion';
 import { Tooltip } from '~/components/chat/Tooltip';
 import ProjectInfoUpdateForm from '~/components/dashboard/ProjectInfoUpdateForm';
 import GradientPage from '~/components/wrappers/GradientPage';
-import DeployButton from '~/components/deploy/DeployButton';
+import DeployButton from '~/components/deploy/DeployButton.client';
 import BackButton from '~/components/ui/BackButton';
 import useViewport from '~/lib/hooks';
 

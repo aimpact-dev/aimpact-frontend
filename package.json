@@ -224,10 +224,10 @@
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^2.1.9",
     "webpack-bundle-analyzer": "^4.10.2",
-    "wrangler": "^4.15.1"
+    "wrangler": "^4.47.0"
   },
   "resolutions": {
     "@typescript-eslint/utils": "^8.0.0-alpha.30"
   },
-  "packageManager": "pnpm@10.11.0"
+  "packageManager": "pnpm@10.21.0"
 }
