@@ -23,15 +23,15 @@ export const meta: MetaFunction = () => {
  * to keep the UI clean and consistent with the design system.
  */
 export default function Index() {
-  const [isMobile, setIsMobile] = useState(false);
-  const detectMobileScreen = () => {
-    return window.innerWidth <= 768;
-  };
+  // const [isMobile, setIsMobile] = useState(false);
+  // const detectMobileScreen = () => {
+  //   return window.innerWidth <= 768;
+  // };
 
-  useEffect(() => {
-    const mobile = detectMobileScreen();
-    setIsMobile(mobile);
-  }, []);
+  // useEffect(() => {
+  //   const mobile = detectMobileScreen();
+  //   setIsMobile(mobile);
+  // }, []);
 
   return (
     <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
@@ -39,7 +39,6 @@ export default function Index() {
       <Header />
       <UserPooling />
       {/* {isMobile && <OnlyDesktopMessage />} */}
-      <IntroPopup />
       <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
     </div>
   );

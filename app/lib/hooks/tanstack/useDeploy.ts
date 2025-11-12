@@ -40,14 +40,6 @@ export const useGetIcpDeploy = () =>
     },
   });
 
-export const usePostIcpDeploy = () =>
-  useMutation<PostDeployResponse, AxiosError, PostDeployPayload>({
-    mutationFn: async (payload) => {
-      const { data } = await client.post<PostDeployResponse>('/deploy-app/icp-deployment', payload);
-      return data;
-    },
-  });
-
 export const useGetS3Deploy = () =>
   useMutation<S3DeployResponse, AxiosError, string>({
     mutationFn: async (projectId) => {
