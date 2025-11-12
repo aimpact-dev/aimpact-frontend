@@ -6,7 +6,7 @@ import { chatId } from '~/lib/persistence';
 import { Tooltip } from '../chat/Tooltip';
 import { TwitterShareButton } from '../ui/TwitterShareButton';
 import { useDeploymentQuery } from 'query/use-project-query';
-import DeployButton from '../deploy/DeployButton';
+import DeployButton from '../deploy/DeployButton.client';
 import { HeaderActionButton } from './HeaderActionButton';
 
 export function HeaderActionButtons() {

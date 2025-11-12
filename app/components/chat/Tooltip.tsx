@@ -88,6 +88,7 @@ interface TooltipProps {
   align?: 'start' | 'center' | 'end';
   delayDuration?: number;
   className?: string;
+  eventsDisabled?: boolean;
 }
 
 export function Tooltip({
@@ -97,6 +98,7 @@ export function Tooltip({
   align = 'center',
   delayDuration = 300,
   className,
+  eventsDisabled = false,
 }: TooltipProps) {
   return (
     <TooltipPrimitive.Provider>
@@ -104,9 +106,11 @@ export function Tooltip({
         <TooltipPrimitive.Trigger
           asChild
           onClick={(event) => {
-            event.preventDefault();
+            if (eventsDisabled) event.preventDefault();
           }}
-          onPointerDown={(event) => event.preventDefault()}
+          onPointerDown={(event) => {
+            if (eventsDisabled) event.preventDefault();
+          }}
         >
           {children}
         </TooltipPrimitive.Trigger>
@@ -118,7 +122,7 @@ export function Tooltip({
             className,
           )}
           onPointerDownOutside={(event) => {
-            event.preventDefault();
+            if (eventsDisabled) event.preventDefault();
           }}
           sideOffset={5}
         >
