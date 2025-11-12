@@ -36,6 +36,8 @@ export async function streamText(props: {
   contextFiles?: FileMap;
   summary?: string;
   messageSliceId?: number;
+  userAddress: string;
+  convexTeamName?: string;
 }) {
   const {
     messages,
@@ -48,6 +50,8 @@ export async function streamText(props: {
     contextOptimization,
     contextFiles,
     summary,
+    userAddress,
+    convexTeamName,
   } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
@@ -67,11 +71,11 @@ export async function streamText(props: {
       content = content.replace(/<think>.*?<\/think>/s, '');
 
       const filesToIgnore = ['package-lock.json', 'pnpm-lock.yaml', 'yarn.lock'];
-  
+
       for (const file of filesToIgnore) {
         content = content.replace(
           /<boltAction type="file" filePath="/ + file + /">[\s\S]*?<\/boltAction>/g,
-          `[${file} content removed]`
+          `[${file} content removed]`,
         );
       }
 
@@ -119,14 +123,16 @@ export async function streamText(props: {
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
+      address: userAddress,
       allowedHtmlElements: allowedHTMLElements,
       modificationTagName: MODIFICATIONS_TAG_NAME,
+      convexTeamName: convexTeamName,
       supabase: {
         isConnected: options?.supabaseConnection?.isConnected || false,
         hasSelectedProject: options?.supabaseConnection?.hasSelectedProject || false,
         credentials: options?.supabaseConnection?.credentials || undefined,
       },
-    }) ?? getSystemPrompt();
+    }) ?? getSystemPrompt(WORK_DIR, userAddress, convexTeamName);
 
   if (contextFiles && contextOptimization) {
     const codeContext = createFilesContext(contextFiles, true);
@@ -194,11 +200,11 @@ ${lockedFilesListString}
    * logger.debug(`User messages: ${messages.map(message => message + "\n")}`)
    */
 
-  console.log("NEW INPUT PROMPT")
-  console.log("SYSTEM PROMPT:")
-  console.log(systemPrompt)
-  console.log("messages:")
-  console.log(processedMessages)
+  console.log('NEW INPUT PROMPT');
+  console.log('SYSTEM PROMPT:');
+  console.log(systemPrompt);
+  console.log('messages:');
+  console.log(processedMessages);
 
   return await _streamText({
     model: provider.getModelInstance({
