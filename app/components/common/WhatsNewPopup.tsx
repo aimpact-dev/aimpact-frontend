@@ -2,9 +2,13 @@ import Popup from './Popup';
 import { Badge, Card } from '../ui';
 import { useWhatsNew } from '../../lib/hooks/useWhatsNew';
 import { useEffect } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useAuth } from '~/lib/hooks/useAuth';
 
 export default function WhatsNewPopup() {
   const { showWhatsNew, setShowWhatsNew } = useWhatsNew();
+  const { connected } = useWallet();
+  const { isAuthorized } = useAuth();
 
   const newsArticles = [
     {
@@ -15,14 +19,16 @@ export default function WhatsNewPopup() {
   ];
 
   useEffect(() => {
-    const lastSeen = localStorage.getItem('whatsNewLastSeen') || '0';
-    const newestDate = Math.max(...newsArticles.map((a) => a.date.getTime()));
+    if (connected && isAuthorized) {
+      const lastSeen = localStorage.getItem('whatsNewLastSeen') || '0';
+      const newestDate = Math.max(...newsArticles.map((a) => a.date.getTime()));
 
-    if (newestDate > Number(lastSeen)) {
-      setShowWhatsNew(true);
-      localStorage.setItem('whatsNewLastSeen', newestDate.toString());
+      if (newestDate > Number(lastSeen)) {
+        setShowWhatsNew(true);
+        localStorage.setItem('whatsNewLastSeen', newestDate.toString());
+      }
     }
-  }, [newsArticles, setShowWhatsNew]);
+  }, [newsArticles, setShowWhatsNew, connected, isAuthorized]);
 
   return (
     <Popup isShow={showWhatsNew} handleToggle={() => setShowWhatsNew(false)}>
