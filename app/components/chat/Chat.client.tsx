@@ -32,6 +32,7 @@ import Page404 from '~/routes/$';
 import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 import { useAuth } from '~/lib/hooks/useAuth';
+import { convexTeamNameStore } from '~/lib/stores/convex';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -139,6 +140,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [searchParams, setSearchParams] = useSearchParams();
   const [fakeLoading, setFakeLoading] = useState(false);
   const files = useStore(workbenchStore.files);
+  const convexTeamName = useStore(convexTeamNameStore);
   const actionAlert = useStore(workbenchStore.alert);
   const deployAlert = useStore(workbenchStore.deployAlert);
   const supabaseAlert = useStore(workbenchStore.supabaseAlert);
@@ -185,8 +187,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       promptId,
       contextOptimization: contextOptimizationEnabled,
       authToken: jwtToken,
+      convexTeamName,
     }),
-    [files, promptId, contextOptimizationEnabled, jwtToken],
+    [files, promptId, contextOptimizationEnabled, jwtToken, convexTeamName],
   );
 
   const { takeSnapshot } = useChatHistory();
