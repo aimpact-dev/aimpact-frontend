@@ -36,6 +36,7 @@ import { LazySandbox } from '~/lib/daytona/lazySandbox';
 import { getSandbox } from '~/lib/daytona';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+import ConvexView from './convex/ConvexView';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -67,6 +68,10 @@ const sliderOptions: SliderOptions<WorkbenchViewType> = [
   {
     value: 'contracts',
     text: 'Smart Contracts',
+  },
+  {
+    value: 'convex',
+    text: 'Convex',
   },
   {
     value: 'preview',
@@ -352,6 +357,11 @@ export const Workbench = memo(
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
 
+    const isConvexProject = useMemo(() => {
+      const actualFiles = workbenchStore.files.get();
+      return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex')) ;
+    }, [files]);
+
     const isMobile = useViewport(768);
     const isSmallViewport = useViewport(1024);
 
@@ -474,7 +484,8 @@ export const Workbench = memo(
 
           customPreviewState.current = 'Starting the preview...';
           if (!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)) {
-            workbenchStore.getMainShell.executeCommand(getPreviewStartCommand(packageJson)).catch((err) => {
+            let startCommand = getPreviewStartCommand(packageJson);
+            workbenchStore.getMainShell.executeCommand(startCommand).catch((err) => {
               console.error(err);
               customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
             });
@@ -672,6 +683,9 @@ export const Workbench = memo(
                     animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
                   >
                     <SmartContractView postMessage={postMessage} />
+                  </View>
+                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'convex' ? '0%' : '100%' }}>
+                    <ConvexView isConvexProject={isConvexProject} />
                   </View>
                   <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
                     <Preview customText={customPreviewState.current} />
