@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button, Input, Label } from '~/components/ui';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '~/components/ui/accordion';
 import { convexTeamNameStore } from '~/lib/stores/convex';
 import { workbenchStore } from '~/lib/stores/workbench';
 
@@ -26,35 +27,70 @@ export default function ConvexView({ isConvexProject = true }: { isConvexProject
 
   return (
     <div className="flex w-full h-full justify-center bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
-      <div className="w-full bg-bolt-elements-background-depth-2 px-6 py-8 overflow-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex flex-col xl:gap-6 gap-3 px-6 py-8 bg-bolt-elements-background-depth-3 rounded-sm">
-          <div className="flex justify-between">
-            <h1>Convex configuration</h1>
-          </div>
-          <div className="mt-4 gap-y-2 flex flex-col justify-center items-center">
-            <Label htmlFor="convex-key-input">Convex deploy key</Label>
-            <Input
-              id="convex-key-input"
-              className="max-w-[360px] w-full mb-3"
-              value={maskedApiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setMaskedApiKey('•'.repeat(e.target.value.length));
-              }}
-              disabled={!isConvexProject || buttonDisabled}
-            />
+      {isConvexProject ? (
+        <div className="w-full bg-bolt-elements-background-depth-2 px-6 py-8 overflow-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-col xl:gap-4 gap-3 px-6 py-8 bg-bolt-elements-background-depth-3 rounded-sm">
+            <div className="flex flex-col gap-1">
+              <h1>Convex configuration</h1>
+              <p className="text-sm">
+                To launch backend we use Convex.dev, so please paste your Development Deploy Key below and click Save.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="convex-key-input" className="flex gap-2">
+                <div className="i-ph:key h-4.5 w-4.5 color-accent-300"></div>
+                Convex deploy key
+              </Label>
+              <div className="flex gap-3">
+                <Input
+                  id="convex-key-input"
+                  className="w-full"
+                  value={maskedApiKey}
+                  onChange={(e) => {
+                    setApiKey(e.target.value);
+                    setMaskedApiKey('•'.repeat(e.target.value.length));
+                  }}
+                  disabled={buttonDisabled}
+                />
 
-            <Button
-              disabled={!isConvexProject || buttonDisabled}
-              className="px-8"
-              variant="default"
-              onClick={handleSaveButton}
-            >
-              Save!
-            </Button>
+                <Button disabled={buttonDisabled} variant="default" onClick={handleSaveButton}>
+                  Save
+                </Button>
+              </div>
+            </div>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="build">
+                <AccordionTrigger>
+                  <div className="flex gap-2 items-center">
+                    <div className="i-ph:question h-4.5 w-4.5 color-accent-300"></div> How to get deploy key
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="flex flex-col gap-3">
+                  <p>
+                    1. Go to{' '}
+                    <a href="https://dashboard.convex.dev" target="_blank" className="inline font-bold hover:underline">
+                      dashboard.convex.dev
+                    </a>{' '}
+                    and log in. <br />
+                    2. Click Create project. <br />
+                    3. Go to the project Settings, open URL & Deploy Key → open Show development credentials dropdown.{' '}
+                    <br />
+                    4. Click Generate Development Deploy Key, enter any name, and then Save. <br />
+                    5. Copy the Development Deploy Key and paste it here. <br />
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </div>
-      </div>
+      ) : (
+        <p className="max-w-70 text-center self-center">
+          This project does not use Convex. <br />
+          <span className="text-muted-foreground text-sm">
+            Add Convex to your codebase to enable deployment settings.
+          </span>
+        </p>
+      )}
     </div>
   );
 }
