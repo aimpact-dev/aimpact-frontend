@@ -124,7 +124,7 @@ Your application is now fully functional with x402 protocol integration for paym
 
 ---
 
-### Step 7: (Optional) Deploy to Production
+### Step 7: Deploy to Production
 
 If you want to deploy your application under the `aimpact.dev` domain:
 
