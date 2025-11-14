@@ -69,7 +69,7 @@ export const STARTER_TEMPLATES: Template[] = [
     name: 'vite-solana-convex-app',
     label: 'Vite + Solana + React + Convex + Typescript',
     description:
-      'Solana blockchain with Convex backend + Frontend with React and Vite. Convex backend have configured x402 framework. Choose only if user needed x402.\n' +
+      'Solana blockchain with Convex backend + Frontend with React and Vite. Convex backend have configured x402 framework. Use this template if user wants to sell paid content or use any other paid content powered by x402.\n' +
       'About x402: it is an open, blockchain payment protocol developed by Coinbase that revitalizes the HTTP 402 status code to enable automatic micropayments. It allows APIs to programmatically pay for access to services with USDC (Solana) without complex authentication.',
     tags: ['typescript', 'vite', 'react', 'web3', 'blockchain', 'achor', 'dapp', 'payments', 'x402'],
     icon: 'i-bolt:react',

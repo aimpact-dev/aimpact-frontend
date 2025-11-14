@@ -9,7 +9,7 @@
     "dev:frontend": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "predev": "convex dev --until-success"
+    "predev": "convex dev --until-success --typecheck=disable"
   },
   "dependencies": {
     "@coinbase/x402": "^0.7.1",
