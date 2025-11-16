@@ -56,6 +56,14 @@ interface WorkspaceProps {
 
 const viewTransition = { ease: cubicEasingFn };
 
+function animationForView(view: WorkbenchViewType, selectedView: WorkbenchViewType): { x: '0%' | '100%' | '-100%' } {
+  const viewIndex = sliderOptions.findIndex(({ value }) => value === view);
+  const selectedViewIndex = sliderOptions.findIndex(({ value }) => value === selectedView);
+
+  const shift = viewIndex === selectedViewIndex ? '0%' : viewIndex < selectedViewIndex ? '-100%' : '100%';
+  return { x: shift };
+}
+
 const sliderOptions: SliderOptions<WorkbenchViewType> = [
   {
     value: 'code',
@@ -359,7 +367,7 @@ export const Workbench = memo(
 
     const isConvexProject = useMemo(() => {
       const actualFiles = workbenchStore.files.get();
-      return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex')) ;
+      return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex'));
     }, [files]);
 
     const isMobile = useViewport(768);
@@ -652,7 +660,7 @@ export const Workbench = memo(
                   )}
                 </div>
                 <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
+                  <View initial={{ x: '0%' }} animate={animationForView('code', selectedView)}>
                     <EditorPanel
                       editorDocument={currentDocument}
                       isStreaming={isStreaming}
@@ -668,26 +676,20 @@ export const Workbench = memo(
                       isAutoSaveEnabled={isAutoSaveEnabled}
                     />
                   </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
-                  >
+                  <View initial={{ x: '100%' }} animate={animationForView('diff', selectedView)}>
                     <DiffView
                       fileHistory={fileHistory}
                       setFileHistory={setFileHistory}
                       isTabOpen={selectedView === 'diff'}
                     />
                   </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
-                  >
+                  <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
                     <SmartContractView postMessage={postMessage} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'convex' ? '0%' : '100%' }}>
+                  <View initial={{ x: '100%' }} animate={animationForView('convex', selectedView)}>
                     <ConvexView isConvexProject={isConvexProject} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                  <View initial={{ x: '100%' }} animate={animationForView('preview', selectedView)}>
                     <Preview customText={customPreviewState.current} />
                   </View>
                 </div>
