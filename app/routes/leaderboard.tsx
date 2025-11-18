@@ -17,9 +17,6 @@ export default function Leaderboard() {
   const { data: leaderboardData, error: leaderboardError } = useGetLeaderboardTopQuery();
   const { data: userPositionData, error: userPositionError } = useGetLeaderboardPositionQuery(jwtToken);
 
-  console.log(leaderboardData);
-  console.log(userPositionData);
-
   useEffect(() => {
     if (leaderboardError) {
       toast.error('Failed to get leaderboard data.');
