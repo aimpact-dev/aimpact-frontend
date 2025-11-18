@@ -10,9 +10,9 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'border-transparent bg-bolt-elements-background text-bolt-elements-textPrimary hover:bg-bolt-elements-background/80',
+          'border-transparent bg-bolt-elements-button-primary-background text-bolt-elements-textPrimary hover:bg-bolt-elements-button-primary-background/80',
         secondary:
-          'border-transparent bg-bolt-elements-background text-bolt-elements-textSecondary hover:bg-bolt-elements-background/80',
+          'border-transparent bg-bolt-elements-button-primary-background text-bolt-elements-textSecondary hover:bg-bolt-elements-button-primary-background/80',
         destructive: 'border-transparent bg-red-500/10 text-red-500 hover:bg-red-500/20',
         outline: 'text-bolt-elements-textPrimary',
         primary: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',

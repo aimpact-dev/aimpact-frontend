@@ -18,8 +18,8 @@ const buttonSizes = {
 const textSizes = {
   lg: 'text-lg md:text-lg',
   xl: 'text-lg  md:text-xl ',
-  '2xl': 'text-xl md:text-2xl ',
-  '3xl': 'text-xl md:text-3xl ',
+  '2xl': 'text-lg md:text-2xl ',
+  '3xl': 'text-lg md:text-3xl ',
 };
 
 export default function BackButton({ url, children, size = 'xl', className }: Props) {

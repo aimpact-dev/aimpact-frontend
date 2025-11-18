@@ -21,13 +21,14 @@ import GradientPage from '~/components/wrappers/GradientPage';
 import DeployButton from '~/components/deploy/DeployButton';
 import BackButton from '~/components/ui/BackButton';
 import useViewport from '~/lib/hooks';
+import { shortenString } from '~/utils/shortenString';
 
 const InfoRow = ({ label, children, hidden }: { label: string; children: React.ReactNode; hidden?: boolean }) => {
   if (hidden) return null;
   return (
-    <div className="flex justify-between items-center border-b border-white/15 pb-3">
+    <div className="text-sm md:text-base flex justify-between items-center border-b border-white/15 pb-3">
       <span className="text-white/80">{label}</span>
-      <span className="text-md font-bold text-white">{children}</span>
+      <span className="font-bold text-white">{children}</span>
     </div>
   );
 };
@@ -129,7 +130,7 @@ export default function Project() {
               <BackButton url="/projects" size="3xl" className="mb-unset">
                 {isMobile ? 'Back to projects' : project.name}
               </BackButton>
-              {isMobile && <p className="text-3xl font-bold">{project.name}</p>}
+              {isMobile && <p className="text-2xl md:text-3xl font-bold">{project.name}</p>}
               {isOwner && (
                 <div className="flex gap-2 items-center self-end md:self-unset">
                   <TwitterShareButton
@@ -156,11 +157,11 @@ export default function Project() {
             </div>
           </section>
           <section className="mb-12">
-            <h2 className="text-2xl font-bold text-purple-300 mb-4">Project Overview</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-purple-300 mb-4">Project Overview</h2>
 
             <div className="flex justify-between gap-6">
-              <p className="text-md md:text-xl leading-relaxed text-gray-300">
-                {project.description || 'No description available.'}
+              <p className="text-sm md:text-base leading-relaxed text-gray-300">
+                {project.description || 'No description.'}
               </p>
 
               {isOwner && (
@@ -180,23 +181,29 @@ export default function Project() {
 
         {/* Project Details */}
         <section className="mb-12 bg-black/10 rounded-xl p-8 border-1 border-white/15 shadow-xl">
-          <h2 className="text-xl font-semibold text-purple-300 mb-6">Project Details</h2>
+          <h2 className="text-lg md:text-xl font-semibold text-purple-300 mb-6">Project Details</h2>
           <div className="space-y-4">
             <InfoRow label="Created:">{new Date(project.createdAt).toLocaleString()}</InfoRow>
             <InfoRow label="Last Updated:">{new Date(project.updatedAt).toLocaleString()}</InfoRow>
             {project.category && <InfoRow label="Category:">{project.category}</InfoRow>}
 
-            <h2 className="text-xl font-semibold text-purple-300 mb-6">Deployment Links</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-purple-300 mb-6">Deployment Links</h2>
             {deployUrls && deployUrls.length > 0 ? (
               deployUrls.map(({ name, url }) => (
                 <InfoRow key={name} label={name}>
-                  <a href={url} className="hover:underline" target="_blank" rel="noopener noreferrer">
-                    {formatUrl(url)}
+                  <a
+                    href={url}
+                    className="text-sm md:text-base flex gap-1 items-center underline decoration-current hover:decoration-transparent transition-colors duration-100"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {shortenString(formatUrl(url), 14, 14)}
+                    <div className="inline-block text-lg i-ph:arrow-square-out"></div>
                   </a>
                 </InfoRow>
               ))
             ) : (
-              <p>This project hasn't been deployed yet</p>
+              <p className="text-sm md:text-base">This project hasn't been deployed yet</p>
             )}
 
             <a
@@ -206,7 +213,7 @@ export default function Project() {
               )}
               onClick={() => setShowTokenWindow(true)}
             >
-              <h2 className="text-xl font-semibold">Token Info</h2>
+              <h2 className="text-lg md:text-xl font-semibold">Token Info</h2>
               {tokenInfo && <div className="i-ph:arrow-line-up-right size-5" />}
             </a>
 
@@ -249,7 +256,7 @@ export default function Project() {
             ) : tokenInfoLoading ? (
               <LoadingDots text={'Loading'} />
             ) : (
-              <p>This project doesn't have a token</p>
+              <p className="text-sm md:text-base">This project doesn't have a token</p>
             )}
           </div>
         </section>
