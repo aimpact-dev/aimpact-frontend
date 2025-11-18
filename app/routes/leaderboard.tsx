@@ -7,14 +7,18 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import { toast } from 'react-toastify';
 import { useWallet } from '@solana/wallet-adapter-react';
 import Footer from '~/components/footer/Footer';
+import { shortenString } from '~/utils/shortenString';
 
 export default function Leaderboard() {
   const { jwtToken, isAuthorized } = useAuth();
   const { publicKey } = useWallet();
   const address = useMemo(() => publicKey?.toBase58(), [publicKey]);
 
-  const { data: leaderboardData, error: leaderboardError } = useGetLeaderboardTopQuery(jwtToken);
+  const { data: leaderboardData, error: leaderboardError } = useGetLeaderboardTopQuery();
   const { data: userPositionData, error: userPositionError } = useGetLeaderboardPositionQuery(jwtToken);
+
+  console.log(leaderboardData);
+  console.log(userPositionData);
 
   useEffect(() => {
     if (leaderboardError) {
@@ -73,7 +77,7 @@ export default function Leaderboard() {
                     >
                       <div className="flex items-center">
                         <Badge
-                          variant={getRatingBadgeVariant(entry.points)}
+                          variant={getRatingBadgeVariant(index + 1)}
                           size="lg"
                           className="w-8 h-8 flex items-center justify-center font-bold"
                         >
@@ -89,25 +93,23 @@ export default function Leaderboard() {
                           className="text-purple-300 bg-gray-800/50 px-2 py-1 rounded
                           font-mono text-sm hover:underline transition-colors"
                         >
-                          {`${entry.user.wallet}${isSelf ? ' (You)' : ''}`}
+                          {`${shortenString(entry.user.wallet)}${isSelf ? ' (You)' : ''}`}
                         </a>
                       </div>
 
                       <div className="flex items-center justify-end">
-                        <span className="text-white font-semibold text-lg">{entry.points.toLocaleString()}</span>
+                        <span className="text-white font-semibold text-base">{entry.points.toLocaleString()}</span>
                       </div>
                     </div>
                   );
                 })
-              ) : isAuthorized ? (
-                <p className="text-center">Plesase connect wallet</p>
               ) : (
                 <p className="text-center">Loading...</p>
               )}
             </div>
 
             {/* show outside top */}
-            {userPositionData && (
+            {isAuthorized && userPositionData && (
               <div
                 className="grid grid-cols-3 gap-4 p-4 px-6 mt-6 rounded-lg
                 bg-[#9987ee1a] border border-[#9987ee]"
@@ -116,7 +118,7 @@ export default function Leaderboard() {
                   <Badge
                     variant={getRatingBadgeVariant(userPositionData.points)}
                     size="lg"
-                    className="w-8 h-8 flex items-center justify-center font-bold"
+                    className="w-8 h-8 flex items-center justify-center font-bold !text-base"
                   >
                     {userPositionData.position}
                   </Badge>
@@ -129,7 +131,7 @@ export default function Leaderboard() {
                     className="text-purple-300 bg-[#9987ee1a] px-2 py-1 rounded
                       font-mono text-sm hover:underline transition-colors"
                   >
-                    {`${address} (You)`}
+                    {`${address && shortenString(address)} (You)`}
                   </a>
                 </div>
                 <div className="flex items-center justify-end">
