@@ -2,7 +2,7 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import type { JSONValue, Message, UIMessage } from 'ai';
+import type { JSONValue, UIMessage } from 'ai';
 import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { IconButton } from '~/components/ui/IconButton';
@@ -41,6 +41,7 @@ import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import TokenInfoNavButton from './TokenInfoButton';
 import DeployTokenNavButton from './DeployTokenNavButton';
 import { HeaderActionButtons } from '../header/HeaderActionButtons.client';
+import type { MessageDataEvent } from '~/lib/message';
 
 const TEXTAREA_MIN_HEIGHT = 95;
 
@@ -62,7 +63,7 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
-  importChat?: (description: string, messages: Message[]) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
   exportChat?: () => void;
   uploadedFiles?: File[];
   setUploadedFiles?: (files: File[]) => void;
@@ -74,7 +75,7 @@ interface BaseChatProps {
   clearSupabaseAlert?: () => void;
   deployAlert?: DeployAlert;
   clearDeployAlert?: () => void;
-  data?: JSONValue[] | undefined;
+  data?: MessageDataEvent[] | undefined;
   actionRunner?: ActionRunner;
   showWorkbench?: boolean;
 }
@@ -87,7 +88,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatStarted = false,
       isStreaming = false,
       onStreamingChange,
-      providerList,
       input = '',
       enhancingPrompt,
       handleInputChange,
@@ -118,7 +118,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const [progressAnnotations, setProgressAnnotations] = useState<MessageDataEvent[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const params = useParams();
@@ -143,9 +143,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     useEffect(() => {
       if (data) {
-        const progressList = data.filter(
-          (x) => typeof x === 'object' && (x as any).type === 'progress',
-        ) as ProgressAnnotation[];
+        const progressList = data.filter((x) => x.type === 'data-progress');
         setProgressAnnotations(progressList);
       }
     }, [data]);
@@ -511,7 +509,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <SendButton
                           show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
                           isStreaming={isStreaming}
-                          disabled={!providerList || providerList.length === 0 || isDisabled}
+                          disabled={isDisabled}
                           onClick={(event) => {
                             if (isStreaming) {
                               handleStop?.();

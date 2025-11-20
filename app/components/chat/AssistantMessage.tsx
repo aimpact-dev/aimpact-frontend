@@ -107,7 +107,7 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
           <div className="flex w-full items-center justify-between">
             {usage && (
               <div>
-                Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
+                Tokens: {usage.totalTokens} (prompt: {usage.inputTokens}, completion: {usage.outputTokens})
               </div>
             )}
             {(onRewind || onFork) && messageId && (

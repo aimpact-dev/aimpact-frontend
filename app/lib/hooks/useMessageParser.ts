@@ -1,9 +1,10 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { useCallback, useState } from 'react';
 import { StreamingMessageParser } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 import { currentParsingMessageState } from '../stores/parse';
+import { extractContentFromUI } from '~/utils/message';
 
 const logger = createScopedLogger('useMessageParser');
 
@@ -47,15 +48,11 @@ const messageParser = new StreamingMessageParser({
     },
   },
 });
-const extractTextContent = (message: Message) =>
-  Array.isArray(message.content)
-    ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
-    : message.content;
 
 export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
 
-  const parseMessages = useCallback((messages: Message[], isLoading: boolean) => {
+  const parseMessages = useCallback((messages: UIMessage[], isLoading: boolean) => {
     let reset = false;
 
     if (import.meta.env.DEV && !isLoading) {
@@ -67,7 +64,7 @@ export function useMessageParser() {
       if (message.role === 'assistant' || message.role === 'user') {
         const newParsedContent = messageParser.parse(
           message.id,
-          extractTextContent(message),
+          extractContentFromUI(message),
           messages.map((m) => m.id),
         );
         setParsedMessages((prevParsed) => ({

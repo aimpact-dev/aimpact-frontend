@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { generateId } from './fileUtils';
 
 export interface ProjectCommands {
@@ -75,7 +75,7 @@ export async function detectProjectCommands(files: FileContent[]): Promise<Proje
   return { type: '', setupCommand: '', followupMessage: '' };
 }
 
-export function createCommandsMessage(commands: ProjectCommands): Message | null {
+export function createCommandsMessage(commands: ProjectCommands): UIMessage | null {
   if (!commands.setupCommand) {
     return null;
   }

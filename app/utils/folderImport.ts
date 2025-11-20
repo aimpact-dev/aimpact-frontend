@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { generateId } from './fileUtils';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from './projectCommands';
 
@@ -6,7 +6,7 @@ export const createChatFromFolder = async (
   files: File[],
   binaryFiles: string[],
   folderName: string,
-): Promise<Message[]> => {
+): Promise<UIMessage[]> => {
   const fileArtifacts = await Promise.all(
     files.map(async (file) => {
       return new Promise<{ content: string; path: string }>((resolve, reject) => {
@@ -34,7 +34,7 @@ export const createChatFromFolder = async (
       ? `\n\nSkipped ${binaryFiles.length} binary files:\n${binaryFiles.map((f) => `- ${f}`).join('\n')}`
       : '';
 
-  const filesMessage: Message = {
+  const filesMessage: UIMessage = {
     role: 'assistant',
     content: `I've imported the contents of the "${folderName}" folder.${binaryFilesMessage}
 
@@ -51,7 +51,7 @@ ${escapeBoltTags(file.content)}
     createdAt: new Date(),
   };
 
-  const userMessage: Message = {
+  const userMessage: UIMessage = {
     role: 'user',
     id: generateId(),
     content: `Import the "${folderName}" folder`,
