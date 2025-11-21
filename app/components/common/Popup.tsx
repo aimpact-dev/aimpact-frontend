@@ -5,8 +5,8 @@ import { classNames } from '~/utils/classNames';
 import { createPortal } from 'react-dom';
 
 interface CustDevPopupProps extends PropsWithChildren {
-  handleToggle: () => void;
   isShow: boolean;
+  handleToggle: () => void;
   backgroundElement?: boolean;
   positionClasses?: string;
   closeByTouch?: boolean;
@@ -25,10 +25,9 @@ export default function Popup({
   closeByTouch = true,
 }: CustDevPopupProps) {
   return (
-    isShow &&
-    createPortal(
+    isShow && (
       <AnimatePresence>
-        <div className={classNames('fixed inset-0 z-[1000] overflow-y-auto', className)}>
+        <div className={classNames('fixed inset-0 z-7000 overflow-y-auto', className)}>
           <div className="flex relative items-center justify-center min-h-screen px-8 pt-8 pb-20 text-center">
             {backgroundElement && (
               <div
@@ -54,19 +53,13 @@ export default function Popup({
                 <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
               </button>
 
-              <div
-                className={classNames(
-                  childrenClasses,
-                  'p-5 bg-bolt-elements-background bg-bolt-elements-background-depth-3 text-center',
-                )}
-              >
+              <div className={classNames(childrenClasses, 'p-5 bg-bolt-elements-background-depth-3 text-center')}>
                 {children}
               </div>
             </motion.div>
           </div>
         </div>
-      </AnimatePresence>,
-      document.body,
+      </AnimatePresence>
     )
   );
 }

@@ -3,7 +3,7 @@ import { type Message, type UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { cssTransition, toast, ToastContainer } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
@@ -33,11 +33,6 @@ import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { convexTeamNameStore } from '~/lib/stores/convex';
-
-const toastAnimation = cssTransition({
-  enter: 'animated fadeInRight',
-  exit: 'animated fadeOutRight',
-});
 
 const logger = createScopedLogger('Chat');
 
@@ -69,34 +64,6 @@ export function Chat() {
           importChat={importChat}
         />
       )}
-      <ToastContainer
-        closeButton={({ closeToast }) => {
-          return (
-            <button className="Toastify__close-button" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
-            </button>
-          );
-        }}
-        icon={({ type }) => {
-          /**
-           * @todo Handle more types if we need them. This may require extra color palettes.
-           */
-          switch (type) {
-            case 'success': {
-              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
-            }
-            case 'error': {
-              return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
-            }
-          }
-
-          return undefined;
-        }}
-        position="bottom-right"
-        pauseOnFocusLoss
-        transition={toastAnimation}
-        autoClose={3000}
-      />
     </>
   );
 }
