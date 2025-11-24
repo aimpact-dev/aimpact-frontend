@@ -20,7 +20,7 @@ import {
 import { profileStore } from '~/lib/stores/profile';
 import type { TabType, TabVisibilityConfig, Profile } from './types';
 import { TAB_LABELS, DEFAULT_TAB_CONFIG } from './constants';
-import { DialogTitle } from '~/components/ui/Dialog';
+import { DialogTitle } from '~/components/ui/CustomDialog';
 import { AvatarDropdown } from './AvatarDropdown';
 import BackgroundRays from '~/components/ui/BackgroundRays';
 

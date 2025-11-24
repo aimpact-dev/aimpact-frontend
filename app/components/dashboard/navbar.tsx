@@ -8,13 +8,13 @@ import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderboardNavButton from '../chat/LeaderboardNavButton';
 import ProjectsNavButton from '../chat/ProjectsNavButton';
-import useViewport from '~/lib/hooks';
 import MobileMenu from '../header/MobileMenu';
+import { useViewport } from '~/lib/hooks';
 
 const Navbar = () => {
   const { scrollY } = useScroll();
   const navigate = useNavigate();
-  const isMobile = useViewport(768);
+  const { isMobile } = useViewport();
   const navbarBackground = useTransform(scrollY, [0, 100], ['rgba(20,20,20,0)', 'rgba(20,20,20,0.8)']);
 
   return !isMobile ? (

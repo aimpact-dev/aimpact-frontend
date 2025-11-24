@@ -20,7 +20,7 @@ import ProjectInfoUpdateForm from '~/components/dashboard/ProjectInfoUpdateForm'
 import GradientPage from '~/components/wrappers/GradientPage';
 import DeployButton from '~/components/deploy/DeployButton.client';
 import BackButton from '~/components/ui/BackButton';
-import useViewport from '~/lib/hooks';
+import { useViewport } from '~/lib/hooks/useViewport';
 
 const InfoRow = ({ label, children, hidden }: { label: string; children: React.ReactNode; hidden?: boolean }) => {
   if (hidden) return null;
@@ -44,7 +44,7 @@ export default function Project() {
   const auth = useAuth();
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
-  const isMobile = useViewport(768);
+  const { isMobile } = useViewport();
 
   const isOwner = useMemo(() => {
     return !!(
@@ -103,11 +103,8 @@ export default function Project() {
         handleToggle={() => {
           setShowInfoUpdateWindow(!showInfoUpdateWindow);
         }}
+        title="Project details"
       >
-        <div className="mb-5">
-          <h1 className="text-2xl font-bold">Project details</h1>
-        </div>
-
         <ProjectInfoUpdateForm projectId={params.id} jwtToken={auth?.jwtToken} setShowForm={setShowInfoUpdateWindow} />
       </Popup>
       <section id="project">
@@ -241,7 +238,6 @@ export default function Project() {
                   handleToggle={() => {
                     setShowTokenWindow(!showTokenWindow);
                   }}
-                  positionClasses="sm:max-w-[500px] sm:w-[500px] mt-12"
                 >
                   <TokenInfoForm tokenData={tokenInfo} />
                 </Popup>

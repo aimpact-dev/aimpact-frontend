@@ -100,11 +100,11 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    if (balanceError) {
-      toast.error('Failed to fetch wallet balance.', { autoClose: false });
-    }
-  }, [balanceError]);
+  // useEffect(() => {
+  //   if (balanceError) {
+  //     toast.error('Failed to fetch wallet balance.', { autoClose: false });
+  //   }
+  // }, [balanceError]);
 
   const schema = createSchema(walletBalance);
 
@@ -195,12 +195,34 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     }
   };
 
+  const DescriptionField = (className: string) => (
+    <FormField
+      control={control}
+      name="description"
+      render={({ field }) => (
+        <FormItem className={`flex-1 flex flex-col ${className}`}>
+          <FormLabel>Description</FormLabel>
+          <FormControl className="flex-1">
+            <Textarea
+              placeholder="Short description of your token"
+              className="resize-none h-full"
+              autoComplete="off"
+              disabled={isSubmitting}
+              {...field}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mx-auto">
         <div className="flex gap-5">
           <div className="flex flex-col gap-5">
-            <div className="flex gap-3 *:flex-1">
+            <div className="flex gap-3 flex-col md:flex-row *:flex-1">
               <FormField
                 control={control}
                 name="name"
@@ -230,25 +252,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
               />
             </div>
 
-            <FormField
-              control={control}
-              name="description"
-              render={({ field }) => (
-                <FormItem className="flex-1 flex flex-col">
-                  <FormLabel>Description</FormLabel>
-                  <FormControl className="flex-1">
-                    <Textarea
-                      placeholder="Short description of your token"
-                      className="resize-none h-full"
-                      autoComplete="off"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {DescriptionField('hidden md:flex')}
           </div>
 
           <FormField
@@ -257,7 +261,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Image {<RequiredFieldMark />}</FormLabel>
-                <div className="mt-2 w-32 h-32 border border-border-light rounded-md overflow-hidden">
+                <div className="mt-2 w-24 h-24 md:w-32 md:h-32 border border-border-light rounded-md overflow-hidden">
                   {imagePreview && <img src={imagePreview} alt="Preview" className="object-contain w-full h-full" />}
                 </div>
                 <FormControl>
@@ -288,6 +292,8 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
           />
         </div>
 
+        {DescriptionField('flex md:hidden')}
+
         <FormField
           control={control}
           name="prebuy"
@@ -299,7 +305,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
             <FormItem>
               <div className="flex justify-between">
                 <FormLabel>Prebuy Amount</FormLabel>
-                <FormDescription>
+                <FormDescription className="hidden md:inline">
                   {/* Balance:{' '}
                   {isBalanceLoading ? (
                     <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>

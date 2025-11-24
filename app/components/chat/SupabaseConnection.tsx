@@ -4,7 +4,7 @@ import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { fetchSupabaseStats } from '~/lib/stores/supabase';
-import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
+import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/CustomDialog';
 
 export function SupabaseConnection() {
   const {

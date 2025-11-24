@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '~/components/ui/Button';
-import { ConfirmationDialog, SelectionDialog } from '~/components/ui/Dialog';
+import { ConfirmationDialog, SelectionDialog } from '~/components/ui/CustomDialog';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '~/components/ui/Card';
 import { motion } from 'framer-motion';
 import { useDataOperations } from '~/lib/hooks/useDataOperations';

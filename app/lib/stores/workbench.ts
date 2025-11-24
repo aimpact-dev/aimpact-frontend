@@ -175,6 +175,10 @@ export class WorkbenchStore {
     this.showWorkbench.set(show);
   }
 
+  setCurrentView(view: WorkbenchViewType) {
+    this.currentView.set(view);
+  }
+
   setCurrentDocumentContent(newContent: string) {
     const filePath = this.currentDocument.get()?.filePath;
 
@@ -584,7 +588,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        this.setCurrentView('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];
@@ -613,7 +617,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        this.setCurrentView('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];
