@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 import { type UIMessage } from 'ai';
 import { getAllChats, deleteChat } from '~/lib/persistence/chats';
+import { extractContentFromUI } from '~/utils/message';
 
 interface ExtendedMessage extends UIMessage {
   name?: string;
@@ -33,7 +34,7 @@ export class ImportExportService {
         messages: chat.messages.map((msg: ExtendedMessage) => ({
           id: msg.id,
           role: msg.role,
-          content: msg.content,
+          content: extractContentFromUI(msg),
           name: msg.name,
           function_call: msg.function_call,
           timestamp: msg.timestamp,

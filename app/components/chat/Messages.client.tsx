@@ -53,7 +53,6 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               const { role, id: messageId } = message;
               const content = extractContentFromUI(message);
               const isUserMessage = role === 'user';
-              const isFirst = index === 0;
               const isLast = index === messages.length - 1;
               const isHidden = message.metadata?.hidden;
 
@@ -91,7 +90,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     ) : (
                       <AssistantMessage
                         content={content}
-                        annotations={message.metadata}
+                        metadata={message.metadata}
                         messageId={messageId}
                         onRewind={handleRewind}
                         onFork={handleFork}

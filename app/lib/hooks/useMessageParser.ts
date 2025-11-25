@@ -12,6 +12,7 @@ const messageParser = new StreamingMessageParser({
   callbacks: {
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
+      console.log('onArtifactOpen', data);
 
       //TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
       //The purpose of this store is to save id of the artifact currently being parsed.
@@ -21,6 +22,7 @@ const messageParser = new StreamingMessageParser({
     },
     onArtifactClose: (data) => {
       logger.trace('onArtifactClose');
+      console.log('onArtifactClose', data);
 
       currentParsingMessageState.set(null);
       workbenchStore.updateArtifact(data, { closed: true });
@@ -55,23 +57,27 @@ export function useMessageParser() {
   const parseMessages = useCallback((messages: UIMessage[], isLoading: boolean) => {
     let reset = false;
 
-    if (import.meta.env.DEV && !isLoading) {
-      reset = true;
-      messageParser.reset();
-    }
+    // console.log('IS DEV', import.meta.env.DEV, !isLoading);
+    // if (import.meta.env.DEV && !isLoading) {
+    //   reset = true;
+    //   messageParser.reset();
+    // }
 
     for (const [index, message] of messages.entries()) {
-      if (message.role === 'assistant' || message.role === 'user') {
-        const newParsedContent = messageParser.parse(
-          message.id,
-          extractContentFromUI(message),
-          messages.map((m) => m.id),
-        );
-        setParsedMessages((prevParsed) => ({
-          ...prevParsed,
-          [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
-        }));
-      }
+      const newParsedContent = messageParser.parse(
+        message.id,
+        extractContentFromUI(message),
+      );
+      console.log('after parse object', {
+        parsed: newParsedContent,
+        original: message,
+        index: index,
+        content: extractContentFromUI(message),
+      });
+      setParsedMessages((prevParsed) => ({
+        ...prevParsed,
+        [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
+      }));
     }
   }, []);
 

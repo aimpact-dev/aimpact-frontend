@@ -97,7 +97,7 @@ export function useChatHistory() {
               );
               filteredMessages = filteredMessages.map((message) => {
                 if (!message.metadata) {
-                  message.metadata = { noSnapshotSave: true };
+                  message.metadata = { noSnapshotSave: true, ignoreActions: true };
                 } else {
                   message.metadata.noSnapshotSave = true;
                   message.metadata.ignoreActions = true;

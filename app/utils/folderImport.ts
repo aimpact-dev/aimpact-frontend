@@ -1,4 +1,4 @@
-import type { UIMessage } from 'ai';
+import type { UIMessage } from '~/lib/message';
 import { generateId } from './fileUtils';
 import { detectProjectCommands, createCommandsMessage, escapeBoltTags } from './projectCommands';
 
@@ -36,7 +36,10 @@ export const createChatFromFolder = async (
 
   const filesMessage: UIMessage = {
     role: 'assistant',
-    content: `I've imported the contents of the "${folderName}" folder.${binaryFilesMessage}
+    parts: [
+      {
+        type: 'text',
+        text: `I've imported the contents of the "${folderName}" folder.${binaryFilesMessage}
 
 <boltArtifact id="imported-files" title="Imported Files" type="bundled" >
 ${fileArtifacts
@@ -47,15 +50,20 @@ ${escapeBoltTags(file.content)}
   )
   .join('\n\n')}
 </boltArtifact>`,
+      },
+    ],
     id: generateId(),
-    createdAt: new Date(),
   };
 
   const userMessage: UIMessage = {
     role: 'user',
     id: generateId(),
-    content: `Import the "${folderName}" folder`,
-    createdAt: new Date(),
+    parts: [
+      {
+        type: 'text',
+        text: `Import the "${folderName}" folder`,
+      },
+    ],
   };
 
   const messages = [userMessage, filesMessage];
@@ -64,7 +72,7 @@ ${escapeBoltTags(file.content)}
     messages.push({
       role: 'user',
       id: generateId(),
-      content: 'Setup the codebase and Start the application',
+      parts: [{ type: 'text', text: 'Setup the codebase and Start the application' }],
     });
     messages.push(commandsMessage);
   }

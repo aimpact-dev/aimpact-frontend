@@ -25,7 +25,7 @@ import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { convexTeamNameStore } from '~/lib/stores/convex';
 import type { MessageDataEvent, UIMessage } from '~/lib/message';
-import { DefaultChatTransport } from 'ai';
+import { DefaultChatTransport, generateId } from 'ai';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -105,14 +105,16 @@ const processSampledMessages = createSampler(
     let { messages } = options;
     const { initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
 
-    console.log('before filter', messages);
     messages = messages.filter((message) => {
-      return !message.parts.find((p) => p.type === 'text');
+      if (message.role === 'user') return true;
+      return message.parts?.find((p) => p.type === 'text');
     });
     messages = messages.map((message) => {
       return {
         ...message,
-        parts: message.parts.filter((p) => p.type != 'step-start' && p.type != 'reasoning'),
+        parts: message.parts.filter(
+          (p) => p.type != 'step-start' && p.type != 'reasoning' && !p.type.startsWith('data-'),
+        ),
       };
     });
 
@@ -123,6 +125,7 @@ const processSampledMessages = createSampler(
     parseMessages(filteredMessages, isLoading);
 
     if (messages.length > initialMessages.length) {
+      if (!messages.length) return;
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
   },
@@ -190,15 +193,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [input, setInput] = useState(Cookies.get(PROMPT_COOKIE_KEY) || '');
   const [streamDataEvents, setStreamDataEvents] = useState<MessageDataEvent[]>([]);
 
-  // const transport = useMemo(
-  //   () =>
-  //     new DefaultChatTransport({
-  //       api: new URL('/chat/stream', import.meta.env.PUBLIC_BACKEND_URL).href,
-  //       prepareSendMessagesRequest: () => ({ body: chatBody, headers: chatHeaders }),
-  //     }),
-  //   [chatBody, chatHeaders],
-  // );
-
   const { messages, status, stop, sendMessage, setMessages, regenerate, error } = useChat<UIMessage>({
     onError: (e) => {
       logger.error('Request failed\n\n', e, error);
@@ -247,6 +241,20 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
     onData: (dataPart) => {
       logger.debug('new data event', dataPart);
+      if (dataPart.type === 'data-template') {
+        const templateUIMessage: UIMessage = {
+          id: generateId(),
+          parts: [
+            {
+              type: 'text',
+              text: dataPart.data as string,
+            },
+          ],
+          role: 'system',
+        };
+        setMessages([...messages, templateUIMessage]);
+      }
+
       if (dataPart.type.startsWith('data-')) {
         setStreamDataEvents([...streamDataEvents, dataPart]);
       }
@@ -256,7 +264,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     experimental_throttle: 100,
 
     transport: new DefaultChatTransport({
-      api: new URL('/chat/stream2', import.meta.env.PUBLIC_BACKEND_URL)?.href,
+      api: new URL('/chat/test-stream', import.meta.env.PUBLIC_BACKEND_URL)?.href,
       headers: () => headersRef.current,
       body: () => bodyRef.current,
     }),
@@ -369,8 +377,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       logger.info(`AUTO SELECT TEMPLATE: ${autoSelectTemplate}`);
 
       // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
+      const id = Date.now().toString();
+      console.log('before sendMessage:', id);
       sendMessage({
-        id: `${new Date().getTime()}`,
+        id,
         role: 'user',
         parts: [
           {
@@ -398,7 +408,25 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
+    sendMessage({
+      id: generateId(),
+      role: 'user',
+      parts: [
+        {
+          type: 'text',
+          text: finalMessageContent,
+        },
+        // TODO: bro im tired of this shit
+        //   ...imageDataList.map((imageData) => ({
+        //     type: 'image',
+        //     image: imageData,
+        //   })),
+      ],
+    });
+    setFakeLoading(false);
+
     if (error != null) {
+      console.log('before error slice');
       setMessages(messages.slice(0, -1));
     }
 
@@ -484,7 +512,19 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         sendMessage={sendMessageCallback}
         handleInputChange={handleInputChangeAndCache}
         handleStop={abort}
-        messages={messages}
+        messages={
+          messages.map((message, i) => {
+            if (message.role === 'user') {
+              return message;
+            }
+
+            const parsedContent = parsedMessages[i];
+            return {
+              ...message,
+              parts: parsedContent ? [{ type: 'text', text: parsedContent || '' }] : message.parts,
+            };
+          }) as UIMessage[]
+        }
         enhancePrompt={enhancePromptCallback}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}

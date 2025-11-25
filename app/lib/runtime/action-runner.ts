@@ -165,7 +165,7 @@ export class ActionRunner {
           break;
         }
         case 'file': {
-          await this.#runFileAction(action.file);
+          await this.#runFileAction(action);
           break;
         }
         case 'build': {
