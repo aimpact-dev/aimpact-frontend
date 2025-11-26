@@ -1,4 +1,3 @@
-import type { Message } from 'ai';
 import { Fragment } from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
@@ -11,12 +10,14 @@ import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
+import { extractContentFromUI } from '~/utils/message';
+import type { UIMessage } from '~/lib/message';
 
 interface MessagesProps {
   id?: string;
   className?: string;
   isStreaming?: boolean;
-  messages?: Message[];
+  messages?: UIMessage[];
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
@@ -49,11 +50,11 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
       <div id={id} className={props.className} ref={ref}>
         {messages.length > 0
           ? messages.map((message, index) => {
-              const { role, content, id: messageId, annotations } = message;
+              const { role, id: messageId } = message;
+              const content = extractContentFromUI(message);
               const isUserMessage = role === 'user';
-              const isFirst = index === 0;
               const isLast = index === messages.length - 1;
-              const isHidden = annotations?.includes('hidden');
+              const isHidden = message.metadata?.hidden;
 
               if (isHidden) {
                 return <Fragment key={index} />;
@@ -89,7 +90,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                     ) : (
                       <AssistantMessage
                         content={content}
-                        annotations={message.annotations}
+                        metadata={message.metadata}
                         messageId={messageId}
                         onRewind={handleRewind}
                         onFork={handleFork}

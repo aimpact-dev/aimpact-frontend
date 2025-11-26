@@ -5,7 +5,7 @@ import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
-import { ActionRunner, type ActionState } from '~/lib/runtime/action-runner';
+import { ActionRunner } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
@@ -16,7 +16,7 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
-import { workbenchStore, type ArtifactState, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
@@ -32,8 +32,6 @@ import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence'
 import { currentParsingMessageState } from '~/lib/stores/parse';
 import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
-import { LazySandbox } from '~/lib/daytona/lazySandbox';
-import { getSandbox } from '~/lib/daytona';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import ConvexView from './convex/ConvexView';
@@ -340,7 +338,6 @@ export const Workbench = memo(
         console.log('chat idx in workbench', chatIdx);
         if (!chatIdx) return;
         // if (streamingState.get()) return;
-        console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
 
         const snapshotHaveChanges = Object.keys(files).length > 0;
         if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {

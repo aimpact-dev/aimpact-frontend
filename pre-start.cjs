@@ -11,7 +11,6 @@ const getGitHash = () => {
 
 let commitJson = {
   hash: JSON.stringify(getGitHash()),
-  version: JSON.stringify(process.env.npm_package_version),
 };
 
 console.log(`
@@ -20,7 +19,6 @@ console.log(`
          ⚡️  Welcome  ⚡️
 ★═══════════════════════════════════════★
 `);
-console.log('📍 Current Version Tag:', `v${commitJson.version}`);
 console.log('📍 Current Commit Version:', commitJson.hash);
 console.log('  Please wait until the URL appears here');
 console.log('★═══════════════════════════════════════★');

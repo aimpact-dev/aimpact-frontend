@@ -123,11 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    checkCreds().then(() => {
-       // console.log(`Is Auth new: ${isAuthorized} ${jwtToken.slice(0, 15)}`);
-       // console.log(`Jwt new: ${jwtToken} ${typeof jwtToken}`);
-       // console.log(`Public Key: ${publicKey}`);
-    });
+    checkCreds();
   }, [publicKey, connected, signMessage, disconnect]);
 
   useEffect(() => {
