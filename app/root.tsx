@@ -25,6 +25,7 @@ import 'virtual:uno.css';
 import LoadingScreen from './components/common/LoadingScreen';
 import { cssTransition, ToastContainer } from 'react-toastify';
 import GlobalPopupsProvider from './components/chat/GlobalPopups';
+import { ViewportProvider } from './lib/hooks/useViewport';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then((mod) => ({
@@ -99,13 +100,15 @@ function Providers({ children }: { children: React.ReactNode }) {
             {/*  autoConnectEmbeddedWallet*/}
             {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
             {/*>*/}
-            <RefCodeProvider>
-              <AuthProvider>
-                <DndProvider backend={HTML5Backend}>
-                  <GlobalPopupsProvider>{children}</GlobalPopupsProvider>
-                </DndProvider>
-              </AuthProvider>
-            </RefCodeProvider>
+            <ViewportProvider>
+              <RefCodeProvider>
+                <AuthProvider>
+                  <DndProvider backend={HTML5Backend}>
+                    <GlobalPopupsProvider>{children}</GlobalPopupsProvider>
+                  </DndProvider>
+                </AuthProvider>
+              </RefCodeProvider>
+            </ViewportProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
         </Suspense>

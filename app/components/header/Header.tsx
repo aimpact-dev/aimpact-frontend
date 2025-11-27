@@ -19,7 +19,7 @@ import { EventBanner } from '../ui/EventBanner';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import TokenInfoNavButton from '../chat/TokenInfoButton';
 import MobileMenu from './MobileMenu';
-import useViewport from '~/lib/hooks';
+import { useViewport } from '~/lib/hooks';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -38,7 +38,7 @@ export function Header() {
   const params = useParams();
   const navigate = useNavigate();
   const tokenInfoQuery = params.id ? useGetHeavenToken(params.id) : null;
-  const isMobile = useViewport(768);
+  const { isMobile } = useViewport();
 
   return (
     <>

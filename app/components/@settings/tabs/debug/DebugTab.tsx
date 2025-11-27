@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/component
 import { Progress } from '~/components/ui/Progress';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { Badge } from '~/components/ui/Badge';
-import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/CustomDialog';
 import { jsPDF } from 'jspdf';
 import { useSettings } from '~/lib/hooks/useSettings';
 

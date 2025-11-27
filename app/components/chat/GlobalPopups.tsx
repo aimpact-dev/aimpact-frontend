@@ -47,14 +47,6 @@ const WhatsNew = ({
   }[];
 }) => (
   <>
-    <div className="flex flex-col items-center gap-1 mb-5">
-      <div className="flex items-center gap-2">
-        <div className="inline-block i-ph:sparkle-bold text-lg text-accent-500"></div>
-        <h1 className="text-2xl font-bold ">What's new</h1>
-      </div>
-      <h2 className=" text-bolt-elements-textSecondary">Check our latest updates</h2>
-    </div>
-
     <div>
       {newsArticles.map((article) => {
         return (
@@ -180,11 +172,12 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
 
   // Reinitialize Youform when a popup should be shown
   useEffect(() => {
-    console.log(popupState);
     if (popupState.state === 'pmf' || popupState.state === 'nps' || popupState.state === 'intro') {
-      console.log('initting youform');
-      // @ts-ignore
-      window.YouformEmbed.init();
+      // use setTimeout to ensure init happens after DOM updates
+      setTimeout(() => {
+        // @ts-ignore
+        window.YouformEmbed.init();
+      }, 0);
 
       const handleSubmit = (event: MessageEvent<any>) => {
         if (event.data && event.data == 'youformComplete') {
@@ -211,6 +204,13 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
               popupState.markShown();
               setPopupState({ state: 'none' });
             }}
+            title={
+              <div className="flex items-center gap-2">
+                <div className="inline-block i-ph:sparkle-bold text-lg text-accent-500"></div>
+                <h1 className="text-2xl font-bold ">What's new</h1>
+              </div>
+            }
+            description="Check our latest updates"
           >
             <WhatsNew newsArticles={newsArticles} />
           </Popup>

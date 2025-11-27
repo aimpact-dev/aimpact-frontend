@@ -5,6 +5,7 @@ import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
+import { useViewport } from '~/lib/hooks';
 
 interface AssistantMessageProps {
   content: string;
@@ -18,7 +19,7 @@ function openArtifactInWorkbench(filePath: string) {
   filePath = normalizedFilePath(filePath);
 
   if (workbenchStore.currentView.get() !== 'code') {
-    workbenchStore.currentView.set('code');
+    workbenchStore.setCurrentView('code');
   }
 
   workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
@@ -39,6 +40,8 @@ function normalizedFilePath(path: string) {
 }
 
 export const AssistantMessage = memo(({ content, annotations, messageId, onRewind, onFork }: AssistantMessageProps) => {
+  const { isMobile } = useViewport();
+
   const filteredAnnotations = (annotations?.filter(
     (annotation: JSONValue) => annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
   ) || []) as { type: string; value: any } & { [key: string]: any }[];
@@ -51,7 +54,7 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
 
   let codeContext: string[] | undefined = undefined;
 
-  if (filteredAnnotations.find((annotation) => annotation.type === 'codeContext')) {
+  if (!isMobile && filteredAnnotations.find((annotation) => annotation.type === 'codeContext')) {
     codeContext = filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files;
   }
 
