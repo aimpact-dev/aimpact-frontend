@@ -4,7 +4,9 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import Popup from '../common/Popup';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
-import { Badge, Card } from '../ui';
+import WhatsNew, { type WhatsNewPost } from '../info/WhatsNew';
+import { useQuery } from '@tanstack/react-query';
+import { ky } from 'query';
 
 function trackDailyPopup(key: string) {
   const lastShown = parseInt(localStorage.getItem(`${key}:lastShown`) ?? '0');
@@ -37,53 +39,6 @@ type GlobalPopupsContextType = {
 
 const GlobalPopupsContext = createContext<GlobalPopupsContextType | undefined>(undefined);
 
-const WhatsNew = ({
-  newsArticles,
-}: {
-  newsArticles: {
-    heading: string;
-    text: string;
-    date: Date;
-  }[];
-}) => (
-  <>
-    <div className="flex flex-col items-center gap-1 mb-5">
-      <div className="flex items-center gap-2">
-        <div className="inline-block i-ph:sparkle-bold text-lg text-accent-500"></div>
-        <h1 className="text-2xl font-bold ">What's new</h1>
-      </div>
-      <h2 className=" text-bolt-elements-textSecondary">Check our latest updates</h2>
-    </div>
-
-    <div>
-      {newsArticles.map((article) => {
-        return (
-          <Card variant="accented" withHoverEffect key={article.date.getTime()}>
-            <div className="flex flex-col gap-2 border-b border-border-light p-4">
-              <div className="flex justify-between items-center">
-                <Badge variant="primary">Integration</Badge>
-                <span className="text-sm text-bolt-elements-textSecondary">
-                  {article.date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center  gap-2">
-                <div className="inline-block i-ph:plug-bold text-accent-500"></div>
-                <h2 className="text-xl font-bold">{article.heading}</h2>
-              </div>
-            </div>
-
-            <p className="text-left p-4">{article.text}</p>
-          </Card>
-        );
-      })}
-    </div>
-  </>
-);
-
 type PopupState =
   | { state: 'intro'; markShown: () => void }
   | { state: 'whatsnew'; markShown: () => void }
@@ -98,13 +53,24 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
 
   const [popupState, setPopupState] = useState<PopupState>({ state: 'none' });
 
-  const newsArticles = [
-    {
-      heading: 'Vibecoding meets x402 !',
-      text: 'We’ve integrated x402 standard directly into AImpact — now you can vibecode apps with built-in payments and seamless interoperability. This update unlocks a new layer of flexibility for Solana-based Web3 products, where every transaction and access request becomes part of a unified, intuitive ecosystem.',
-      date: new Date(2025, 10, 11), // use monthIndex (10 is November)
+  const {
+    data: whatsNewPosts,
+    error: whatsNewPostsError,
+    isPending: whatsNewPostsPending,
+    isLoading: whatsNewPostsLoading,
+  } = useQuery<WhatsNewPost[]>({
+    queryKey: ['whats-new'],
+    queryFn: async () => {
+      const res = await ky.get('whats-new');
+
+      if (!res.ok) {
+        throw new Error(`Not found news articles: ${whatsNewPostsError}`);
+      }
+
+      const json = await res.json<WhatsNewPost[]>();
+      return json.map((a) => ({ ...a, date: new Date(a.date) }));
     },
-  ];
+  });
 
   // Start timer for the NPS popup when chat starts and popup can be shown
   useEffect(() => {
@@ -176,7 +142,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [connected, isAuthorized, popupState, newsArticles]);
+  }, [connected, isAuthorized, popupState]);
 
   // Reinitialize Youform when a popup should be shown
   useEffect(() => {
@@ -212,7 +178,13 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
               setPopupState({ state: 'none' });
             }}
           >
-            <WhatsNew newsArticles={newsArticles} />
+            {whatsNewPostsLoading || whatsNewPostsPending ? (
+              <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>
+            ) : whatsNewPostsError ? (
+              <span>Couldn't load news. Try to reload the page.</span>
+            ) : (
+              <WhatsNew posts={whatsNewPosts} />
+            )}
           </Popup>
         )}
       </>
