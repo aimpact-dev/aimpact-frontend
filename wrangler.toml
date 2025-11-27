@@ -5,9 +5,7 @@ compatibility_date = "2025-03-28"
 pages_build_output_dir = "./build/client"
 send_metrics = false
 
-kv_namespaces = [
-  { binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }
-]
+kv_namespaces = [{ binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }]
 
 [vars]
 VITE_LOG_LEVEL = "debug"
@@ -19,6 +17,7 @@ VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
 DYNAMIC_ENVIROMENT_ID = "ef8d5320-bb51-49c8-9932-5926b6646175"
 ENVIRONMENT = "production"
 DAYTONA_PROXY_URL = "https://proxy.aimpact.dev"
+PUBLIC_WALLETCONNECT_PROJECT_ID = "a74048544a21881297b78441983b336c"
 
 [env.preview]
 name = "aimpact-preview"
