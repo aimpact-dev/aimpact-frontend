@@ -91,6 +91,7 @@
     "@remix-run/react": "^2.15.2",
     "@sentry/profiling-node": "^9.27.0",
     "@sentry/remix": "^9.27.0",
+    "@solana-mobile/wallet-adapter-mobile": "^2.2.5",
     "@solana/spl-token": "^0.4.13",
     "@solana/wallet-adapter-base": "^0.9.26",
     "@solana/wallet-adapter-react": "^0.15.38",
