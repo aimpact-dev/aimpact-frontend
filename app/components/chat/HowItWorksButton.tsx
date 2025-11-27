@@ -52,8 +52,7 @@ So, just describe your idea to AI. Try to give precise queries. Keep modifying i
         </Button>
       )}
 
-      <Popup isShow={isOpen} handleToggle={handleToggle}>
-        <h3 className="text-2xl font-bold mb-4">How it works?</h3>
+      <Popup isShow={isOpen} handleToggle={handleToggle} title="How it works?">
         <Markdown>{text}</Markdown>
       </Popup>
     </>
