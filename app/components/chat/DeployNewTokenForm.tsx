@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { fromLamports } from '~/utils/solana';
-import { VersionedTransaction, Transaction, SystemProgram, PublicKey } from '@solana/web3.js';
+import { VersionedTransaction } from '@solana/web3.js';
 import {
   Form,
   FormControl,
@@ -23,7 +23,7 @@ import {
   RequiredFieldMark,
 } from '../ui/Form';
 import { base64ToUint8Array } from '~/lib/utils';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   useCreateHeavenToken,
@@ -35,7 +35,7 @@ import {
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
-const createSchema = (walletBalance: number | null) =>
+const createSchema = () =>
   z.object({
     name: z.string().min(1, 'Name is required').max(32),
     symbol: z.string().min(1, 'Symbol is required').max(16),
@@ -44,9 +44,6 @@ const createSchema = (walletBalance: number | null) =>
       .number({ error: 'Prebuy must be a number' })
       .nonnegative('Prebuy must be greater or equal to 0')
       .max(99, 'Prebuy must be ≥ 0 and ≤ 99')
-      // .refine((val) => walletBalance === null || val + estimatedDeployCost <= walletBalance, {
-      // message: `Prebuy cannot be larger than your wallet balance. You should leave a ${estimatedDeployCost.toFixed(2)} SOL for create token.`,
-      // })
       .optional(),
     twitter: z
       .url()
@@ -100,13 +97,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     staleTime: 30_000,
   });
 
-  // useEffect(() => {
-  //   if (balanceError) {
-  //     toast.error('Failed to fetch wallet balance.', { autoClose: false });
-  //   }
-  // }, [balanceError]);
-
-  const schema = createSchema(walletBalance);
+  const schema = createSchema();
 
   type FormValues = z.infer<typeof schema>;
   const resolver = zodResolver(schema) as unknown as Resolver<FormValues, any>;
@@ -305,16 +296,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
             <FormItem>
               <div className="flex justify-between">
                 <FormLabel>Prebuy Amount</FormLabel>
-                <FormDescription className="hidden md:inline">
-                  {/* Balance:{' '}
-                  {isBalanceLoading ? (
-                    <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>
-                  ) : (
-                    walletBalance
-                  )}
-                  SOL */}
-                  Buy supply of token in percents
-                </FormDescription>
+                <FormDescription className="hidden md:inline">Buy supply of token in percents</FormDescription>
               </div>
               <FormControl>
                 <div className="flex justify-center items-center">

@@ -12,14 +12,6 @@ export default function MobileActionDropdown() {
   const params = useParams();
   const tokenInfoQuery = params.id ? useGetHeavenToken(params.id) : null;
 
-  //   const showWorkbench = useStore(workbenchStore.showWorkbench);
-  //   const selectedView = useStore(workbenchStore.currentView);
-
-  //   const isConvexProject = useMemo(() => {
-  //     const actualFiles = workbenchStore.files.get();
-  //     return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex'));
-  //   }, [files]);
-
   const openView = (view: WorkbenchViewType) => {
     workbenchStore.setShowWorkbench(true);
     workbenchStore.setCurrentView(view);
