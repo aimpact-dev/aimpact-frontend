@@ -1,7 +1,7 @@
 import { useNavigate, useSearchParams, useParams } from '@remix-run/react';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { atom } from 'nanostores';
-import { generateId, type JSONValue, type Message } from 'ai';
+import { generateId, type JSONValue } from 'ai';
 import { toast } from 'react-toastify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { logStore } from '~/lib/stores/logs'; // Import logStore
@@ -14,12 +14,13 @@ import type { ContextAnnotation } from '~/types/context';
 import { useHttpDb } from './http-db';
 import { filterIgnoreFiles } from '~/utils/ignoreFiles';
 import { chatStore } from '../stores/chat';
+import type { UIMessage } from '../message';
 
 export interface ChatHistoryItem {
   id: string;
   urlId?: string;
   description?: string;
-  messages: Message[];
+  messages: UIMessage[];
   timestamp: string;
   metadata?: IChatMetadata;
 }
@@ -47,9 +48,9 @@ export function useChatHistory() {
 
   const { getMessages, getSnapshot, setMessages, setSnapshot, createProject } = useHttpDb();
 
-  const [archivedMessages, setArchivedMessages] = useState<Message[]>([]);
-  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
-  const [actionMessages, setActionMessages] = useState<Message[]>([]);
+  const [archivedMessages, setArchivedMessages] = useState<UIMessage[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [actionMessages, setActionMessages] = useState<UIMessage[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -85,7 +86,7 @@ export function useChatHistory() {
                 : storedMessages.messages.length - 1;
               const snapshotIndex = storedMessages.messages.findIndex((m) => m.id === validSnapshot.chatIndex);
 
-              let archivedMessages: Message[] = [];
+              let archivedMessages: UIMessage[] = [];
               if (snapshotIndex >= 0 && snapshotIndex < endingIndex) {
                 useProjectImport = true;
                 archivedMessages = storedMessages.messages.slice(0, snapshotIndex + 1);
@@ -96,16 +97,11 @@ export function useChatHistory() {
                 endingIndex + 1,
               );
               filteredMessages = filteredMessages.map((message) => {
-                if (!message.annotations) {
-                  message.annotations = [];
+                if (!message.metadata) {
+                  message.metadata = {};
                 }
-                if (!message.annotations.includes('no-snapshot-save')) {
-                  message.annotations.push('no-snapshot-save');
-                }
-                if (!message.annotations.includes('ignore-actions')) {
-                  message.annotations.push('ignore-actions');
-                }
-
+                message.metadata.noSnapshotSave = true;
+                message.metadata.ignoreActions = true;
                 return message;
               });
 
@@ -128,13 +124,27 @@ export function useChatHistory() {
               // Call the modified function to get only the command actions string
               const commandActionsString = createCommandActionsString(projectCommands);
 
-              let actionMessages: Message[] = [
+              let actionMessages: UIMessage[] = [
                 {
                   id: (filteredMessages.at(-1)?.id || '') + '-restore-message',
+                  role: 'user',
+                  parts: [
+                    {
+                      type: 'text',
+                      text: 'Restore project from snapshot',
+                    },
+                  ],
+                  metadata: { noStore: true, hidden: true },
+                },
+                {
+                  id: storedMessages.messages[snapshotIndex].id,
                   role: 'assistant',
 
                   // Combine followup message and the artifact with files and command actions
-                  content: `AImpact Restored your chat from a snapshot.
+                  parts: [
+                    {
+                      type: 'text',
+                      text: `AImpact Restored your chat from a snapshot. You can revert this message to load the full chat history.
                     <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
                     ${Object.entries(snapshot?.files || {})
                       .map(([key, value]) => {
@@ -151,21 +161,22 @@ export function useChatHistory() {
                       .join('\n')}
                     ${commandActionsString}
                     </boltArtifact>
-                    `, // Added commandActionsString, followupMessage, updated id and title
-                  annotations: [
-                    'no-store',
-                    'no-snapshot-save',
-                    ...(summary
-                      ? [
-                          {
-                            chatId: storedMessages.messages[snapshotIndex].id,
-                            type: 'chatSummary',
-                            summary,
-                          } satisfies ContextAnnotation,
-                        ]
-                      : []),
+                    `,
+                    },
                   ],
+                  metadata: {
+                    noStore: true,
+                    noSnapshotSave: true,
+                    summary: summary
+                      ? ({
+                          chatId: storedMessages.messages[snapshotIndex].id,
+                          type: 'chatSummary',
+                          summary,
+                        } satisfies ContextAnnotation)
+                      : null,
+                  },
                 },
+                ...filteredMessages,
               ];
 
               if (useProjectImport) {
@@ -283,13 +294,13 @@ export function useChatHistory() {
         console.error(error);
       }
     },
-    storeMessageHistory: async (messages: Message[]) => {
+    storeMessageHistory: async (messages: UIMessage[]) => {
       if (messages.length === 0) {
         return;
       }
 
       const { firstArtifact } = workbenchStore;
-      messages = messages.filter((m) => !m.annotations?.includes('no-store'));
+      messages = messages.filter((m) => !m.metadata?.noStore);
 
       let _chatId = chatId.get();
 
@@ -321,7 +332,7 @@ export function useChatHistory() {
       const lastMessage = messages[messages.length - 1];
 
       if (lastMessage.role === 'assistant') {
-        const annotations = lastMessage.annotations as JSONValue[];
+        const annotations = lastMessage.metadata;
         const filteredAnnotations = (annotations?.filter(
           (annotation: JSONValue) =>
             annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
@@ -390,7 +401,7 @@ export function useChatHistory() {
         console.log(error);
       }
     },
-    importChat: async (description: string, messages: Message[], metadata?: IChatMetadata) => {
+    importChat: async (description: string, messages: UIMessage[], metadata?: IChatMetadata) => {
       if (!db) {
         return;
       }

@@ -23,6 +23,7 @@ import './styles/index.scss';
 import 'virtual:uno.css';
 
 import LoadingScreen from './components/common/LoadingScreen';
+import { WhatsNewProvider } from './lib/hooks/useWhatsNew';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then((mod) => ({
@@ -36,6 +37,7 @@ export const links: LinksFunction = () => [
     href: '/favicon.svg',
     type: 'image/svg+xml',
   },
+  { rel: 'manifest', href: '/manifest.json' },
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: xtermStyles },
   {
@@ -74,7 +76,7 @@ export const Head = createHead(() => (
     <Meta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-    <script src="https://app.youform.com/widgets/widget.js" />
+    <script src="https://app.youform.com/embed.js" async></script>
     <script defer data-domain="aimpact.dev" src="https://plausible.io/js/script.js" />
     <script>{`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}</script>
   </>
@@ -91,11 +93,13 @@ function Providers({ children }: { children: React.ReactNode }) {
             {/*  autoConnectEmbeddedWallet*/}
             {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
             {/*>*/}
-            <RefCodeProvider>
-              <AuthProvider>
-                <DndProvider backend={HTML5Backend}>{children}</DndProvider>
-              </AuthProvider>
-            </RefCodeProvider>
+            <WhatsNewProvider>
+              <RefCodeProvider>
+                <AuthProvider>
+                  <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+                </AuthProvider>
+              </RefCodeProvider>
+            </WhatsNewProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
         </Suspense>

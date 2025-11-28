@@ -148,9 +148,9 @@ export class FilesStore {
       for (const lockedFile of lockedFiles) {
         const file = currentFiles[lockedFile.path];
 
-        if (file?.type === 'file') {
+        if (file.file?.type === 'file') {
           updates[lockedFile.path] = {
-            ...file,
+            ...file.file,
             isLocked: true,
           };
         }
@@ -196,7 +196,7 @@ export class FilesStore {
       if (path.startsWith(folderPrefix) && file) {
         if (file.type === 'file') {
           updates[path] = {
-            ...file,
+            ...file.file,
             isLocked: true,
 
             // Add a property to indicate this is locked by a parent folder
@@ -204,7 +204,7 @@ export class FilesStore {
           };
         } else if (file.type === 'folder') {
           updates[path] = {
-            ...file,
+            ...file.file,
             isLocked: true,
 
             // Add a property to indicate this is locked by a parent folder

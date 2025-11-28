@@ -1,10 +1,10 @@
-import { classNames } from "~/utils/classNames";
-import { Button } from "../ui";
+import { classNames } from '~/utils/classNames';
+import { Button } from '../ui';
 import waterStyles from '../ui/WaterButton.module.scss';
-import { useEffect, useState, type FormEvent, type FormEventHandler } from "react";
-import { useRequestMessages } from "~/lib/hooks/tanstack/useMessages";
-import { toast } from "react-toastify";
-import { Tooltip } from "./Tooltip";
+import { useEffect, useState, type FormEvent, type FormEventHandler } from 'react';
+import { useRequestMessages } from '~/lib/hooks/tanstack/useMessages';
+import { toast } from 'react-toastify';
+import { Tooltip } from './Tooltip';
 
 interface VerifyButtonsProps {
   actionButtonText?: string;
@@ -16,11 +16,15 @@ interface VerifyButtonsProps {
   actionClicked: boolean;
 }
 
-function VerifyButtons(
-  { actionButtonText="Subscribe", verifyButtonText="Verify", handleVerifyClick, handleActionClicked,
-    actionLink, completed, actionClicked }: VerifyButtonsProps
-) {
-
+function VerifyButtons({
+  actionButtonText = 'Subscribe',
+  verifyButtonText = 'Verify',
+  handleVerifyClick,
+  handleActionClicked,
+  actionLink,
+  completed,
+  actionClicked,
+}: VerifyButtonsProps) {
   return (
     <div className="flex gap-2">
       <a href={actionLink} target="_blank">
@@ -29,29 +33,33 @@ function VerifyButtons(
         </Button>
       </a>
     </div>
-  )
+  );
 }
 
-export default function getMessagesButton() {
+interface GetMessagesButtonProps {
+  isMobile?: boolean;
+}
+
+export default function getMessagesButton({ isMobile = false }: GetMessagesButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [tasksCompleted, setTasksCompleted] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [actionClicked, setActionClicked] = useState(false);
-  const [twitterHandle, setTwitterHandle] = useState("");
+  const [twitterHandle, setTwitterHandle] = useState('');
   const { mutateAsync: requestMessages } = useRequestMessages();
 
   const twitterHandleRegex = /^@[A-Za-z0-9_]{3,16}$/;
 
   const handleTwitterHandleInput = (event: FormEvent<HTMLInputElement>) => {
     setTwitterHandle(event.currentTarget.value);
-  }
+  };
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
   };
 
   const sleep = (ms: number) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   };
 
   const handleActionClicked = async () => {
@@ -59,53 +67,55 @@ export default function getMessagesButton() {
 
     await sleep(2000);
     setActionClicked(true);
-  }
+  };
 
   const validateTwitterHandle = (twitterHandle: string) => {
     return twitterHandleRegex.test(twitterHandle);
-  }
+  };
 
   const handleVerifyClicked = async () => {
-    const formattedTwitterHandle = "@" + twitterHandle;
+    const formattedTwitterHandle = '@' + twitterHandle;
 
     const delay = Math.random() * 1.2 + 1 * 1000;
     await sleep(delay);
 
     if (!validateTwitterHandle(formattedTwitterHandle)) {
-      setError("Invalid twitter handle.");
+      setError('Invalid twitter handle.');
       return;
     }
 
-    setError("");
+    setError('');
 
     try {
       await requestMessages({ twitterHandle: formattedTwitterHandle });
-      toast.info("Your messages will appear shortly!", { autoClose: false });
-      (window as any).plausible('request_free_messages_twitter', { props: {
+      toast.info('Your messages will appear shortly!', { autoClose: false });
+      (window as any).plausible('request_free_messages_twitter', {
+        props: {
           success: true,
           error: null,
-        }
+        },
       });
     } catch (error: any) {
       const errorMessage = error?.response?.data?.message || error?.message;
       toast.error(`Failed to request free messages: ${errorMessage}`);
-      (window as any).plausible('request_free_messages_twitter', { props: {
+      (window as any).plausible('request_free_messages_twitter', {
+        props: {
           success: false,
           error: `Failed due to server error: ${errorMessage}`,
-        }
+        },
       });
 
-      if (!errorMessage.includes("already claimed")) {
+      if (!errorMessage.includes('already claimed')) {
         return;
       }
     }
     setTasksCompleted(true);
-    localStorage.setItem("tasksCompleted", "true");
-  }
+    localStorage.setItem('tasksCompleted', 'true');
+  };
 
   useEffect(() => {
-    setTasksCompleted(!!localStorage.getItem("tasksCompleted"));
-  }, [])
+    setTasksCompleted(!!localStorage.getItem('tasksCompleted'));
+  }, []);
 
   return (
     <>
@@ -125,7 +135,8 @@ export default function getMessagesButton() {
             <div className={waterStyles.waterSurface}></div>
           </div>
           <div className={waterStyles.buttonContent}>
-            Get Free Messages!
+            {isMobile && <div className="i-ph:sparkle i-ph:fill h-5 w-5 "></div>}
+            Get Free {!isMobile && 'Messages'}!
           </div>
         </Button>
       </Tooltip>
@@ -152,8 +163,13 @@ export default function getMessagesButton() {
                         <p>Subscribe to @AImpact_dev on X</p>
                         {tasksCompleted && <div className="i-ph:check-circle text-green text-xl" />}
                       </div>
-                      <VerifyButtons completed={tasksCompleted} actionClicked={actionClicked}
-                        handleVerifyClick={handleVerifyClicked} actionLink="https://x.com/AImpact_dev" handleActionClicked={handleActionClicked} />
+                      <VerifyButtons
+                        completed={tasksCompleted}
+                        actionClicked={actionClicked}
+                        handleVerifyClick={handleVerifyClicked}
+                        actionLink="https://x.com/AImpact_dev"
+                        handleActionClicked={handleActionClicked}
+                      />
                     </div>
                   </div>
 
@@ -163,22 +179,38 @@ export default function getMessagesButton() {
                       <div className="flex gap-1 mr-1">
                         <p className="text-gray-600">@</p>
                       </div>
-                      <input className="border-none disabled:cursor-not-allowed" disabled={tasksCompleted} required onInput={handleTwitterHandleInput} value={twitterHandle} placeholder="username" />
+                      <input
+                        className="border-none disabled:cursor-not-allowed"
+                        disabled={tasksCompleted}
+                        required
+                        onInput={handleTwitterHandleInput}
+                        value={twitterHandle}
+                        placeholder="username"
+                      />
                     </div>
                   </div>
 
-                  <p className={classNames(
-                    error ? "text-red-700" : "text-white",
-                    "text-sm text-center h-[20px]"
-                  )}>{error}</p>
+                  <p className={classNames(error ? 'text-red-700' : 'text-white', 'text-sm text-center h-[20px]')}>
+                    {error}
+                  </p>
                 </div>
 
                 {tasksCompleted ? (
-                  <Button variant="default" className="px-10 py-2.5 text-lg" onClick={handleToggle} disabled={!tasksCompleted}>
+                  <Button
+                    variant="default"
+                    className="px-10 py-2.5 text-lg"
+                    onClick={handleToggle}
+                    disabled={!tasksCompleted}
+                  >
                     Close
                   </Button>
                 ) : (
-                  <Button variant="default" disabled={!twitterHandle || !actionClicked || tasksCompleted} onClick={handleVerifyClicked} className="px-10 py-2.5 text-lg">
+                  <Button
+                    variant="default"
+                    disabled={!twitterHandle || !actionClicked || tasksCompleted}
+                    onClick={handleVerifyClicked}
+                    className="px-10 py-2.5 text-lg"
+                  >
                     Verify
                   </Button>
                 )}
@@ -188,5 +220,5 @@ export default function getMessagesButton() {
         </div>
       )}
     </>
-  )
+  );
 }

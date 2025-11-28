@@ -5,7 +5,7 @@ import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
-import { ActionRunner, type ActionState } from '~/lib/runtime/action-runner';
+import { ActionRunner } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
@@ -16,7 +16,7 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
-import { workbenchStore, type ArtifactState, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
@@ -31,10 +31,15 @@ import SmartContractView from '~/components/workbench/smartContracts/SmartContra
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { currentParsingMessageState } from '~/lib/stores/parse';
 import { detectStartCommand } from '~/utils/projectCommands';
-import { LazySandbox } from '~/lib/daytona/lazySandbox';
-import { getSandbox } from '~/lib/daytona';
 import { streamingState } from '~/lib/stores/streaming';
+import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+import ConvexView from './convex/ConvexView';
 import { chatStore } from '~/lib/stores/chat';
+
+interface PackageJson {
+  content: Record<string, any>;
+  packageManager: string;
+}
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -49,6 +54,14 @@ interface WorkspaceProps {
 
 const viewTransition = { ease: cubicEasingFn };
 
+function animationForView(view: WorkbenchViewType, selectedView: WorkbenchViewType): { x: '0%' | '100%' | '-100%' } {
+  const viewIndex = sliderOptions.findIndex(({ value }) => value === view);
+  const selectedViewIndex = sliderOptions.findIndex(({ value }) => value === selectedView);
+
+  const shift = viewIndex === selectedViewIndex ? '0%' : viewIndex < selectedViewIndex ? '-100%' : '100%';
+  return { x: shift };
+}
+
 const sliderOptions: SliderOptions<WorkbenchViewType> = [
   {
     value: 'code',
@@ -61,6 +74,10 @@ const sliderOptions: SliderOptions<WorkbenchViewType> = [
   {
     value: 'contracts',
     text: 'Smart Contracts',
+  },
+  {
+    value: 'convex',
+    text: 'Convex',
   },
   {
     value: 'preview',
@@ -405,6 +422,12 @@ export const Workbench = memo(
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
 
+    const isConvexProject = useMemo(() => {
+      const actualFiles = workbenchStore.files.get();
+      return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex'));
+    }, [files]);
+
+    const isMobile = useViewport(768);
     const isSmallViewport = useViewport(1024);
 
     const setSelectedView = (view: WorkbenchViewType) => {
@@ -526,7 +549,8 @@ export const Workbench = memo(
 
           customPreviewState.current = 'Starting the preview...';
           if (!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)) {
-            workbenchStore.getMainShell.executeCommand(getPreviewStartCommand(packageJson)).catch((err) => {
+            let startCommand = getPreviewStartCommand(packageJson);
+            workbenchStore.getMainShell.executeCommand(startCommand).catch((err) => {
               console.error(err);
               customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
             });
@@ -591,7 +615,7 @@ export const Workbench = memo(
         >
           <div
             className={classNames(
-              'absolute top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+              'absolute top-[3rem] md:top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
               {
                 'w-full': isSmallViewport,
                 'left-0': showWorkbench && isSmallViewport,
@@ -602,11 +626,11 @@ export const Workbench = memo(
           >
             <div className="absolute inset-0 px-2 lg:px-6">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
-                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
+                <div className="flex flex-col md:flex-row items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
                   <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (
-                    <div className="flex items-center gap-2 overflow-y-auto">
+                    <div className="flex items-center gap-1 md:gap-2 overflow-y-auto">
                       <PanelHeaderButton
                         className={classNames('mr-1 text-sm flex items-center gap-2', {
                           'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
@@ -685,19 +709,21 @@ export const Workbench = memo(
                   {selectedView === 'diff' && (
                     <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
                   )}
-                  <Tooltip content="Close" side="left">
-                    <IconButton
-                      icon="i-ph:x-circle"
-                      className="-mr-1"
-                      size="xl"
-                      onClick={() => {
-                        workbenchStore.showWorkbench.set(false);
-                      }}
-                    />
-                  </Tooltip>
+                  {!isMobile && (
+                    <Tooltip content="Close" side="left">
+                      <IconButton
+                        icon="i-ph:x-circle"
+                        className="-mr-1"
+                        size="xl"
+                        onClick={() => {
+                          workbenchStore.showWorkbench.set(false);
+                        }}
+                      />
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
+                  <View initial={{ x: '0%' }} animate={animationForView('code', selectedView)}>
                     <EditorPanel
                       editorDocument={currentDocument}
                       isStreaming={isStreaming}
@@ -713,23 +739,20 @@ export const Workbench = memo(
                       isAutoSaveEnabled={isAutoSaveEnabled}
                     />
                   </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
-                  >
+                  <View initial={{ x: '100%' }} animate={animationForView('diff', selectedView)}>
                     <DiffView
                       fileHistory={fileHistory}
                       setFileHistory={setFileHistory}
                       isTabOpen={selectedView === 'diff'}
                     />
                   </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
-                  >
+                  <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
                     <SmartContractView postMessage={postMessage} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                  <View initial={{ x: '100%' }} animate={animationForView('convex', selectedView)}>
+                    <ConvexView isConvexProject={isConvexProject} />
+                  </View>
+                  <View initial={{ x: '100%' }} animate={animationForView('preview', selectedView)}>
                     <Preview customText={customPreviewState.current} />
                   </View>
                 </div>

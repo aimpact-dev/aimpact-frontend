@@ -1,6 +1,6 @@
 'use client';
 
-import { z } from 'zod';
+import { z } from 'zod/v3';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'react-toastify';
@@ -88,7 +88,7 @@ export default function ProjectInfoUpdateForm({ projectId, jwtToken, setShowForm
           </Button>
           <Button
             type="button"
-            className="flex-1"
+            className="flex-1 "
             onClick={() => {
               setShowForm(false);
               reset();

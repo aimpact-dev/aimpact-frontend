@@ -2,7 +2,7 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import type { JSONValue, Message, UIMessage } from 'ai';
+import type { JSONValue, UIMessage } from 'ai';
 import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { IconButton } from '~/components/ui/IconButton';
@@ -30,12 +30,18 @@ import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
-import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import useViewport, { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import SideMenu from '../footer/SideMenu.client';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { userInfo } from '~/lib/hooks/useAuth';
 import CustomWalletButton from '../common/CustomWalletButton';
 import Footer from '../footer/Footer';
+import { useParams } from '@remix-run/react';
+import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
+import TokenInfoNavButton from './TokenInfoButton';
+import DeployTokenNavButton from './DeployTokenNavButton';
+import { HeaderActionButtons } from '../header/HeaderActionButtons.client';
+import type { MessageDataEvent } from '~/lib/message';
 
 const TEXTAREA_MIN_HEIGHT = 95;
 
@@ -57,7 +63,7 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
-  importChat?: (description: string, messages: Message[]) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
   exportChat?: () => void;
   uploadedFiles?: File[];
   setUploadedFiles?: (files: File[]) => void;
@@ -69,7 +75,7 @@ interface BaseChatProps {
   clearSupabaseAlert?: () => void;
   deployAlert?: DeployAlert;
   clearDeployAlert?: () => void;
-  data?: JSONValue[] | undefined;
+  data?: MessageDataEvent[] | undefined;
   actionRunner?: ActionRunner;
   showWorkbench?: boolean;
 }
@@ -82,7 +88,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatStarted = false,
       isStreaming = false,
       onStreamingChange,
-      providerList,
       input = '',
       enhancingPrompt,
       handleInputChange,
@@ -109,12 +114,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
+    const isMobile = useViewport(768);
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const [progressAnnotations, setProgressAnnotations] = useState<MessageDataEvent[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
+    const params = useParams();
+    const tokenInfoQuery = params.id ? useGetHeavenToken(params.id) : null;
 
     const { isAuthorized } = useAuth();
     const userInfoData = useStore(userInfo);
@@ -135,9 +143,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     useEffect(() => {
       if (data) {
-        const progressList = data.filter(
-          (x) => typeof x === 'object' && (x as any).type === 'progress',
-        ) as ProgressAnnotation[];
+        const progressList = data.filter((x) => x.type === 'data-progress');
         setProgressAnnotations(progressList);
       }
     }, [data]);
@@ -278,8 +284,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         className={classNames(styles.BaseChat, 'relative flex flex-col h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
+        {isMobile && chatStarted && (
+          <div className="flex justify-between px-2">
+            {params.id && (
+              <>
+                {tokenInfoQuery?.data ? (
+                  <div className="h-full">
+                    <TokenInfoNavButton tokenData={tokenInfoQuery.data} />
+                  </div>
+                ) : (
+                  <div className="h-full">
+                    <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
+                  </div>
+                )}
+              </>
+            )}
+
+            <ClientOnly>{() => <HeaderActionButtons />}</ClientOnly>
+          </div>
+        )}
         {/* <ClientOnly>{() => <Menu />}</ClientOnly> */}
-        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
+        <div className="flex flex-col lg:flex-row overflow-x-hidden w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
               <div id="intro" className="mt-[5vh] 2xl:mt-[8vh] max-w-chat mx-auto text-center px-4 lg:px-0">
@@ -294,6 +319,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </p>
               </div>
             )}
+
             <StickToBottom
               className={classNames('pt-6 px-2 sm:px-6 relative', {
                 'h-full flex flex-col modern-scrollbar': chatStarted,
@@ -483,7 +509,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <SendButton
                           show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
                           isStreaming={isStreaming}
-                          disabled={!providerList || providerList.length === 0 || isDisabled}
+                          disabled={isDisabled}
                           onClick={(event) => {
                             if (isStreaming) {
                               handleStop?.();
@@ -587,7 +613,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             )}
           </ClientOnly>
         </div>
-        {!showWorkbench && (
+        {!showWorkbench && !chatStarted && (
           <>
             <SideMenu positionClass="absolute" />
             <Footer />

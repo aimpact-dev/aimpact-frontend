@@ -123,7 +123,7 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string, skipMessage = false) {
+  parse(messageId: string, input: string) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -142,7 +142,6 @@ export class StreamingMessageParser {
     let i = state.position;
     let earlyBreak = false;
 
-    console.log('on parse', messageId, skipMessage);
     while (i < input.length) {
       if (state.insideArtifact) {
         const currentArtifact = state.currentArtifact;
@@ -269,6 +268,7 @@ export class StreamingMessageParser {
           potentialTag += input[j];
 
           if (potentialTag === ARTIFACT_TAG_OPEN) {
+            console.log('potential tag is artifact open tag');
             const nextChar = input[j + 1];
 
             if (nextChar && nextChar !== '>' && nextChar !== ' ') {
@@ -279,6 +279,7 @@ export class StreamingMessageParser {
 
             const openTagEnd = input.indexOf('>', j);
 
+            console.log('tag index', openTagEnd);
             if (openTagEnd !== -1) {
               const artifactTag = input.slice(i, openTagEnd + 1);
 

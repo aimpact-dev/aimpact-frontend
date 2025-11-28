@@ -55,3 +55,8 @@ bundle-analysis.html
 
 # eslint
 .eslintcache
+
+
+remix-0.cpuprofile
+
+!402_README.md

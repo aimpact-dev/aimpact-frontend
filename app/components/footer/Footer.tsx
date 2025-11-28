@@ -9,11 +9,11 @@ interface FooterProps {
 export default function Footer({ withLabel }: FooterProps) {
   const navigate = useNavigate();
   return (
-    <footer className={classNames('bg-black/50 border-t border-white/10', withLabel ? 'p-6' : 'p-3')}>
+    <footer className={classNames('bg-gray/1 border-t border-white/5', withLabel ? 'p-6' : 'p-3')}>
       <div className="flex flex-col gap-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
         <div className="flex justify-center gap-5 text-white/80">
           {POLICIES.map((p) => (
-            <button onClick={() => navigate(p.url)} className="hover:text-white transition-all">
+            <button key={p.name} onClick={() => navigate(p.url)} className="hover:text-white transition-all">
               {p.name}{' '}
             </button>
           ))}
