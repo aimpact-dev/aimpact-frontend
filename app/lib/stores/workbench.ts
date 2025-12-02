@@ -153,10 +153,6 @@ export class WorkbenchStore {
     this.#terminalStore.attachMainAimpactTerminal(terminal);
   }
 
-  attachAimpactTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachAimpactTerminal(terminal);
-  }
-
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
 
