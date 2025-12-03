@@ -212,7 +212,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mx-auto">
         <div className="flex gap-5">
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 flex-1">
             <div className="flex gap-3 flex-col md:flex-row *:flex-1">
               <FormField
                 control={control}
@@ -299,7 +299,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                 <FormDescription className="hidden md:inline">Buy supply of token in percents</FormDescription>
               </div>
               <FormControl>
-                <div className="flex justify-center items-center">
+                <div className="flex relative justify-center items-center">
                   <Input
                     placeholder="0"
                     disabled={isSubmitting || !!balanceError || isBalanceLoading}
@@ -312,8 +312,9 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                       const value = e.target.value.replace(',', '.');
                       field.onChange(value === '' ? undefined : value);
                     }}
+                    className="pr-5"
                   />
-                  <p className="absolute right-8 text-gray-300">%</p>
+                  <p className="absolute right-2 text-gray-300">%</p>
                 </div>
               </FormControl>
               <FormMessage />
