@@ -35,7 +35,7 @@ export default function SolanaProvider({ children }: SolanaProviderProps) {
         addressSelector: createDefaultAddressSelector(),
         appIdentity: {
           name: 'AImpact',
-          uri: 'https://aimpact.app',
+          uri: 'https://aimpact.dev',
           icon: '/favicon.svg',
         },
         authorizationResultCache: createDefaultAuthorizationResultCache(),
