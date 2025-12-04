@@ -30,12 +30,15 @@ export interface ArtifactState {
   title: string;
   type?: string;
   closed: boolean;
+  allActionsFinished?: boolean;
   runner: ActionRunner;
 }
 
-export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
+export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed' | 'allActionsFinished'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
+type MessageRole = 'user' | 'assistant' | 'system';
+type MessagesMetadata = Record<string, { role: MessageRole; meta: Record<string, any> }>;
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'contracts' | 'convex';
 
@@ -52,6 +55,7 @@ export class WorkbenchStore {
   #reloadedMessages = new Set<string>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
+  messagesMetadata: MapStore<MessagesMetadata> = map({});
   totalActionsCount: WritableAtom<number> = atom(0);
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
@@ -109,7 +113,7 @@ export class WorkbenchStore {
   }
 
   get firstArtifact(): ArtifactState | undefined {
-    return this.#getArtifact(this.artifactIdList[0]);
+    return this.getArtifact(this.artifactIdList[0]);
   }
 
   get filesCount(): number {
@@ -484,7 +488,7 @@ export class WorkbenchStore {
   }
 
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
-    const artifact = this.#getArtifact(messageId);
+    const artifact = this.getArtifact(messageId);
 
     if (artifact) {
       return;
@@ -522,7 +526,7 @@ export class WorkbenchStore {
   }
 
   updateArtifact({ messageId }: ArtifactCallbackData, state: Partial<ArtifactUpdateState>) {
-    const artifact = this.#getArtifact(messageId);
+    const artifact = this.getArtifact(messageId);
 
     if (!artifact) {
       return;
@@ -541,7 +545,7 @@ export class WorkbenchStore {
   async _addAction(data: ActionCallbackData, ignoreExecute = false) {
     const { messageId } = data;
 
-    const artifact = this.#getArtifact(messageId);
+    const artifact = this.getArtifact(messageId);
 
     if (!artifact) {
       unreachable('Artifact not found');
@@ -553,7 +557,7 @@ export class WorkbenchStore {
   async skipAction(data: ActionCallbackData) {
     const { messageId } = data;
 
-    const artifact = this.#getArtifact(messageId);
+    const artifact = this.getArtifact(messageId);
 
     if (!artifact) {
       unreachable('Artifact not found');
@@ -572,7 +576,7 @@ export class WorkbenchStore {
   async _runAction(data: ActionCallbackData, isStreaming: boolean = false) {
     const { messageId } = data;
 
-    const artifact = this.#getArtifact(messageId);
+    const artifact = this.getArtifact(messageId);
 
     if (!artifact) {
       unreachable('Artifact not found');
@@ -662,7 +666,7 @@ export class WorkbenchStore {
     return await this._runAction(data, isStreaming);
   }, 100); // TODO: remove this magic number to have it configurable
 
-  #getArtifact(id: string) {
+  getArtifact(id: string) {
     const artifacts = this.artifacts.get();
     return artifacts[id];
   }

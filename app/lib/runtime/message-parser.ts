@@ -65,8 +65,6 @@ function cleanoutMarkdownSyntax(content: string) {
   const codeBlockRegex = /^\s*```\w*\n([\s\S]*?)\n\s*```\s*$/;
   const match = content.match(codeBlockRegex);
 
-  // console.log('matching', !!match, content);
-
   if (match) {
     return match[1]; // Remove common leading 4-space indent
   } else {
@@ -123,7 +121,7 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string) {
+  parse(messageId: string, input: string, skipMessage: boolean) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -268,7 +266,6 @@ export class StreamingMessageParser {
           potentialTag += input[j];
 
           if (potentialTag === ARTIFACT_TAG_OPEN) {
-            console.log('potential tag is artifact open tag');
             const nextChar = input[j + 1];
 
             if (nextChar && nextChar !== '>' && nextChar !== ' ') {
@@ -279,7 +276,6 @@ export class StreamingMessageParser {
 
             const openTagEnd = input.indexOf('>', j);
 
-            console.log('tag index', openTagEnd);
             if (openTagEnd !== -1) {
               const artifactTag = input.slice(i, openTagEnd + 1);
 
@@ -341,7 +337,7 @@ export class StreamingMessageParser {
 
     state.position = i;
 
-    return output;
+    return { parsed: output, artifactClosed: state.insideArtifact === false && state.currentArtifact == undefined };
   }
 
   reset() {

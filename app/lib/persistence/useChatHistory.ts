@@ -80,7 +80,6 @@ export function useChatHistory() {
 
               const rewindId = searchParams.get('rewindTo');
 
-              let useProjectImport = false;
               const endingIndex = rewindId
                 ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
                 : storedMessages.messages.length - 1;
@@ -88,19 +87,14 @@ export function useChatHistory() {
 
               let archivedMessages: UIMessage[] = [];
               if (snapshotIndex >= 0 && snapshotIndex < endingIndex) {
-                useProjectImport = true;
                 archivedMessages = storedMessages.messages.slice(0, snapshotIndex + 1);
               }
 
-              let filteredMessages = storedMessages.messages.slice(
-                useProjectImport ? snapshotIndex : 0,
-                endingIndex + 1,
-              );
+              let filteredMessages = storedMessages.messages.slice(0, endingIndex + 1);
               filteredMessages = filteredMessages.map((message) => {
                 if (!message.metadata) {
                   message.metadata = {};
                 }
-                message.metadata.noSnapshotSave = true;
                 message.metadata.ignoreActions = true;
                 return message;
               });
@@ -122,29 +116,18 @@ export function useChatHistory() {
               const projectCommands = await detectProjectCommands(files);
 
               // Call the modified function to get only the command actions string
-              const commandActionsString = createCommandActionsString(projectCommands);
+              let actionMessages: UIMessage[] = [];
+              if (filteredMessages.some((m) => m.role === 'assistant')) {
+                actionMessages = [
+                  {
+                    id: generateId(),
+                    role: 'system',
 
-              let actionMessages: UIMessage[] = [
-                {
-                  id: (filteredMessages.at(-1)?.id || '') + '-restore-message',
-                  role: 'user',
-                  parts: [
-                    {
-                      type: 'text',
-                      text: 'Restore project from snapshot',
-                    },
-                  ],
-                  metadata: { noStore: true, hidden: true },
-                },
-                {
-                  id: storedMessages.messages[snapshotIndex].id,
-                  role: 'assistant',
-
-                  // Combine followup message and the artifact with files and command actions
-                  parts: [
-                    {
-                      type: 'text',
-                      text: `AImpact Restored your chat from a snapshot. You can revert this message to load the full chat history.
+                    // Combine followup message and the artifact with files and command actions
+                    parts: [
+                      {
+                        type: 'text',
+                        text: `AImpact Restored your chat from a snapshot. You can revert this message to load the full chat history.
                     <boltArtifact id="restored-project-setup" title="Restored Project & Setup" type="bundled">
                     ${Object.entries(snapshot?.files || {})
                       .map(([key, value]) => {
@@ -159,35 +142,30 @@ export function useChatHistory() {
                         }
                       })
                       .join('\n')}
-                    ${commandActionsString}
                     </boltArtifact>
                     `,
+                      },
+                    ],
+                    metadata: {
+                      noStore: true,
+                      hidden: true,
+                      summary: summary
+                        ? ({
+                            chatId: storedMessages.messages[snapshotIndex].id,
+                            type: 'chatSummary',
+                            summary,
+                          } satisfies ContextAnnotation)
+                        : null,
                     },
-                  ],
-                  metadata: {
-                    noStore: true,
-                    noSnapshotSave: true,
-                    summary: summary
-                      ? ({
-                          chatId: storedMessages.messages[snapshotIndex].id,
-                          type: 'chatSummary',
-                          summary,
-                        } satisfies ContextAnnotation)
-                      : null,
                   },
-                },
-                ...filteredMessages,
-              ];
-
-              if (useProjectImport) {
-                filteredMessages = actionMessages.concat(filteredMessages);
+                ];
               }
 
-              restoreSnapshot(mixedId);
+              filteredMessages = actionMessages.concat(filteredMessages);
+
               setInitialMessages(filteredMessages);
               setActionMessages(actionMessages);
 
-              console.log('before change initialMessageIdx', actionMessages[0].id);
               chatStore.setKey('initialMessagesIds', [...filteredMessages.map((m) => m.id), actionMessages[0].id]);
 
               description.set(storedMessages.description);
@@ -205,7 +183,7 @@ export function useChatHistory() {
             console.error(error);
 
             logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-            console.log(error);
+            console.error(error);
             if (error?.status && error.status !== 404) {
               toast.error('Failed to load chat: ' + error.message); // More specific error
             }
@@ -242,36 +220,6 @@ export function useChatHistory() {
       toast.error('Failed to save chat snapshot.');
     }
   };
-
-  const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
-    // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const fs = await getAimpactFs();
-    const workdir = await fs.workdir();
-    const validSnapshot = snapshot || { chatIndex: '', files: {} };
-
-    if (!validSnapshot?.files) {
-      return;
-    }
-
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(workdir)) {
-        key = key.replace(workdir, '');
-      }
-
-      if (value?.type === 'folder') {
-        await fs.mkdir(key);
-      }
-    });
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (value?.type === 'file') {
-        if (key.startsWith(workdir)) {
-          key = key.replace(workdir, '');
-        }
-
-        await fs.writeFile(key, value.content, value.isBinary ? 'base64' : 'utf-8');
-      }
-    });
-  }, []);
 
   return {
     ready: !mixedId || ready,
@@ -332,15 +280,7 @@ export function useChatHistory() {
       const lastMessage = messages[messages.length - 1];
 
       if (lastMessage.role === 'assistant') {
-        const annotations = lastMessage.metadata;
-        const filteredAnnotations = (annotations?.filter(
-          (annotation: JSONValue) =>
-            annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-        ) || []) as { type: string; value: any } & { [key: string]: any }[];
-
-        if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-          chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
-        }
+        chatSummary = lastMessage.metadata?.chatSummary;
       }
 
       if (!description.get() && firstArtifact?.title) {

@@ -29,12 +29,12 @@ import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { currentParsingMessageState } from '~/lib/stores/parse';
 import { detectStartCommand } from '~/utils/projectCommands';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import ConvexView from './convex/ConvexView';
-import { chatStore } from '~/lib/stores/chat';
+import { chatStore, someActionsFinsihedTime } from '~/lib/stores/chat';
+import { id } from 'zod/v4/locales';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -308,6 +308,10 @@ const FileModifiedDropdown = memo(
   },
 );
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
@@ -322,23 +326,48 @@ export const Workbench = memo(
     const chatSummary = useStore(lastChatSummary);
     const lastSnapshotRef = useRef<number | null>(null);
     const chatState = useStore(chatStore);
-    const [waitForActionRunned, setWaitForActionRunned] = useState(false);
+    const waitingForActionsRef = useRef(false);
+    const messagesMetadataState = useStore(workbenchStore.messagesMetadata);
+    const artifactsState = useStore(workbenchStore.artifacts);
 
     useEffect(() => {
+      if (waitingForActionsRef.current) return;
+
       const waitForActions = async () => {
-        const maxAttempts = 60;
+        const maxAttempts = 240;
         const cooldown = 1000;
         let attempt = 0;
         while (attempt < maxAttempts) {
           await sleep(cooldown);
           const artifacts = workbenchStore.artifacts.get();
+
+          // get only assistant or system messages metadata
+          const messagesMetadata = Object.values(workbenchStore.messagesMetadata.get()).filter(
+            (m) => m.role !== 'user',
+          );
+
+          const allActionsFinished = messagesMetadata.every((m) => m.meta?.artifactActionsFinished);
+          const anyClosedArtifact = Object.values(artifacts).some((a) => a.closed);
+
+          // if all actions already finished and commited OR there is no closed artifact
+          if (allActionsFinished || !anyClosedArtifact) {
+            return;
+          }
+
           const messageToActions = Object.fromEntries(
-            Object.entries(artifacts).map(([key, artifact]) => [key, Object.values(artifact.runner.actions.get())]),
+            Object.entries(artifacts).map(([key, artifact]) => [
+              key,
+              Object.values(artifact?.runner?.actions.get() ?? []),
+            ]),
           );
-          const pendingAction = Object.entries(messageToActions).find(([key, actions]) =>
-            actions.some((val) => val.status === 'pending' || val.status === 'running'),
-          );
-          if (pendingAction) {
+          let havePendingAction: null | string = null;
+          for (const [id, actions] of Object.entries(messageToActions)) {
+            if (actions.some((a) => a.status === 'pending' || a.status === 'running')) {
+              havePendingAction = id;
+              continue;
+            }
+          }
+          if (havePendingAction) {
             attempt += 1;
             continue;
           }
@@ -350,69 +379,42 @@ export const Workbench = memo(
 
           takeSnapshot(chatIdx, files, undefined, chatSummary)
             .then(() => {
-              chatStore.setKey('needToSave', null);
+              someActionsFinsihedTime.set(Date.now());
               console.log('Snapshot was taken on wait for actions');
             })
             .catch((e) => {
               console.error('error in take snapshot!!!');
               console.error(e);
             });
-          break;
+
+          // make cooldown between waitForActions
+          await sleep(1000);
+          return { artifacts, messageToActions };
         }
+
+        return null;
       };
 
-      if (
-        chatState.needToSave &&
-        !waitForActionRunned &&
-        !chatState.initialMessagesIds.includes(chatState.needToSave)
-      ) {
-        waitForActions().then(() => setWaitForActionRunned(false));
-        setWaitForActionRunned(true);
-      }
-    }, [chatState]);
-
-    const snapshotTakeCooldown = 2500;
-
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
-    useEffect(() => {
-      // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
-
-      const removeSubscribe = workbenchStore.files.listen((files) => {
-        const chatIdx = lastChatIdx.get();
-        if (!chatIdx) return;
-
-        const artifacts = workbenchStore.artifacts.get();
-        const messageToActions = Object.fromEntries(
-          Object.entries(artifacts).map(([key, artifact]) => [key, Object.values(artifact.runner.actions.get())]),
-        );
-        const pendingActions = Object.entries(messageToActions).find(([key, actions]) =>
-          actions.some((val) => val.status === 'pending' || val.status === 'running'),
-        );
-
-        let isMessageInitial = true;
-        if (pendingActions) {
-          const initialMessages = chatStore.get().initialMessagesIds;
-          isMessageInitial = initialMessages.includes(pendingActions[0]);
-          console.log('initial messages', initialMessages);
-        }
-
-        const snapshotHaveChanges = Object.keys(files).length > 0;
-        if (pendingActions && !isMessageInitial && snapshotHaveChanges) {
-          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
-            takeSnapshot(chatIdx, files, undefined, chatSummary);
-            console.log('Snapshot was taken on file change');
-            lastSnapshotRef.current = Date.now();
+      // why just don't use [artifact] in deps and get message by artifact id? this should be better
+      waitingForActionsRef.current = true;
+      waitForActions()
+        .then((result) => {
+          if (!result) {
+            return;
           }
-        }
-      });
 
-      return () => {
-        removeSubscribe();
-      };
-    }, [chatSummary]);
+          // this code just got harder. so this loop need for checking already completed
+          // actions only AFTER already saved snapshot. this is necessary for correct import
+          const { artifacts, messageToActions } = result;
+          for (const [id, actions] of Object.entries(messageToActions)) {
+            if (!actions.length) continue;
+            workbenchStore.artifacts.setKey(id, { ...artifacts[id], allActionsFinished: true });
+          }
+        })
+        .finally(() => {
+          waitingForActionsRef.current = false;
+        });
+    }, [messagesMetadataState, artifactsState]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
