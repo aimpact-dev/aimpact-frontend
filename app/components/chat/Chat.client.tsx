@@ -121,7 +121,6 @@ const processSampledMessages = createSampler(
     const filteredMessages = messages.filter((message) => {
       return message.metadata ? !message.metadata.ignoreActions : true;
     });
-    console.log('all messages', messages, filteredMessages);
     parseMessages(filteredMessages, isLoading);
 
     if (messages.length > initialMessages.length) {
@@ -264,7 +263,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     experimental_throttle: 100,
 
     transport: new DefaultChatTransport({
-      api: new URL('/chat/test-stream', import.meta.env.PUBLIC_BACKEND_URL)?.href,
+      api: new URL('/chat/stream', import.meta.env.PUBLIC_BACKEND_URL)?.href,
       headers: () => headersRef.current,
       body: () => bodyRef.current,
     }),
@@ -378,7 +377,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
       // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
       const id = Date.now().toString();
-      console.log('before sendMessage:', id);
       sendMessage({
         id,
         role: 'user',
@@ -426,7 +424,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     setFakeLoading(false);
 
     if (error != null) {
-      console.log('before error slice');
       setMessages(messages.slice(0, -1));
     }
 

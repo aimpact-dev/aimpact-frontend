@@ -93,10 +93,9 @@ export const AssistantMessage = memo(({ content, metadata, messageId, onRewind, 
             </Popover>
           )}
           <div className="flex w-full items-center justify-between">
-            {usage && (
+            {usage && usage.completionTokens && usage.promptTokens && usage.totalTokens && (
               <div>
-                Tokens: {usage.totalTokens} (prompt: {usage?.promptTokens || '?'}, completion:{' '}
-                {usage?.completionTokens || '?'})
+                Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
               </div>
             )}
             {(onRewind || onFork) && messageId && (

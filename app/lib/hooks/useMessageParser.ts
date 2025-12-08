@@ -12,7 +12,6 @@ const messageParser = new StreamingMessageParser({
   callbacks: {
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
-      console.log('onArtifactOpen', data);
 
       //TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
       //The purpose of this store is to save id of the artifact currently being parsed.
@@ -22,7 +21,6 @@ const messageParser = new StreamingMessageParser({
     },
     onArtifactClose: (data) => {
       logger.trace('onArtifactClose');
-      console.log('onArtifactClose', data);
 
       currentParsingMessageState.set(null);
       workbenchStore.updateArtifact(data, { closed: true });
@@ -68,12 +66,6 @@ export function useMessageParser() {
         message.id,
         extractContentFromUI(message),
       );
-      console.log('after parse object', {
-        parsed: newParsedContent,
-        original: message,
-        index: index,
-        content: extractContentFromUI(message),
-      });
       setParsedMessages((prevParsed) => ({
         ...prevParsed,
         [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,

@@ -255,7 +255,6 @@ export class StreamingMessageParser {
           potentialTag += input[j];
 
           if (potentialTag === ARTIFACT_TAG_OPEN) {
-            console.log('potential tag is artifact open tag');
             const nextChar = input[j + 1];
 
             if (nextChar && nextChar !== '>' && nextChar !== ' ') {
