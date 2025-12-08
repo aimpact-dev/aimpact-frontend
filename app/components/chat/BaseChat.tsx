@@ -42,6 +42,7 @@ import TokenInfoNavButton from './TokenInfoButton';
 import DeployTokenNavButton from './DeployTokenNavButton';
 import { HeaderActionButtons } from '../header/HeaderActionButtons.client';
 import type { MessageDataEvent } from '~/lib/message';
+import ProgressImport from './ProgressImport';
 
 const TEXTAREA_MIN_HEIGHT = 95;
 
@@ -615,6 +616,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         </div>
         {!showWorkbench && !chatStarted && (
           <>
+            <ProgressImport totalSegments={12} segments={1} />
+            <ProgressCompilation className='' data={[ { data: { label: 'test', status: 'pending' }, type: "data" } ]} />
             <SideMenu positionClass="absolute" />
             <Footer />
           </>
