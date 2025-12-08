@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogDescription, DialogRoot } from '~/components/ui/Dialog';
+import { Dialog, DialogTitle, DialogDescription, DialogRoot } from '~/components/ui/CustomDialog';
 import { useStore } from '@nanostores/react';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { QRCode } from 'react-qrcode-logo';

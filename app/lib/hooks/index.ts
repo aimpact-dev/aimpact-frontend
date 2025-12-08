@@ -4,7 +4,7 @@ export * from './useShortcuts';
 export * from './useSnapScroll';
 export * from './StickToBottom';
 export * from './useEditChatDescription';
-export { default } from './useViewport';
+export { useViewport } from './useViewport';
 export { useUpdateCheck } from './useUpdateCheck';
 export { useFeatures } from './useFeatures';
 export { useNotifications } from './useNotifications';
