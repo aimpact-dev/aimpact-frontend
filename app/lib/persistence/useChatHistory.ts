@@ -70,6 +70,7 @@ export function useChatHistory() {
           getSnapshot(mixedId), // Fetch snapshot from backend
         ])
           .then(async ([storedMessages, snapshot]) => {
+            console.log('start chat import')
             if (storedMessages && storedMessages.messages.length > 0) {
               /*
                * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
@@ -100,20 +101,6 @@ export function useChatHistory() {
               });
 
               setArchivedMessages(archivedMessages);
-
-              const files = Object.entries(validSnapshot?.files || {})
-                .map(([key, value]) => {
-                  if (value?.type !== 'file') {
-                    return null;
-                  }
-
-                  return {
-                    content: value.content,
-                    path: key,
-                  };
-                })
-                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
-              const projectCommands = await detectProjectCommands(files);
 
               // Call the modified function to get only the command actions string
               let actionMessages: UIMessage[] = [];
@@ -149,6 +136,7 @@ export function useChatHistory() {
                     metadata: {
                       noStore: true,
                       hidden: true,
+                      importMessage: true,
                       summary: summary
                         ? ({
                             chatId: storedMessages.messages[snapshotIndex].id,
@@ -160,13 +148,18 @@ export function useChatHistory() {
                   },
                 ];
               }
-
+              
               filteredMessages = actionMessages.concat(filteredMessages);
+              console.log('messages history', actionMessages, filteredMessages)
 
               setInitialMessages(filteredMessages);
               setActionMessages(actionMessages);
 
-              chatStore.setKey('initialMessagesIds', [...filteredMessages.map((m) => m.id), actionMessages[0].id]);
+              const initialMessages = filteredMessages.map((m) => m.id);
+              if (actionMessages[0]) {
+                initialMessages.push(actionMessages[0].id);
+              }
+              chatStore.setKey('initialMessagesIds', initialMessages);
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);

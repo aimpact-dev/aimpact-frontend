@@ -6,7 +6,7 @@ import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts, type MessageState } from '~/lib/hooks';
 import { chatId, description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
 import { chatStore, someActionsFinsihedTime } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { workbenchStore, type ArtifactState } from '~/lib/stores/workbench';
 import { PROMPT_COOKIE_KEY } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -25,6 +25,8 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import { convexTeamNameStore } from '~/lib/stores/convex';
 import type { MessageDataEvent, UIMessage } from '~/lib/message';
 import { DefaultChatTransport, generateId } from 'ai';
+import type { ActionState } from '~/lib/runtime/action-runner';
+import { K } from 'node_modules/@upstash/redis/zmscore-Cq_Bzgy4.mjs';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -530,6 +532,61 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     [streamingState],
   );
 
+  const artifactsState = useStore(workbenchStore.artifacts);
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  const [totalImportActions, setTotalImportActions] = useState<number | null>(null);
+  const [completeImportActions, setCompleteImportActions] = useState<number | null>(null);
+  const [waitForActionsPending, setWaitForActionsPending] = useState(false);
+
+  useEffect(() => {
+    if (waitForActionsPending == true) return;
+    const artifacts = workbenchStore.artifacts.get();
+    let importMessage = messages.find((m) => m.metadata?.importMessage);
+    if (!importMessage) {
+      const importFilesArtifact = Object.entries(artifacts).find(([key, value]) => value.id === 'imported-files');
+      if (importFilesArtifact) {
+        importMessage = messages.find((m) => importFilesArtifact && m.id === importFilesArtifact[0]);
+      }
+    }
+
+    if (!importMessage) {
+      return;
+    }
+    setTotalImportActions(1);
+    setCompleteImportActions(0);
+    const importArtifact = artifacts[importMessage.id];
+    if (!importArtifact) {
+      return;
+    }
+
+    const waitForActions = async () => {
+      let attempt = 0;
+      while (attempt < 60) {
+        const actionsMap = importArtifact?.runner?.actions?.get();
+        const importActions = Object.values(actionsMap);
+
+        if (importActions.length) {
+          const completeActions = importActions.filter((a) => a.status === 'complete');
+          setTotalImportActions(importActions.length);
+          setCompleteImportActions(completeActions.length);
+          if (completeActions.length >= importActions.length) {
+            return;
+          }
+        }
+
+        attempt += 1;
+        await sleep(500);
+      }
+    };
+
+    setWaitForActionsPending(true);
+    waitForActions().finally(() => setWaitForActionsPending(false));
+  }, [artifactsState, messages]);
+
   return (
     <>
       <BaseChat
@@ -571,6 +628,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         clearDeployAlert={clearDeployAlertCallback}
         data={streamDataEvents}
         showWorkbench={showWorkbench}
+        totalActions={totalImportActions}
+        completedActions={completeImportActions}
       />
       <DaytonaCleanup />
     </>

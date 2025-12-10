@@ -1,11 +1,9 @@
-import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { streamingState } from '~/lib/stores/streaming';
 import { classNames } from '~/utils/classNames';
-import { cubicEasingFn } from '~/utils/easings';
 import { buildStyles, CircularProgressbar } from 'react-circular-progressbar';
 import { FlowingParticlesBackground } from '../ui/FlowingParticlesBackground';
 import { Tooltip } from './Tooltip';
+import { useEffect, useState } from 'react';
 
 interface Props {
   className?: string;
@@ -14,8 +12,35 @@ interface Props {
 }
 
 export default function ProgressImport({ className, totalSegments, segments }: Props) {
-  const isStreaming = useStore(streamingState);
-  const percents = Math.floor(100 / (totalSegments / segments));
+  const [destroyProgress, setDestroyProgress] = useState(false);
+
+  useEffect(() => {
+    if (!segments || !totalSegments || segments < totalSegments) return;
+
+    const timeout = setTimeout(() => {
+      setDestroyProgress(true);
+    }, 5000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [segments, totalSegments]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDestroyProgress(true);
+    }, 60 * 1000);
+
+    return () => {
+      clearTimeout(timeout);
+    }
+  }, [])
+
+  
+  const percents = segments === 0 ? 0 : Math.floor(100 / (totalSegments / segments));
+  if (destroyProgress === true || totalSegments === 0) {
+    return;
+  }
 
   return (
     <AnimatePresence>
@@ -31,7 +56,7 @@ export default function ProgressImport({ className, totalSegments, segments }: P
 
         <div className="flex p-1 gap-2 relative bg-bolt-elements-item-backgroundAccent p-1 rounded-lg text-bolt-elements-item-contentAccent flex z-10 w-full h-full">
           <p>Progress import:</p>
-          <Tooltip content={`${segments} / ${totalSegments}`} side='top'>
+          <Tooltip content={`${segments} / ${totalSegments}`} side="top">
             <motion.div className="w-6" transition={{ duration: 0.15 }}>
               <CircularProgressbar
                 value={percents}
@@ -44,7 +69,7 @@ export default function ProgressImport({ className, totalSegments, segments }: P
               />
             </motion.div>
           </Tooltip>
-          <motion.p>{percents}%</motion.p>
+          <p>{percents}%</p>
         </div>
       </div>
     </AnimatePresence>
