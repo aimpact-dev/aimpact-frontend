@@ -5,7 +5,7 @@ import { logStore, type LogEntry } from '~/lib/stores/logs';
 import { useStore } from '@nanostores/react';
 import { classNames } from '~/utils/classNames';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/CustomDialog';
 import { jsPDF } from 'jspdf';
 import { toast } from 'react-toastify';
 

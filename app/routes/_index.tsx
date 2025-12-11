@@ -2,7 +2,6 @@ import { type MetaFunction } from '@remix-run/cloudflare';
 import { ClientOnly } from 'remix-utils/client-only';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
-import UserPooling from '~/components/chat/UserPooling';
 import OnlyDesktopMessage from '~/components/common/OnlyDesktopMessage';
 import { Header } from '~/components/header/Header';
 import BackgroundRays from '~/components/ui/BackgroundRays';
@@ -35,7 +34,6 @@ export default function Index() {
     <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
       <BackgroundRays />
       <Header />
-      <UserPooling />
       {/* {isMobile && <OnlyDesktopMessage />} */}
       <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
     </div>

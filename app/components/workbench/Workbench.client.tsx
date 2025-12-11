@@ -22,7 +22,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
-import useViewport from '~/lib/hooks';
+import { useViewport } from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
@@ -367,11 +367,14 @@ export const Workbench = memo(
       return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex'));
     }, [files]);
 
-    const isMobile = useViewport(768);
-    const isSmallViewport = useViewport(1024);
+    const { isMobile, isSmallViewport } = useViewport();
+
+    const setShowWorkbench = (show: boolean) => {
+      workbenchStore.setShowWorkbench(show);
+    };
 
     const setSelectedView = (view: WorkbenchViewType) => {
-      workbenchStore.currentView.set(view);
+      workbenchStore.setCurrentView(view);
     };
 
     /**
@@ -536,7 +539,7 @@ export const Workbench = memo(
 
     const handleSelectFile = useCallback((filePath: string) => {
       workbenchStore.setSelectedFile(filePath);
-      workbenchStore.currentView.set('diff');
+      workbenchStore.setCurrentView('diff');
     }, []);
 
     return (
@@ -561,69 +564,80 @@ export const Workbench = memo(
             <div className="absolute inset-0 px-2 lg:px-6">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
                 <div className="flex flex-col md:flex-row items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
-                  <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
-                  <div className="ml-auto" />
-                  {selectedView === 'code' && (
-                    <div className="flex items-center gap-1 md:gap-2 overflow-y-auto">
-                      <PanelHeaderButton
-                        className={classNames('mr-1 text-sm flex items-center gap-2', {
-                          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                            isAutoSaveEnabled,
-                        })}
-                        onClick={() => setIsAutoSaveEnabled((v) => !v)}
-                        aria-pressed={isAutoSaveEnabled}
-                      >
-                        <span className="text-sm">Auto-save</span>
-                        <span className="relative ml-1 flex items-center h-5">
-                          <span
-                            className={`block w-8 h-4 rounded-full transition-colors duration-200 ${isAutoSaveEnabled ? 'bg-accent-500' : 'bg-gray-600'}`}
-                          ></span>
-                          <span
-                            className={`absolute left-0 top-0 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 border border-gray-300 translate-y-1/9 ${isAutoSaveEnabled ? 'translate-x-4' : ''}`}
-                          ></span>
-                        </span>
-                      </PanelHeaderButton>
-                      <PanelHeaderButton
-                        className="mr-1 text-sm"
-                        onClick={() => {
-                          workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
-                        }}
-                      >
-                        <div className="i-ph:terminal" />
-                        Toggle Terminal
-                      </PanelHeaderButton>
-                      <DropdownMenu.Root>
-                        <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
-                          <div className="i-ph:box-arrow-up" />
-                          {/* Sync & Export */}
-                          Export
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Content
-                          className={classNames(
-                            'min-w-[240px] z-[250]',
-                            'bg-white dark:bg-[#141414]',
-                            'rounded-lg shadow-lg',
-                            'border border-gray-200/50 dark:border-gray-800/50',
-                            'animate-in fade-in-0 zoom-in-95',
-                            'py-1',
-                          )}
-                          sideOffset={5}
-                          align="end"
-                        >
-                          <DropdownMenu.Item
-                            className={classNames(
-                              'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
-                            )}
+                  {isMobile ? (
+                    <button
+                      onClick={() => {
+                        setShowWorkbench(false);
+                      }}
+                      className="flex gap-1 items-center text-sm self-start text-bolt-elements-textSecondary w-full"
+                    >
+                      <div className="i-ph:arrow-left-bold"></div> Back to chat
+                    </button>
+                  ) : (
+                    <>
+                      <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
+
+                      {selectedView === 'code' && (
+                        <div className="flex items-center gap-1 md:gap-2 overflow-y-auto">
+                          <PanelHeaderButton
+                            className={classNames('mr-1 text-sm flex items-center gap-2', {
+                              'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+                                isAutoSaveEnabled,
+                            })}
+                            onClick={() => setIsAutoSaveEnabled((v) => !v)}
+                            aria-pressed={isAutoSaveEnabled}
+                          >
+                            <span className="text-sm">Auto-save</span>
+                            <span className="relative ml-1 flex items-center h-5">
+                              <span
+                                className={`block w-8 h-4 rounded-full transition-colors duration-200 ${isAutoSaveEnabled ? 'bg-accent-500' : 'bg-gray-600'}`}
+                              ></span>
+                              <span
+                                className={`absolute left-0 top-0 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 border border-gray-300 translate-y-1/9 ${isAutoSaveEnabled ? 'translate-x-4' : ''}`}
+                              ></span>
+                            </span>
+                          </PanelHeaderButton>
+                          <PanelHeaderButton
+                            className="mr-1 text-sm"
                             onClick={() => {
-                              workbenchStore.downloadZip();
+                              workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                             }}
                           >
-                            <div className="flex items-center gap-2">
-                              <div className="i-ph:download-simple"></div>
-                              <span>Download Code</span>
-                            </div>
-                          </DropdownMenu.Item>
-                          {/* <DropdownMenu.Item
+                            <div className="i-ph:terminal" />
+                            Toggle Terminal
+                          </PanelHeaderButton>
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
+                              <div className="i-ph:box-arrow-up" />
+                              {/* Sync & Export */}
+                              Export
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Content
+                              className={classNames(
+                                'min-w-[240px] z-[250]',
+                                'bg-white dark:bg-[#141414]',
+                                'rounded-lg shadow-lg',
+                                'border border-gray-200/50 dark:border-gray-800/50',
+                                'animate-in fade-in-0 zoom-in-95',
+                                'py-1',
+                              )}
+                              sideOffset={5}
+                              align="end"
+                            >
+                              <DropdownMenu.Item
+                                className={classNames(
+                                  'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                                )}
+                                onClick={() => {
+                                  workbenchStore.downloadZip();
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="i-ph:download-simple"></div>
+                                  <span>Download Code</span>
+                                </div>
+                              </DropdownMenu.Item>
+                              {/* <DropdownMenu.Item
                             className={classNames(
                               'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
                             )}
@@ -635,51 +649,55 @@ export const Workbench = memo(
                               <span>{isSyncing ? 'Syncing...' : 'Sync Files'}</span>
                             </div>
                           </DropdownMenu.Item> */}
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Root>
-                    </div>
-                  )}
+                            </DropdownMenu.Content>
+                          </DropdownMenu.Root>
+                        </div>
+                      )}
 
-                  {selectedView === 'diff' && (
-                    <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
-                  )}
-                  {!isMobile && (
-                    <Tooltip content="Close" side="left">
-                      <IconButton
-                        icon="i-ph:x-circle"
-                        className="-mr-1"
-                        size="xl"
-                        onClick={() => {
-                          workbenchStore.showWorkbench.set(false);
-                        }}
-                      />
-                    </Tooltip>
+                      {selectedView === 'diff' && (
+                        <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
+                      )}
+
+                      <Tooltip content="Close" side="left">
+                        <IconButton
+                          icon="i-ph:x-circle"
+                          className="-mr-1"
+                          size="xl"
+                          onClick={() => setShowWorkbench(false)}
+                        />
+                      </Tooltip>
+                    </>
                   )}
                 </div>
                 <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={animationForView('code', selectedView)}>
-                    <EditorPanel
-                      editorDocument={currentDocument}
-                      isStreaming={isStreaming}
-                      selectedFile={selectedFile}
-                      files={files}
-                      unsavedFiles={unsavedFiles}
-                      fileHistory={fileHistory}
-                      onFileSelect={onFileSelect}
-                      onEditorScroll={onEditorScroll}
-                      onEditorChange={onEditorChange}
-                      onFileSave={onFileSave}
-                      onFileReset={onFileReset}
-                      isAutoSaveEnabled={isAutoSaveEnabled}
-                    />
-                  </View>
-                  <View initial={{ x: '100%' }} animate={animationForView('diff', selectedView)}>
-                    <DiffView
-                      fileHistory={fileHistory}
-                      setFileHistory={setFileHistory}
-                      isTabOpen={selectedView === 'diff'}
-                    />
-                  </View>
+                  {!isMobile && (
+                    <>
+                      <View initial={{ x: '0%' }} animate={animationForView('code', selectedView)}>
+                        <EditorPanel
+                          editorDocument={currentDocument}
+                          isStreaming={isStreaming}
+                          selectedFile={selectedFile}
+                          files={files}
+                          unsavedFiles={unsavedFiles}
+                          fileHistory={fileHistory}
+                          onFileSelect={onFileSelect}
+                          onEditorScroll={onEditorScroll}
+                          onEditorChange={onEditorChange}
+                          onFileSave={onFileSave}
+                          onFileReset={onFileReset}
+                          isAutoSaveEnabled={isAutoSaveEnabled}
+                        />
+                      </View>
+                      <View initial={{ x: '100%' }} animate={animationForView('diff', selectedView)}>
+                        <DiffView
+                          fileHistory={fileHistory}
+                          setFileHistory={setFileHistory}
+                          isTabOpen={selectedView === 'diff'}
+                        />
+                      </View>
+                    </>
+                  )}
+
                   <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
                     <SmartContractView postMessage={postMessage} />
                   </View>

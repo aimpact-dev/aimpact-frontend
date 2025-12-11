@@ -6,6 +6,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
 import type { UIMessageMetadata } from '~/lib/message';
+import { useViewport } from '~/lib/hooks';
 
 interface AssistantMessageProps {
   content: string;
@@ -19,7 +20,7 @@ function openArtifactInWorkbench(filePath: string) {
   filePath = normalizedFilePath(filePath);
 
   if (workbenchStore.currentView.get() !== 'code') {
-    workbenchStore.currentView.set('code');
+    workbenchStore.setCurrentView('code');
   }
 
   workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
