@@ -1,4 +1,3 @@
-import { LLMManager } from '~/lib/modules/llm/manager';
 import type { Template } from '~/types/template';
 import rawSnapshotsData from '~/template/snapshot.json';
 import type { SaveFileMap } from '~/lib/stores/files';
@@ -18,25 +17,7 @@ export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
 export const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.5';
 export const DEFAULT_MINI_MODEL = 'openai/gpt-5-mini';
-export const DEFAULT_PROVIDER_NAME = 'OpenRouter';
-export const DEFAULT_MINI_PROVIDER_NAME = 'OpenRouter';
 export const PROMPT_COOKIE_KEY = 'cachedPrompt';
-
-const llmManager = LLMManager.getInstance(import.meta.env);
-
-export const PROVIDER_LIST = llmManager.getAllProviders();
-export const DEFAULT_PROVIDER =
-  PROVIDER_LIST.find((p) => p.name === DEFAULT_PROVIDER_NAME) || llmManager.getDefaultProvider();
-export const DEFAULT_MINI_PROVIDER =
-  PROVIDER_LIST.find((p) => p.name === DEFAULT_MINI_PROVIDER_NAME) || llmManager.getDefaultProvider();
-
-export const providerBaseUrlEnvKeys: Record<string, { baseUrlKey?: string; apiTokenKey?: string }> = {};
-PROVIDER_LIST.forEach((provider) => {
-  providerBaseUrlEnvKeys[provider.name] = {
-    baseUrlKey: provider.config.baseUrlKey,
-    apiTokenKey: provider.config.apiTokenKey,
-  };
-});
 
 // starter Templates
 export const STARTER_TEMPLATES: Template[] = [

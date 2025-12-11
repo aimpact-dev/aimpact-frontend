@@ -2,20 +2,20 @@ import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import React, { useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
-import type { ProgressAnnotation } from '~/types/context';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { FlowingParticlesBackground } from '../ui/FlowingParticlesBackground';
+import type { MessageDataEvent } from '~/lib/message';
 
 interface Props {
-  data: ProgressAnnotation[];
+  data: MessageDataEvent[];
   className: string;
 }
 
 export default function ProgressCompilation({ data, className }: Props) {
   const isStreaming = useStore(streamingState);
 
-  const [progressList, setProgressList] = React.useState<ProgressAnnotation[]>([]);
+  const [progressList, setProgressList] = React.useState<MessageDataEvent[]>([]);
   const [expanded, setExpanded] = useState(false);
   React.useEffect(() => {
     if (!data || data.length == 0) {
@@ -23,19 +23,19 @@ export default function ProgressCompilation({ data, className }: Props) {
       return;
     }
 
-    const progressMap = new Map<string, ProgressAnnotation>();
+    const progressMap = new Map<string, MessageDataEvent>();
     data.forEach((x) => {
-      const existingProgress = progressMap.get(x.label);
+      const existingProgress = progressMap.get(x.data.label);
 
-      if (existingProgress && existingProgress.status === 'complete') {
+      if (existingProgress && existingProgress.data.status === 'complete') {
         return;
       }
 
-      progressMap.set(x.label, x);
+      progressMap.set(x.data.label, x);
     });
 
     const newData = Array.from(progressMap.values());
-    newData.sort((a, b) => a.order - b.order);
+    newData.sort((a, b) => a.data.order - b.data.order);
     setProgressList(newData);
   }, [data]);
 
@@ -97,7 +97,7 @@ export default function ProgressCompilation({ data, className }: Props) {
   );
 }
 
-const ProgressItem = ({ progress }: { progress: ProgressAnnotation }) => {
+const ProgressItem = ({ progress }: { progress: MessageDataEvent }) => {
   return (
     <motion.div
       className={classNames('flex text-sm gap-3')}
@@ -108,15 +108,15 @@ const ProgressItem = ({ progress }: { progress: ProgressAnnotation }) => {
     >
       <div className="flex items-center gap-1.5 ">
         <div>
-          {progress.status === 'in-progress' ? (
+          {progress.data.status === 'in-progress' ? (
             <div className="i-svg-spinners:90-ring-with-bg"></div>
-          ) : progress.status === 'complete' ? (
+          ) : progress.data.status === 'complete' ? (
             <div className="i-ph:check"></div>
           ) : null}
         </div>
         {/* {x.label} */}
       </div>
-      {progress.message}
+      {progress.data.message}
     </motion.div>
   );
 };

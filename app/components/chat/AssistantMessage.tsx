@@ -5,11 +5,12 @@ import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
+import type { UIMessageMetadata } from '~/lib/message';
 import { useViewport } from '~/lib/hooks';
 
 interface AssistantMessageProps {
   content: string;
-  annotations?: JSONValue[];
+  metadata?: UIMessageMetadata;
   messageId?: string;
   onRewind?: (messageId: string) => void;
   onFork?: (messageId: string) => void;
@@ -39,30 +40,15 @@ function normalizedFilePath(path: string) {
   return normalizedPath;
 }
 
-export const AssistantMessage = memo(({ content, annotations, messageId, onRewind, onFork }: AssistantMessageProps) => {
-  const { isMobile } = useViewport();
-
-  const filteredAnnotations = (annotations?.filter(
-    (annotation: JSONValue) => annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-  ) || []) as { type: string; value: any } & { [key: string]: any }[];
-
-  let chatSummary: string | undefined = undefined;
-
-  if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-    chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
-  }
-
-  let codeContext: string[] | undefined = undefined;
-
-  if (!isMobile && filteredAnnotations.find((annotation) => annotation.type === 'codeContext')) {
-    codeContext = filteredAnnotations.find((annotation) => annotation.type === 'codeContext')?.files;
-  }
+export const AssistantMessage = memo(({ content, metadata, messageId, onRewind, onFork }: AssistantMessageProps) => {
+  const chatSummary: string | undefined = metadata?.chatSummary;
+  const codeContext: string[] | undefined = metadata?.codeContext;
 
   const usage: {
-    completionTokens: number;
-    promptTokens: number;
-    totalTokens: number;
-  } = filteredAnnotations.find((annotation) => annotation.type === 'usage')?.value;
+    completionTokens?: number;
+    promptTokens?: number;
+    totalTokens?: number;
+  } = metadata?.usage;
 
   return (
     <div className="overflow-hidden w-full">
@@ -108,7 +94,7 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
             </Popover>
           )}
           <div className="flex w-full items-center justify-between">
-            {usage && (
+            {usage && usage.completionTokens && usage.promptTokens && usage.totalTokens && (
               <div>
                 Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
               </div>
