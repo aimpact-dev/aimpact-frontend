@@ -6,6 +6,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
 import WithTooltip from '~/components/ui/Tooltip';
 import type { UIMessageMetadata } from '~/lib/message';
+import { useViewport } from '~/lib/hooks';
 
 interface AssistantMessageProps {
   content: string;
@@ -19,7 +20,7 @@ function openArtifactInWorkbench(filePath: string) {
   filePath = normalizedFilePath(filePath);
 
   if (workbenchStore.currentView.get() !== 'code') {
-    workbenchStore.currentView.set('code');
+    workbenchStore.setCurrentView('code');
   }
 
   workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
@@ -93,10 +94,9 @@ export const AssistantMessage = memo(({ content, metadata, messageId, onRewind, 
             </Popover>
           )}
           <div className="flex w-full items-center justify-between">
-            {usage && (
+            {usage && usage.completionTokens && usage.promptTokens && usage.totalTokens && (
               <div>
-                Tokens: {usage.totalTokens} (prompt: {usage?.promptTokens || '?'}, completion:{' '}
-                {usage?.completionTokens || '?'})
+                Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
               </div>
             )}
             {(onRewind || onFork) && messageId && (

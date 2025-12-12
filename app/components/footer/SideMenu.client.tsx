@@ -3,9 +3,8 @@ import { useState } from 'react';
 import { classNames } from '~/utils/classNames';
 import Popup from '../common/Popup';
 import { Tooltip } from '../chat/Tooltip';
-import useViewport from '~/lib/hooks';
-import WhatsNewPopup from '../common/WhatsNewPopup';
-import { useWhatsNew } from '../../lib/hooks/useWhatsNew';
+import { useViewport } from '~/lib/hooks';
+import { useGlobalPopups } from '../chat/GlobalPopups';
 
 interface FooterProps {
   positionClass?: string;
@@ -44,13 +43,13 @@ const POPUP_CONFIGS: Record<Exclude<PopupType, null>, PopupConfig> = {
 
 export default function SideMenu({ positionClass }: FooterProps) {
   const [activePopup, setActivePopup] = useState<PopupType>(null);
-  const isMobile = useViewport(768);
-
-  const { setShowWhatsNew } = useWhatsNew();
+  const { isMobile } = useViewport();
 
   const handleToggle = (type: PopupType) => {
     setActivePopup(activePopup === type ? null : type);
   };
+
+  const { showWhatsNewPopup } = useGlobalPopups();
 
   const renderPopupButton = (type: Exclude<PopupType, null>) => {
     const config = POPUP_CONFIGS[type];
@@ -64,13 +63,14 @@ export default function SideMenu({ positionClass }: FooterProps) {
           </Tooltip>
         </IconButton>
         {isActive && (
-          <Popup isShow={isActive} handleToggle={() => handleToggle(null)}>
+          <Popup
+            isShow={isActive}
+            handleToggle={() => handleToggle(null)}
+            title={config.title}
+            titleClasses="self-start"
+            description={config.subtitle}
+          >
             <div className="flex flex-col gap-5 text-left">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-xl font-bold">{config.title}</h2>
-                {config.subtitle && <h3 className="text-sm text-bolt-elements-textSecondary">{config.subtitle}</h3>}
-              </div>
-
               <a href={config.link} target="_blank" rel="noopener noreferrer">
                 <Button className="w-full">
                   {config.linkText} <div className="inline-block i-ph:arrow-square-out text-accent-500"></div>
@@ -89,12 +89,10 @@ export default function SideMenu({ positionClass }: FooterProps) {
         <div className="relative w-full flex justify-between items-end">
           <div className="flex gap-2 flex-col pointer-events-auto">
             <Tooltip content="What's new">
-              <IconButton onClick={() => setShowWhatsNew(true)}>
+              <IconButton onClick={() => showWhatsNewPopup()}>
                 <div className="i-ph:megaphone-light text-gray-400 hover:text-purple-400 text-4xl" />
               </IconButton>
             </Tooltip>
-
-            <WhatsNewPopup />
 
             <Tooltip content="Subscribe on X" side="left">
               <a href="https://x.com/aimpact_dev" target="_blank" rel="noopener noreferrer">
@@ -122,5 +120,3 @@ export default function SideMenu({ positionClass }: FooterProps) {
     )
   );
 }
-
-function BugBountyPopup() {}

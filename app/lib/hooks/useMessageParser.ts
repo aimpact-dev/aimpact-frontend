@@ -1,5 +1,9 @@
 import { useCallback, useState } from 'react';
-import { StreamingMessageParser } from '~/lib/runtime/message-parser';
+import {
+  StreamingMessageParser,
+  type ActionCallbackData,
+  type ArtifactCallbackData,
+} from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 import { currentParsingMessageState } from '../stores/parse';
@@ -18,7 +22,9 @@ const messageParser = new StreamingMessageParser({
 
       // TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
       // The purpose of this store is to save id of the artifact currently being parsed.
-      workbenchStore.showWorkbench.set(true);
+      if (isDesktop) {
+        workbenchStore.setShowWorkbench(true);
+      }
       workbenchStore.addArtifact(data);
     },
     onArtifactClose: (data, skipArtifactSave) => {
@@ -61,6 +67,13 @@ const messageParser = new StreamingMessageParser({
 });
 
 export function useMessageParser() {
+  const { isMobile } = useViewport();
+  const isDesktop = !isMobile;
+
+  const messageParser = new StreamingMessageParser({
+    callbacks: createMessageParserCallbacks({ isDesktop }),
+  });
+
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
 
   const parseMessages = useCallback((messages: UIMessage[], isLoading: boolean) => {

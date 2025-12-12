@@ -16,12 +16,13 @@ function Markdown({ children }: PropsWithChildren) {
 
 interface Props {
   isMobile?: boolean;
+  onClick?: () => void;
 }
 
 export default function HowItWorksButton({ isMobile = false }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const handleToggle = () => {
-    setIsOpen(!isOpen);
+    setIsOpen((prev) => !prev);
   };
 
   const text = `
@@ -38,7 +39,7 @@ So, just describe your idea to AI. Try to give precise queries. Keep modifying i
   return (
     <>
       {isMobile ? (
-        <button onClick={handleToggle} className="text-gray-200 text-left py-2 px-4 font-medium">
+        <button onClick={handleToggle} className="text-gray-200/70 text-left py-2 px-4 font-medium">
           How it works?
         </button>
       ) : (
@@ -51,8 +52,7 @@ So, just describe your idea to AI. Try to give precise queries. Keep modifying i
         </Button>
       )}
 
-      <Popup isShow={isOpen} handleToggle={handleToggle}>
-        <h3 className="text-2xl font-bold mb-4">How it works?</h3>
+      <Popup isShow={isOpen} handleToggle={handleToggle} title="How it works?">
         <Markdown>{text}</Markdown>
       </Popup>
     </>

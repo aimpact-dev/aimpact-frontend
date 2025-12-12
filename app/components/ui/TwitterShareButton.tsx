@@ -52,7 +52,7 @@ export function TwitterShareButton({
         <Button
           variant={customVariant ? customVariant : 'ghost'}
           className={cn(
-            'flex items-center gap-2 px-3 py-2 bg-black text-bolt-elements-textSecondary border border-black rounded-md cursor-not-allowed hover:bg-black hover:text-bolt-elements-textSecondary z-10',
+            'flex items-center gap-2 px-3 py-2 bg-black text-bolt-elements-textSecondary border border-white/20 rounded-md cursor-not-allowed hover:bg-black hover:text-bolt-elements-textSecondary z-10',
             classNames,
           )}
           {...props}
@@ -71,7 +71,7 @@ export function TwitterShareButton({
           <Button
             variant={customVariant ? customVariant : 'ghost'}
             className={cn(
-              'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-black rounded-md hover:bg-gray-800 transition z-10',
+              'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-white/20 rounded-md hover:bg-gray-800 transition z-10',
               classNames,
             )}
             {...props}
@@ -99,7 +99,7 @@ export function TwitterShareButton({
     <Button
       variant={customVariant ? customVariant : 'ghost'}
       className={cn(
-        'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-black rounded-md hover:bg-gray-800 transition z-10',
+        'flex items-center gap-1 px-3 py-2 outline-none bg-black text-white border border-white/20 rounded-md hover:bg-gray-800 transition z-10',
         classNames,
       )}
       onClick={() => shareOnTwitter(deployUrls[0].url)}

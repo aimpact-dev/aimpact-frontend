@@ -2,7 +2,7 @@
  * Functions for managing chat data in IndexedDB
  */
 
-import type { UIMessage } from 'ai';
+import type { UIMessage } from '~/lib/message';
 import type { IChatMetadata } from './db'; // Import IChatMetadata
 
 export interface ChatMessage {

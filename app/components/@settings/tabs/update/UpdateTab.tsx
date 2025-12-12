@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { logStore } from '~/lib/stores/logs';
 import { toast } from 'react-toastify';
-import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/Dialog';
+import { Dialog, DialogRoot, DialogTitle, DialogDescription, DialogButton } from '~/components/ui/CustomDialog';
 import { classNames } from '~/utils/classNames';
 import { Markdown } from '~/components/chat/Markdown';
 

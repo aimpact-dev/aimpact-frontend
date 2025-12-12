@@ -1,6 +1,6 @@
 'use client';
 
-import { z } from 'zod/v3';
+import { z } from 'zod';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { fromLamports } from '~/utils/solana';
-import { VersionedTransaction, Transaction, SystemProgram, PublicKey } from '@solana/web3.js';
+import { VersionedTransaction } from '@solana/web3.js';
 import {
   Form,
   FormControl,
@@ -23,7 +23,7 @@ import {
   RequiredFieldMark,
 } from '../ui/Form';
 import { base64ToUint8Array } from '~/lib/utils';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   useCreateHeavenToken,
@@ -35,7 +35,7 @@ import {
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
-const createSchema = (walletBalance: number | null) =>
+const createSchema = () =>
   z.object({
     name: z.string().min(1, 'Name is required').max(32),
     symbol: z.string().min(1, 'Symbol is required').max(16),
@@ -44,9 +44,6 @@ const createSchema = (walletBalance: number | null) =>
       .number({ error: 'Prebuy must be a number' })
       .nonnegative('Prebuy must be greater or equal to 0')
       .max(99, 'Prebuy must be ≥ 0 and ≤ 99')
-      // .refine((val) => walletBalance === null || val + estimatedDeployCost <= walletBalance, {
-      // message: `Prebuy cannot be larger than your wallet balance. You should leave a ${estimatedDeployCost.toFixed(2)} SOL for create token.`,
-      // })
       .optional(),
     twitter: z
       .url()
@@ -100,13 +97,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    if (balanceError) {
-      toast.error('Failed to fetch wallet balance.', { autoClose: false });
-    }
-  }, [balanceError]);
-
-  const schema = createSchema(walletBalance);
+  const schema = createSchema();
 
   type FormValues = z.infer<typeof schema>;
   const resolver = zodResolver(schema) as unknown as Resolver<FormValues, any>;
@@ -195,12 +186,34 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
     }
   };
 
+  const DescriptionField = (className: string) => (
+    <FormField
+      control={control}
+      name="description"
+      render={({ field }) => (
+        <FormItem className={`flex-1 flex flex-col ${className}`}>
+          <FormLabel>Description</FormLabel>
+          <FormControl className="flex-1">
+            <Textarea
+              placeholder="Short description of your token"
+              className="resize-none h-full"
+              autoComplete="off"
+              disabled={isSubmitting}
+              {...field}
+            />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
   return (
     <Form {...form}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 mx-auto">
         <div className="flex gap-5">
-          <div className="flex flex-col gap-5">
-            <div className="flex gap-3 *:flex-1">
+          <div className="flex flex-col gap-5 flex-1">
+            <div className="flex gap-3 flex-col md:flex-row *:flex-1">
               <FormField
                 control={control}
                 name="name"
@@ -230,25 +243,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
               />
             </div>
 
-            <FormField
-              control={control}
-              name="description"
-              render={({ field }) => (
-                <FormItem className="flex-1 flex flex-col">
-                  <FormLabel>Description</FormLabel>
-                  <FormControl className="flex-1">
-                    <Textarea
-                      placeholder="Short description of your token"
-                      className="resize-none h-full"
-                      autoComplete="off"
-                      disabled={isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {DescriptionField('hidden md:flex')}
           </div>
 
           <FormField
@@ -257,7 +252,7 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
             render={({ field }) => (
               <FormItem className="flex flex-col">
                 <FormLabel>Image {<RequiredFieldMark />}</FormLabel>
-                <div className="mt-2 w-32 h-32 border border-border-light rounded-md overflow-hidden">
+                <div className="mt-2 w-24 h-24 md:w-32 md:h-32 border border-border-light rounded-md overflow-hidden">
                   {imagePreview && <img src={imagePreview} alt="Preview" className="object-contain w-full h-full" />}
                 </div>
                 <FormControl>
@@ -288,6 +283,8 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
           />
         </div>
 
+        {DescriptionField('flex md:hidden')}
+
         <FormField
           control={control}
           name="prebuy"
@@ -299,19 +296,10 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
             <FormItem>
               <div className="flex justify-between">
                 <FormLabel>Prebuy Amount</FormLabel>
-                <FormDescription>
-                  {/* Balance:{' '}
-                  {isBalanceLoading ? (
-                    <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>
-                  ) : (
-                    walletBalance
-                  )}
-                  SOL */}
-                  Buy supply of token in percents
-                </FormDescription>
+                <FormDescription className="hidden md:inline">Buy supply of token in percents</FormDescription>
               </div>
               <FormControl>
-                <div className="flex justify-center items-center">
+                <div className="flex relative justify-center items-center">
                   <Input
                     placeholder="0"
                     disabled={isSubmitting || !!balanceError || isBalanceLoading}
@@ -324,8 +312,9 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
                       const value = e.target.value.replace(',', '.');
                       field.onChange(value === '' ? undefined : value);
                     }}
+                    className="pr-5"
                   />
-                  <p className="absolute right-8 text-gray-300">%</p>
+                  <p className="absolute right-2 text-gray-300">%</p>
                 </div>
               </FormControl>
               <FormMessage />

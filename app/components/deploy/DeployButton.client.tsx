@@ -16,8 +16,10 @@ import { BuildService } from '~/lib/services/buildService';
 import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import { chatId } from '~/lib/persistence';
-import { Button, type ButtonProps } from '~/components/ui/Button';
+import { Button, buttonVariants, type ButtonProps } from '~/components/ui/Button';
 import { HeaderActionButton } from '../header/HeaderActionButton';
+
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
 export enum DeployProviders {
   AWS = 'AWS',
@@ -36,8 +38,6 @@ interface Props {
 
 export default function DeployButton({ isHeaderActionButton = false, customVariant }: Props) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const publishButtonRef = useRef<HTMLButtonElement>(null);
 
   const [activePreviewIndex] = useState(0);
   const previews = useStore(workbenchStore.previews);
@@ -97,17 +97,6 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
       toastIds.current.forEach((id) => toast.dismiss(id));
       toastIds.current.clear();
     };
-  }, []);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -249,33 +238,27 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <div className="flex gap-2 text-sm h-full">
-        {(() => {
-          const Component = isHeaderActionButton ? HeaderActionButton : Button;
-          return (
-            <Component
-              active
-              {...(!isHeaderActionButton && customVariant ? { variant: customVariant } : {})}
-              ref={publishButtonRef}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2
-                border border-bolt-elements-borderColor rounded-md m-0"
-            >
-              {isDeploying ? `Publishing...` : 'Publish'}
-              <div
-                className={classNames(
-                  'i-ph:caret-down w-4 h-4 transition-transform',
-                  isDropdownOpen ? 'rotate-180' : '',
-                )}
-              />
-            </Component>
-          );
-        })()}
-      </div>
-
-      {isDropdownOpen && (
-        <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[15rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+      <DropdownMenuTrigger>
+        <div className="flex gap-2 text-sm h-full">
+          <div
+            className={classNames(
+              'px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2 border border-bolt-elements-borderColor rounded-md m-0',
+              isHeaderActionButton
+                ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent py-1.5'
+                : '',
+              customVariant ? buttonVariants({ variant: customVariant }) : '',
+            )}
+          >
+            {isDeploying ? `Publishing...` : 'Publish'}
+            <div
+              className={classNames('i-ph:caret-down w-4 h-4 transition-transform', isDropdownOpen ? 'rotate-180' : '')}
+            />
+          </div>
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem>
           <HeaderActionButton
             disabled={isDeploying || !activePreview || isStreaming}
             onClick={() => onDeploy(DeployProviders.AWS)}
@@ -284,7 +267,8 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
             <div className={`${providerToIconSlug[DeployProviders.AWS]} h-6 w-6`}></div>
             <span className="mx-auto">Publish to AWS</span>
           </HeaderActionButton>
-
+        </DropdownMenuItem>
+        <DropdownMenuItem>
           <HeaderActionButton
             disabled={isDeploying || !activePreview || isStreaming}
             onClick={() => onDeploy(DeployProviders.AKASH)}
@@ -293,7 +277,8 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
             <div className={`${providerToIconSlug[DeployProviders.AKASH]} h-6 w-6`}></div>
             <span className="mx-auto">Publish to Akash</span>
           </HeaderActionButton>
-
+        </DropdownMenuItem>
+        <DropdownMenuItem>
           <HeaderActionButton
             disabled={!finalDeployLink}
             onClick={handleClickFinalLink}
@@ -302,8 +287,8 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
             <div className="i-ph:arrow-square-out w-6 h-6"></div>
             <span className="mx-auto">Project link</span>
           </HeaderActionButton>
-        </div>
-      )}
-    </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
