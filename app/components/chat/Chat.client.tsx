@@ -2,11 +2,11 @@ import { useStore } from '@nanostores/react';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
-import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
+import { cssTransition, toast, ToastContainer } from 'react-toastify';
+import { useMessageParser, usePromptEnhancer, useShortcuts, type MessageState } from '~/lib/hooks';
 import { chatId, description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { chatStore } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { chatStore, someActionsFinsihedTime } from '~/lib/stores/chat';
+import { workbenchStore, type ArtifactState } from '~/lib/stores/workbench';
 import { PROMPT_COOKIE_KEY } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -14,8 +14,7 @@ import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
-import type { ProviderInfo } from '~/types/model';
-import { data, useSearchParams } from '@remix-run/react';
+import { useSearchParams } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
@@ -26,13 +25,16 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import { convexTeamNameStore } from '~/lib/stores/convex';
 import type { MessageDataEvent, UIMessage } from '~/lib/message';
 import { DefaultChatTransport, generateId } from 'ai';
+import type { ActionState } from '~/lib/runtime/action-runner';
+import { K } from 'node_modules/@upstash/redis/zmscore-Cq_Bzgy4.mjs';
 
 const logger = createScopedLogger('Chat');
 
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, storeMessageHistory, importChat, exportChat, error } = useChatHistory();
+  const { ready, initialMessages, actionMessages, storeMessageHistory, importChat, exportChat, error } =
+    useChatHistory();
 
   const title = useStore(description);
   useEffect(() => {
@@ -64,13 +66,14 @@ export function Chat() {
 const processSampledMessages = createSampler(
   (options: {
     messages: UIMessage[];
+    setMessages: (messages: UIMessage[]) => void;
     initialMessages: UIMessage[];
     isLoading: boolean;
-    parseMessages: (messages: UIMessage[], isLoading: boolean) => void;
+    parseMessages: (messages: UIMessage[], isLoading: boolean) => Record<string, MessageState>;
     storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
   }) => {
     let { messages } = options;
-    const { initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
+    const { initialMessages, setMessages, isLoading, parseMessages, storeMessageHistory } = options;
 
     messages = messages.filter((message) => {
       if (message.role === 'user') return true;
@@ -85,17 +88,41 @@ const processSampledMessages = createSampler(
       };
     });
 
-    const filteredMessages = messages.filter((message) => {
-      return message.metadata ? !message.metadata.ignoreActions : true;
-    });
-    parseMessages(filteredMessages, isLoading);
+    const messagesState = parseMessages(messages, isLoading);
 
-    if (messages.length > initialMessages.length) {
+    // after parse we can filter for noStore
+    messages = messages.filter((m) => !m.metadata?.noStore);
+
+    // i think i should check is all actions done in artifact + artifact closed
+    // i need to check actions for specific messages
+    let someMetadataChanged = false;
+    messages = messages.map((m) => {
+      if (!m.metadata) {
+        m.metadata = {};
+      }
+      const artifact = workbenchStore.getArtifact(m.id);
+      if (artifact) {
+        if (!m.metadata.artifactActionsFinished && artifact.allActionsFinished) {
+          someMetadataChanged = true;
+          m.metadata.artifactActionsFinished = artifact.allActionsFinished;
+        }
+      }
+      return m;
+    });
+
+    const messageToMetadata = Object.fromEntries(messages.map((m) => [m.id, { role: m.role, meta: m.metadata }]));
+    workbenchStore.messagesMetadata.set(messageToMetadata);
+
+    // we need this to prevent infinite useEffect loop
+    if (someMetadataChanged) {
+      setMessages(messages);
+    }
+    if (messages.length > initialMessages.length || someMetadataChanged) {
       if (!messages.length) return;
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
   },
-  50,
+  100,
 );
 
 interface ChatProps {
@@ -138,6 +165,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, []); // Empty dependency array for cleanup on unmount
 
   const { showChat } = useStore(chatStore);
+  const lastActionsFinsihedTime = useStore(someActionsFinsihedTime);
   const showWorkbench = useStore(workbenchStore.showWorkbench);
 
   const [animationScope, animate] = useAnimate();
@@ -159,10 +187,12 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [input, setInput] = useState(Cookies.get(PROMPT_COOKIE_KEY) || '');
   const [streamDataEvents, setStreamDataEvents] = useState<MessageDataEvent[]>([]);
 
+  const streamEndpoint = import.meta.env.GLOBAL_DEBUG_MODE === 'true' ? '/chat/test-stream' : '/chat/stream';
+
   const { messages, status, stop, sendMessage, setMessages, regenerate, error } = useChat<UIMessage>({
     onError: (e) => {
       logger.error('Request failed\n\n', e, error);
-      console.log('error', e, e?.message, typeof e);
+      console.error('error on stream llm response', e, e?.message, typeof e);
       logStore.logError('Chat request failed', e, {
         component: 'Chat',
         action: 'request',
@@ -200,7 +230,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
       takeSnapshot(chatIdx, files, undefined, chatSummary)
         .then(() => logger.debug('Project saved after message on finish'))
-        .catch((e) => {
+        .catch((e: any) => {
           logger.error('error in take snapshot!!!');
           logger.error(e);
         });
@@ -218,7 +248,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           ],
           role: 'system',
         };
-        setMessages([...messages, templateUIMessage]);
+        setMessages((messages) => [...messages, templateUIMessage]);
       }
 
       if (dataPart.type.startsWith('data-')) {
@@ -227,12 +257,17 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
 
     messages: initialMessages,
-    experimental_throttle: 100,
+    experimental_throttle: 150,
 
     transport: new DefaultChatTransport({
-      api: new URL('/chat/stream', import.meta.env.PUBLIC_BACKEND_URL)?.href,
-      headers: () => headersRef.current,
-      body: () => bodyRef.current,
+      api: new URL(streamEndpoint, import.meta.env.PUBLIC_BACKEND_URL)?.href,
+      prepareSendMessagesRequest: ({ messages }) => {
+        messages = messages.filter((m) => !m.metadata?.noStore);
+        return {
+          headers: headersRef.current,
+          body: { ...bodyRef.current, messages },
+        };
+      },
     }),
   });
 
@@ -269,8 +304,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       isLoading: status == 'streaming',
       parseMessages,
       storeMessageHistory,
+      setMessages,
     });
-  }, [messages, status, parseMessages]);
+  }, [messages, status, parseMessages, lastActionsFinsihedTime]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -343,7 +379,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       logger.info(`AUTO SELECT TEMPLATE: ${autoSelectTemplate}`);
 
       // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
-      const id = Date.now().toString();
+      const id = generateId();
       sendMessage({
         id,
         role: 'user',
@@ -388,9 +424,11 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         //   })),
       ],
     });
+
     setFakeLoading(false);
 
     if (error != null) {
+      console.log('before error slice');
       setMessages(messages.slice(0, -1));
     }
 
@@ -461,6 +499,61 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     [streamingState],
   );
 
+  const artifactsState = useStore(workbenchStore.artifacts);
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  const [totalImportActions, setTotalImportActions] = useState<number | null>(null);
+  const [completeImportActions, setCompleteImportActions] = useState<number | null>(null);
+  const [waitForActionsPending, setWaitForActionsPending] = useState(false);
+
+  useEffect(() => {
+    if (waitForActionsPending == true) return;
+    const artifacts = workbenchStore.artifacts.get();
+    let importMessage = messages.find((m) => m.metadata?.importMessage);
+    if (!importMessage) {
+      const importFilesArtifact = Object.entries(artifacts).find(([key, value]) => value.id === 'imported-files');
+      if (importFilesArtifact) {
+        importMessage = messages.find((m) => importFilesArtifact && m.id === importFilesArtifact[0]);
+      }
+    }
+
+    if (!importMessage) {
+      return;
+    }
+    setTotalImportActions(1);
+    setCompleteImportActions(0);
+    const importArtifact = artifacts[importMessage.id];
+    if (!importArtifact) {
+      return;
+    }
+
+    const waitForActions = async () => {
+      let attempt = 0;
+      while (attempt < 60) {
+        const actionsMap = importArtifact?.runner?.actions?.get();
+        const importActions = Object.values(actionsMap);
+
+        if (importActions.length) {
+          const completeActions = importActions.filter((a) => a.status === 'complete');
+          setTotalImportActions(importActions.length);
+          setCompleteImportActions(completeActions.length);
+          if (completeActions.length >= importActions.length) {
+            return;
+          }
+        }
+
+        attempt += 1;
+        await sleep(500);
+      }
+    };
+
+    setWaitForActionsPending(true);
+    waitForActions().finally(() => setWaitForActionsPending(false));
+  }, [artifactsState, messages]);
+
   return (
     <>
       <BaseChat
@@ -502,6 +595,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         clearDeployAlert={clearDeployAlertCallback}
         data={streamDataEvents}
         showWorkbench={showWorkbench}
+        totalActions={totalImportActions}
+        completedActions={completeImportActions}
       />
       <DaytonaCleanup />
     </>

@@ -1,4 +1,3 @@
-import type { UIMessage } from 'ai';
 import { useCallback, useState } from 'react';
 import {
   StreamingMessageParser,
@@ -8,49 +7,62 @@ import {
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 import { currentParsingMessageState } from '../stores/parse';
+import { chatStore } from '../stores/chat';
 import { extractContentFromUI } from '~/utils/message';
-import { useViewport } from './useViewport';
+import type { UIMessage } from '../message';
 
 const logger = createScopedLogger('useMessageParser');
 
-const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolean }) => ({
-  onArtifactOpen: (data: ArtifactCallbackData) => {
-    logger.trace('onArtifactOpen', data);
+export type MessageState = { artifactClosed: boolean };
 
-    //TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
-    //The purpose of this store is to save id of the artifact currently being parsed.
-    currentParsingMessageState.set(data.messageId);
-    if (isDesktop) {
-      workbenchStore.setShowWorkbench(true);
-    }
-    workbenchStore.addArtifact(data);
-  },
-  onArtifactClose: (data: ArtifactCallbackData) => {
-    logger.trace('onArtifactClose');
+const messageParser = new StreamingMessageParser({
+  callbacks: {
+    onArtifactOpen: (data) => {
+      logger.trace('onArtifactOpen', data);
 
-    currentParsingMessageState.set(null);
-    workbenchStore.updateArtifact(data, { closed: true });
-  },
-  onActionOpen: (data: ActionCallbackData) => {
-    logger.trace('onActionOpen', data.action);
+      // TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
+      // The purpose of this store is to save id of the artifact currently being parsed.
+      if (isDesktop) {
+        workbenchStore.setShowWorkbench(true);
+      }
+      workbenchStore.addArtifact(data);
+    },
+    onArtifactClose: (data, skipArtifactSave) => {
+      logger.trace('onArtifactClose');
 
-    // we only add shell actions when when the close tag got parsed because only then we have the content
-    if (data.action.type === 'file' || data.action.type === 'update') {
-      workbenchStore.addAction(data);
-    }
-  },
-  onActionClose: (data: ActionCallbackData) => {
-    logger.trace('onActionClose', data.action);
+      workbenchStore.updateArtifact(data, { closed: true });
+    },
+    onActionOpen: (data, skipAction) => {
+      logger.trace('onActionOpen', data.action);
 
-    if (data.action.type !== 'file' && data.action.type !== 'update') {
-      workbenchStore.addAction(data);
-    }
+      // we only add shell actions when when the close tag got parsed because only then we have the content
+      if (data.action.type === 'file' || data.action.type === 'update') {
+        // we only add action data and ignore execution if skipAction = true
+        workbenchStore.addAction(data, skipAction);
+      }
 
-    workbenchStore.runAction(data);
-  },
-  onActionStream: (data: ActionCallbackData) => {
-    logger.trace('onActionStream', data.action);
-    workbenchStore.runAction(data, true);
+      if (skipAction) {
+        workbenchStore.skipAction(data);
+      }
+    },
+    onActionClose: (data, skipAction) => {
+      logger.trace('onActionClose', data.action);
+      if (data.action.type !== 'file' && data.action.type !== 'update') {
+        workbenchStore.addAction(data, skipAction);
+      }
+
+      if (skipAction) {
+        workbenchStore.skipAction(data);
+      } else {
+        workbenchStore.runAction(data);
+      }
+    },
+    onActionStream: (data, skipAction) => {
+      logger.trace('onActionStream', data.action);
+      if (!skipAction) {
+        workbenchStore.runAction(data, true);
+      }
+    },
   },
 });
 
@@ -67,22 +79,28 @@ export function useMessageParser() {
   const parseMessages = useCallback((messages: UIMessage[], isLoading: boolean) => {
     let reset = false;
 
-    // console.log('IS DEV', import.meta.env.DEV, !isLoading);
-    // if (import.meta.env.DEV && !isLoading) {
-    //   reset = true;
-    //   messageParser.reset();
-    // }
+    if (import.meta.env.DEV && !isLoading) {
+      reset = true;
+      messageParser.reset();
+    }
 
+    const messagesState: Record<string, MessageState> = {};
     for (const [index, message] of messages.entries()) {
-      const newParsedContent = messageParser.parse(
+      messagesState[message.id] = { artifactClosed: false };
+      const { parsed: newParsedContent, artifactClosed } = messageParser.parse(
         message.id,
         extractContentFromUI(message),
+        message.metadata?.ignoreActions && message.metadata?.artifactActionsFinished,
       );
       setParsedMessages((prevParsed) => ({
         ...prevParsed,
         [index]: !reset ? (prevParsed[index] || '') + newParsedContent : newParsedContent,
       }));
+
+      messagesState[message.id].artifactClosed = artifactClosed;
     }
+
+    return messagesState;
   }, []);
 
   return { parsedMessages, parseMessages };

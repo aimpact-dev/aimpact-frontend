@@ -28,6 +28,7 @@ import { Connection, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import axios from 'axios';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import SmartContractAccordion from './SmartContractAccordion';
+import { isAxiosError } from 'node_modules/axios/index.cjs';
 
 // Represents anchor project found in user's files on the client
 interface LocalAnchorProject {
@@ -122,40 +123,24 @@ export default function SmartContractView({ postMessage }: Props) {
         } else {
           setBuildInProgress(false);
         }
-      } catch (e) {
-        console.log(
-          `On smart contract view load, could not get contract build request for project with id: ${projectId}, an error occurred: ${e}`,
-        );
-      }
+      } catch (e) {}
 
       try {
         const contractBuildResponse = await getContractBuild(projectId);
         setContractBuild(await convertToContractBuild(contractBuildResponse));
-      } catch (e) {
-        console.log(
-          `On smart contract view load, could not  get build for project with id: ${projectId}, an error occurred: ${e}`,
-        );
-      }
+      } catch (e) {}
 
       try {
         const deployRequest = await getContractDeployRequest(projectId);
         setContractDeployRequest(deployRequest);
-      } catch (e) {
-        console.log(
-          `On smart contract view load, could not get deploy request for project with id: ${projectId}, an error occurred: ${e} `,
-        );
-      }
+      } catch (e) {}
 
       try {
         const contractDeployment = await getContractDeployment(projectId);
         const fs = await getAimpactFs();
         await fs.writeFile(CONTRACT_IDL_FILE_NAME, JSON.stringify(contractDeployment.programIdl), 'utf-8');
         setContractDeployment(contractDeployment);
-      } catch (e) {
-        console.log(
-          `On smart contract view load, could not get smart contract deployment for project with id: ${projectId}, an error occurred: ${e}`,
-        );
-      }
+      } catch (e) {}
     };
     loadAnchorProject();
   }, []);
