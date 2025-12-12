@@ -10,14 +10,14 @@ import { currentParsingMessageState } from '../stores/parse';
 import { chatStore } from '../stores/chat';
 import { extractContentFromUI } from '~/utils/message';
 import type { UIMessage } from '../message';
+import { useViewport } from './useViewport';
 
 const logger = createScopedLogger('useMessageParser');
 
 export type MessageState = { artifactClosed: boolean };
 
-const messageParser = new StreamingMessageParser({
-  callbacks: {
-    onArtifactOpen: (data) => {
+const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolean }) => ({
+    onArtifactOpen: (data: ArtifactCallbackData) => {
       logger.trace('onArtifactOpen', data);
 
       // TODO: Rename currentParsingMessageState to something that defines the purpose of this store.
@@ -27,12 +27,12 @@ const messageParser = new StreamingMessageParser({
       }
       workbenchStore.addArtifact(data);
     },
-    onArtifactClose: (data, skipArtifactSave) => {
+    onArtifactClose: (data: ArtifactCallbackData, skipArtifactSave?: boolean) => {
       logger.trace('onArtifactClose');
 
       workbenchStore.updateArtifact(data, { closed: true });
     },
-    onActionOpen: (data, skipAction) => {
+    onActionOpen: (data: ActionCallbackData, skipAction?: boolean) => {
       logger.trace('onActionOpen', data.action);
 
       // we only add shell actions when when the close tag got parsed because only then we have the content
@@ -45,7 +45,7 @@ const messageParser = new StreamingMessageParser({
         workbenchStore.skipAction(data);
       }
     },
-    onActionClose: (data, skipAction) => {
+    onActionClose: (data: ActionCallbackData, skipAction?: boolean) => {
       logger.trace('onActionClose', data.action);
       if (data.action.type !== 'file' && data.action.type !== 'update') {
         workbenchStore.addAction(data, skipAction);
@@ -57,13 +57,12 @@ const messageParser = new StreamingMessageParser({
         workbenchStore.runAction(data);
       }
     },
-    onActionStream: (data, skipAction) => {
+    onActionStream: (data: ActionCallbackData, skipAction?: boolean) => {
       logger.trace('onActionStream', data.action);
       if (!skipAction) {
         workbenchStore.runAction(data, true);
       }
     },
-  },
 });
 
 export function useMessageParser() {
