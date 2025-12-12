@@ -157,10 +157,6 @@ export class WorkbenchStore {
     this.#terminalStore.attachMainAimpactTerminal(terminal);
   }
 
-  attachAimpactTerminal(terminal: ITerminal) {
-    this.#terminalStore.attachAimpactTerminal(terminal);
-  }
-
   setDocuments(files: FileMap) {
     this.#editorStore.setDocuments(files);
 
@@ -177,6 +173,10 @@ export class WorkbenchStore {
 
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
+  }
+
+  setCurrentView(view: WorkbenchViewType) {
+    this.currentView.set(view);
   }
 
   setCurrentDocumentContent(newContent: string) {
@@ -603,7 +603,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        this.setCurrentView('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];
@@ -632,7 +632,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        this.setCurrentView('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];

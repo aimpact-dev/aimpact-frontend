@@ -12,6 +12,7 @@ import { userInfo } from '~/lib/hooks/useAuth';
 import { useStore } from '@nanostores/react';
 import DepositButton from '../chat/DepositButton';
 import GetMessagesButton from '../chat/GetMessagesButton';
+import { useGlobalPopups } from '../chat/GlobalPopups';
 
 export default function MobileMenu() {
   const user = useStore(userInfo);
@@ -19,6 +20,8 @@ export default function MobileMenu() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const { showWhatsNewPopup } = useGlobalPopups();
 
   const { scrollY } = useScroll();
   const navbarBackground = useTransform(scrollY, [0, 100], ['rgba(20,20,20,0)', 'rgba(20,20,20,0.8)']);
@@ -37,12 +40,15 @@ export default function MobileMenu() {
     setMenuOpen(false);
   };
 
-  const MobileNavButton = ({ label, url }: { label: string; url: string }) => {
-    const isExternal = /^https?:\/\//.test(url);
+  const MobileNavButton = ({ label, url, onClick }: { label: string; url?: string; onClick?: () => void }) => {
+    const isExternal = !!url && /^https?:\/\//.test(url);
     const active = !isExternal && location.pathname === url;
     return (
       <button
-        onClick={() => handleNavigate(url, isExternal)}
+        onClick={() => {
+          onClick?.();
+          url && handleNavigate(url, isExternal);
+        }}
         className={`py-2 px-4 text-left font-medium ${active ? 'text-white' : 'text-gray-200/70 hover:text-gray-100'}`}
       >
         {label}
@@ -53,7 +59,7 @@ export default function MobileMenu() {
   return (
     <motion.header
       style={{ backgroundColor: menuOpen ? 'rgba(30,30,30,0.9)' : navbarBackground }}
-      className={`${menuOpen ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-5000 backdrop-blur-md transition-colors duration-300 ${menuOpen && 'h-screen'}`}
+      className={`${menuOpen ? 'fixed' : 'sticky'} top-0 left-0 right-0 z-50 backdrop-blur-md transition-colors duration-300 ${menuOpen && 'h-screen'}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full">
         <div className="flex justify-between items-center py-4">
@@ -75,7 +81,7 @@ export default function MobileMenu() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="h-full text-lg"
+            className={`h-full text-lg`}
           >
             <div className="flex justify-between gap-2 pb-5">
               {connected && user && (
@@ -99,6 +105,7 @@ export default function MobileMenu() {
                 </>
               )}
             </div>
+
             <div className="flex flex-col gap-5 pt-5 pb-5 border-t border-white/10">
               <MobileNavButton label="Projects" url="/projects" />
               <MobileNavButton label="Rewards" url="/rewards" />
@@ -106,6 +113,7 @@ export default function MobileMenu() {
             </div>
 
             <div className="flex flex-col gap-5 pt-5 pb-5 border-t border-white/10">
+              <MobileNavButton label="What's new" onClick={() => showWhatsNewPopup()} />
               <HowItWorksButton isMobile />
               <MobileNavButton label="Report a bug" url="https://forms.gle/RQs67LKavBFiP1JL8" />
               <MobileNavButton label="Schedule a call" url="https://calendly.com/kostiantyn-aimpact/30min" />

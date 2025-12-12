@@ -1,4 +1,4 @@
-import type { UIMessage } from 'ai';
+import type { UIMessage } from '~/lib/message';
 import { generateId } from './fileUtils';
 
 export interface ProjectCommands {

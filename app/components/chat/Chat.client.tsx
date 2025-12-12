@@ -28,11 +28,6 @@ import { DefaultChatTransport, generateId } from 'ai';
 import type { ActionState } from '~/lib/runtime/action-runner';
 import { K } from 'node_modules/@upstash/redis/zmscore-Cq_Bzgy4.mjs';
 
-const toastAnimation = cssTransition({
-  enter: 'animated fadeInRight',
-  exit: 'animated fadeOutRight',
-});
-
 const logger = createScopedLogger('Chat');
 
 export function Chat() {
@@ -64,34 +59,6 @@ export function Chat() {
           importChat={importChat}
         />
       )}
-      <ToastContainer
-        closeButton={({ closeToast }) => {
-          return (
-            <button className="Toastify__close-button" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
-            </button>
-          );
-        }}
-        icon={({ type }) => {
-          /**
-           * @todo Handle more types if we need them. This may require extra color palettes.
-           */
-          switch (type) {
-            case 'success': {
-              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
-            }
-            case 'error': {
-              return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
-            }
-          }
-
-          return undefined;
-        }}
-        position="bottom-right"
-        pauseOnFocusLoss
-        transition={toastAnimation}
-        autoClose={3000}
-      />
     </>
   );
 }

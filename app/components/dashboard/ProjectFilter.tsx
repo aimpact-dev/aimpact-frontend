@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuT
 import { Tooltip } from '../chat/Tooltip';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useSearchParams } from '@remix-run/react';
-import useViewport from '~/lib/hooks';
+import { useViewport } from '~/lib/hooks';
 
 interface ProjectFiltersProps {
   activeFilters: ProjectFilters[];
@@ -30,7 +30,7 @@ const deploymentFilters: { key: DeploymentPlatform; label: string; color: string
 
 const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectFiltersProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const isMobile = useViewport(768);
+  const { isMobile } = useViewport();
 
   const toggleFilter = (filter: ProjectFilters) => {
     setSearchParams({ page: '1' });

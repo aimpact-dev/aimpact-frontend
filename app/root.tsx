@@ -23,13 +23,20 @@ import './styles/index.scss';
 import 'virtual:uno.css';
 
 import LoadingScreen from './components/common/LoadingScreen';
-import { WhatsNewProvider } from './lib/hooks/useWhatsNew';
+import { cssTransition, ToastContainer } from 'react-toastify';
+import GlobalPopupsProvider from './components/chat/GlobalPopups';
+import { ViewportProvider } from './lib/hooks/useViewport';
 
 const SolanaProvider = React.lazy(() =>
   import('./components/providers/SolanaProvider').then((mod) => ({
     default: mod.default,
   })),
 );
+
+const toastAnimation = cssTransition({
+  enter: 'animated fadeInRight',
+  exit: 'animated fadeOutRight',
+});
 
 export const links: LinksFunction = () => [
   {
@@ -93,13 +100,15 @@ function Providers({ children }: { children: React.ReactNode }) {
             {/*  autoConnectEmbeddedWallet*/}
             {/*  clientId={import.meta.env.VITE_CIVIC_CLIENT_ID}*/}
             {/*>*/}
-            <WhatsNewProvider>
+            <ViewportProvider>
               <RefCodeProvider>
                 <AuthProvider>
-                  <DndProvider backend={HTML5Backend}>{children}</DndProvider>
+                  <DndProvider backend={HTML5Backend}>
+                    <GlobalPopupsProvider>{children}</GlobalPopupsProvider>
+                  </DndProvider>
                 </AuthProvider>
               </RefCodeProvider>
-            </WhatsNewProvider>
+            </ViewportProvider>
             {/*</CivicAuthProvider>*/}
           </SolanaProvider>
         </Suspense>
@@ -117,7 +126,37 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <Providers>{children}</Providers>
+      <Providers>
+        {children}
+        <ToastContainer
+          closeButton={({ closeToast }) => {
+            return (
+              <button className="Toastify__close-button" onClick={closeToast}>
+                <div className="i-ph:x text-lg" />
+              </button>
+            );
+          }}
+          icon={({ type }) => {
+            /**
+             * @todo Handle more types if we need them. This may require extra color palettes.
+             */
+            switch (type) {
+              case 'success': {
+                return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
+              }
+              case 'error': {
+                return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
+              }
+            }
+
+            return undefined;
+          }}
+          position="bottom-right"
+          pauseOnFocusLoss
+          transition={toastAnimation}
+          autoClose={3000}
+        />
+      </Providers>
       <ScrollRestoration />
       <Scripts />
     </>
@@ -143,9 +182,5 @@ export default function App() {
     });
   }, []);
 
-  return (
-    <Layout>
-      <Outlet />
-    </Layout>
-  );
+  return <Outlet />;
 }

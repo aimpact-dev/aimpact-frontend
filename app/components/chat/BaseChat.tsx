@@ -30,7 +30,7 @@ import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
-import useViewport, { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import { StickToBottom, useStickToBottomContext, useViewport } from '~/lib/hooks';
 import SideMenu from '../footer/SideMenu.client';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { userInfo } from '~/lib/hooks/useAuth';
@@ -38,11 +38,10 @@ import CustomWalletButton from '../common/CustomWalletButton';
 import Footer from '../footer/Footer';
 import { useParams } from '@remix-run/react';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
-import TokenInfoNavButton from './TokenInfoButton';
-import DeployTokenNavButton from './DeployTokenNavButton';
 import { HeaderActionButtons } from '../header/HeaderActionButtons.client';
 import type { MessageDataEvent } from '~/lib/message';
 import ProgressImport from './ProgressImport';
+import { twMerge } from 'tailwind-merge';
 
 const TEXTAREA_MIN_HEIGHT = 95;
 
@@ -119,7 +118,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
-    const isMobile = useViewport(768);
+    const { isMobile } = useViewport();
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
@@ -132,6 +131,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const { isAuthorized } = useAuth();
     const userInfoData = useStore(userInfo);
 
+    const [isDragging, setIsDragging] = useState(false);
     const isDisabled = !isAuthorized || !userInfoData?.messagesLeft;
 
     useEffect(() => {
@@ -289,25 +289,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         className={classNames(styles.BaseChat, 'relative flex flex-col h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
-        {isMobile && chatStarted && (
-          <div className="flex justify-between px-2">
-            {params.id && (
-              <>
-                {tokenInfoQuery?.data ? (
-                  <div className="h-full">
-                    <TokenInfoNavButton tokenData={tokenInfoQuery.data} />
-                  </div>
-                ) : (
-                  <div className="h-full">
-                    <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
-                  </div>
-                )}
-              </>
-            )}
+        {isMobile && chatStarted && <ClientOnly>{() => <HeaderActionButtons isMobile />}</ClientOnly>}
 
-            <ClientOnly>{() => <HeaderActionButtons />}</ClientOnly>
-          </div>
-        )}
         {/* <ClientOnly>{() => <Menu />}</ClientOnly> */}
         <div className="flex flex-col lg:flex-row overflow-x-hidden w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
@@ -440,82 +423,77 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         : []),
                     )}
                   >
-                    <textarea
-                      ref={textareaRef}
-                      disabled={isDisabled}
-                      className={classNames(
-                        'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-                        'transition-all duration-150',
-                        'hover:border-bolt-elements-focus',
+                    <div className="relative w-full">
+                      <textarea
+                        ref={textareaRef}
+                        disabled={isDisabled}
+                        className={twMerge(
+                          'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+                          isDragging && 'blur-sm',
+                        )}
+                        placeholder="How can AImpact help you today?"
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+
+                          const files = Array.from(e.dataTransfer.files);
+                          files.forEach((file) => {
+                            if (file.type.startsWith('image/')) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => {
+                                const base64Image = e.target?.result as string;
+                                setUploadedFiles?.([...uploadedFiles, file]);
+                                setImageDataList?.([...imageDataList, base64Image]);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          });
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            if (event.shiftKey || isStreaming) {
+                              return;
+                            }
+                            event.preventDefault();
+
+                            // ignore if using input method engine
+                            if (event.nativeEvent.isComposing) {
+                              return;
+                            }
+                            handleSendMessage?.(event);
+                          }
+                        }}
+                        value={input}
+                        onChange={handleInputChange}
+                        onPaste={handlePaste}
+                        style={{
+                          minHeight: TEXTAREA_MIN_HEIGHT,
+                          maxHeight: TEXTAREA_MAX_HEIGHT,
+                        }}
+                        maxLength={16000}
+                        translate="no"
+                      />
+
+                      {isDragging && (
+                        <div className="absolute inset-0 flex gap-2 items-center justify-center bg-black/20 rounded-lg border-1 border-accent-500 text-accent-500 gap-2 pointer-events-none text-center">
+                          <div className="i-ph:tray-arrow-down text-xl"></div>
+                          Drop your files here
+                        </div>
                       )}
-                      onDragEnter={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '2px solid #1488fc';
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '2px solid #1488fc';
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                    </div>
 
-                        const files = Array.from(e.dataTransfer.files);
-                        files.forEach((file) => {
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-
-                            reader.onload = (e) => {
-                              const base64Image = e.target?.result as string;
-                              setUploadedFiles?.([...uploadedFiles, file]);
-                              setImageDataList?.([...imageDataList, base64Image]);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        });
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          if (event.shiftKey) {
-                            return;
-                          }
-
-                          event.preventDefault();
-
-                          if (isStreaming) {
-                            handleStop?.();
-                            return;
-                          }
-
-                          // ignore if using input method engine
-                          if (event.nativeEvent.isComposing) {
-                            return;
-                          }
-
-                          handleSendMessage?.(event);
-                        }
-                      }}
-                      value={input}
-                      onChange={(event) => {
-                        handleInputChange?.(event);
-                      }}
-                      onPaste={handlePaste}
-                      style={{
-                        minHeight: TEXTAREA_MIN_HEIGHT,
-                        maxHeight: TEXTAREA_MAX_HEIGHT,
-                      }}
-                      maxLength={16000}
-                      placeholder="How can AImpact help you today?"
-                      translate="no"
-                    />
                     <ClientOnly>
                       {() => (
                         <SendButton
-                          show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
+                          show={(input.length > 0 || isStreaming || uploadedFiles.length > 0) && !isDragging}
                           isStreaming={isStreaming}
                           disabled={isDisabled}
                           onClick={(event) => {

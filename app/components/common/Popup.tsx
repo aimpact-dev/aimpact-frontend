@@ -1,72 +1,52 @@
-import { type PropsWithChildren } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/Dialog';
+import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
-import { AnimatePresence, motion } from 'framer-motion';
+import React, { type PropsWithChildren } from 'react';
 import { classNames } from '~/utils/classNames';
-import { createPortal } from 'react-dom';
 
 interface CustDevPopupProps extends PropsWithChildren {
-  handleToggle: () => void;
   isShow: boolean;
-  backgroundElement?: boolean;
-  positionClasses?: string;
-  closeByTouch?: boolean;
+  handleToggle: (open?: boolean) => void;
+  title?: string | React.ReactNode;
+  titleClasses?: string;
+  description?: string | React.ReactNode;
   childrenClasses?: string;
   className?: string;
+  children: React.ReactNode;
 }
 
 export default function Popup({
   isShow,
-  backgroundElement = true,
-  positionClasses,
-  childrenClasses,
   handleToggle,
-  children,
+  title,
+  titleClasses,
+  description,
+  childrenClasses,
   className,
-  closeByTouch = true,
+  children,
 }: CustDevPopupProps) {
   return (
-    isShow &&
-    createPortal(
-      <AnimatePresence>
-        <div className={classNames('fixed inset-0 z-[1000] overflow-y-auto', className)}>
-          <div className="flex relative items-center justify-center min-h-screen px-8 pt-8 pb-20 text-center">
-            {backgroundElement && (
-              <div
-                className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75"
-                onClick={closeByTouch ? handleToggle : undefined}
-              />
-            )}
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.05 }}
-              className={twMerge(
-                'relative inline-block overflow-hidden text-left transition-all transform border border-gray-700 rounded-lg shadow-xl align-middle max-w-lg w-full',
-                positionClasses ?? 'my-8',
-              )}
-            >
-              <button
-                onClick={handleToggle}
-                className="flex absolute right-0 items-center justify-center m-1 w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
-              >
-                <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
-              </button>
-
-              <div
-                className={classNames(
-                  childrenClasses,
-                  'p-5 bg-bolt-elements-background bg-bolt-elements-background-depth-3 text-center',
-                )}
-              >
-                {children}
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </AnimatePresence>,
-      document.body,
-    )
+    <Dialog open={isShow} onOpenChange={handleToggle}>
+      <DialogContent
+        className={twMerge(
+          'flex flex-col overflow-hidden w-[90%]  max-h-[90vh]  max-w-md sm:max-w-lg  bg-bolt-elements-background-depth-3 text-center',
+          className,
+        )}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.05 }}
+          className="flex flex-col overflow-hidden"
+        >
+          <DialogHeader className="items-center gap-1 mb-5">
+            <DialogTitle className={classNames('text-2xl', titleClasses)}>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          <div className={twMerge('flex-1 min-h-0 overflow-y-auto overflow-x-hidden', childrenClasses)}>{children}</div>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
   );
 }
