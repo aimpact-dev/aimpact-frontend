@@ -35,18 +35,10 @@ interface Props {
 export default function WhatsNew({ posts }: Props) {
   return (
     <>
-      <div className="flex flex-col items-center gap-1 mb-5">
-        <div className="flex items-center gap-2">
-          <div className="inline-block i-ph:sparkle-bold text-lg text-accent-500"></div>
-          <h1 className="text-2xl font-bold ">What's new</h1>
-        </div>
-        <h2 className=" text-bolt-elements-textSecondary">Check our latest updates</h2>
-      </div>
-
       <div className="flex flex-col gap-5">
         {posts.map((post) => {
           return (
-            <Card variant="accented" withHoverEffect key={post.date.getTime()}>
+            <Card variant="accented" key={post.date.getTime()}>
               <div className="flex flex-col gap-2 border-b border-border-light p-4">
                 <div className="flex justify-between items-center">
                   <Badge variant={whatsNewPostTypeBadgeVariants[post.type]}>{post.type}</Badge>
