@@ -107,7 +107,6 @@ const processSampledMessages = createSampler(
       }
       return m;
     });
-    parseMessages(filteredMessages, isLoading);
 
     const messageToMetadata = Object.fromEntries(messages.map((m) => [m.id, { role: m.role, meta: m.metadata }]));
     workbenchStore.messagesMetadata.set(messageToMetadata);
