@@ -78,11 +78,6 @@ export function useMessageParser() {
   const parseMessages = useCallback((messages: UIMessage[], isLoading: boolean) => {
     let reset = false;
 
-    if (import.meta.env.DEV && !isLoading) {
-      reset = true;
-      messageParser.reset();
-    }
-
     const messagesState: Record<string, MessageState> = {};
     for (const [index, message] of messages.entries()) {
       messagesState[message.id] = { artifactClosed: false };

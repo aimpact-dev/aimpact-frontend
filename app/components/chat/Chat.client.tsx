@@ -4,10 +4,9 @@ import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts, type MessageState } from '~/lib/hooks';
-import { toast } from 'react-toastify';
 import { chatId, description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { chatStore, someActionsFinsihedTime } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { chatStore, someActionsFinishedTime } from '~/lib/stores/chat';
+import { workbenchStore, type ArtifactState } from '~/lib/stores/workbench';
 import { PROMPT_COOKIE_KEY } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -165,7 +164,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, []); // Empty dependency array for cleanup on unmount
 
   const { showChat } = useStore(chatStore);
-  const lastActionsFinsihedTime = useStore(someActionsFinsihedTime);
+  const lastActionsFinsihedTime = useStore(someActionsFinishedTime);
   const showWorkbench = useStore(workbenchStore.showWorkbench);
 
   const [animationScope, animate] = useAnimate();

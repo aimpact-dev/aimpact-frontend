@@ -33,7 +33,7 @@ import { detectStartCommand } from '~/utils/projectCommands';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import ConvexView from './convex/ConvexView';
-import { chatStore, someActionsFinsihedTime } from '~/lib/stores/chat';
+import { chatStore, someActionsFinishedTime } from '~/lib/stores/chat';
 import { id } from 'zod/v4/locales';
 
 interface PackageJson {
@@ -379,7 +379,7 @@ export const Workbench = memo(
 
           takeSnapshot(chatIdx, files, undefined, chatSummary)
             .then(() => {
-              someActionsFinsihedTime.set(Date.now());
+              someActionsFinishedTime.set(Date.now());
               console.log('Snapshot was taken on wait for actions');
             })
             .catch((e) => {
