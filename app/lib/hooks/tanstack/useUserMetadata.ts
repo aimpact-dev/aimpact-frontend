@@ -7,10 +7,10 @@ export interface UserMetadata {
 
 export const useUserMetadata = (isAuthorized: boolean) => {
   return useQuery<UserMetadata>({
-    queryKey: ['user-metadata'],
+    queryKey: ['user'],
     queryFn: async () => {
-      const { data } = await client.get('/user/metadata');
-      return data ?? {};
+      const { data } = await client.get('/auth/me');
+      return data?.metadata ?? {};
     },
     enabled: isAuthorized,
   });
@@ -21,12 +21,12 @@ export const useUpdateUserMetadata = () => {
 
   return useMutation({
     mutationFn: async (metadata: Record<string, any>) => {
-      const { data } = await client.post('/user/metadata', metadata);
+      const { data } = await client.patch('/user', { metadata });
       return data as Record<string, any>;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['user-metadata'],
+        queryKey: ['user'],
       });
     },
   });
