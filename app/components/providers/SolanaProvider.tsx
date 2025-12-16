@@ -4,7 +4,11 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { 
+  PhantomWalletAdapter, 
+  SolflareWalletAdapter,
+  WalletConnectWalletAdapter 
+} from '@solana/wallet-adapter-wallets';
 import { ClientOnly } from 'remix-utils/client-only';
 
 export interface SolanaProviderProps {
@@ -15,7 +19,19 @@ export default function SolanaProvider({ children }: SolanaProviderProps) {
   const network = WalletAdapterNetwork.Mainnet;
 
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-  const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter()], []);
+  const wallets = useMemo(
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      new WalletConnectWalletAdapter({
+        network,
+        options: {
+          projectId: import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID,
+        },
+      }),
+    ],
+    [network]
+  );
 
   return (
     <ClientOnly>

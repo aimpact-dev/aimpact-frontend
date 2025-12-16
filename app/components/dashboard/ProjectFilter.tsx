@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuT
 import { Tooltip } from '../chat/Tooltip';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { useSearchParams } from '@remix-run/react';
+import { useViewport } from '~/lib/hooks';
 
 interface ProjectFiltersProps {
   activeFilters: ProjectFilters[];
@@ -12,9 +13,9 @@ interface ProjectFiltersProps {
   isAuthorized: boolean;
 }
 
-const ownershipFilters: { key: OwnershipFilter; label: string; icon: string }[] = [
-  { key: 'all', label: 'All Projects', icon: 'i-ph:squares-four' },
-  { key: 'owned', label: 'My Projects', icon: 'i-ph:user' },
+const ownershipFilters: { key: OwnershipFilter; label: string; mobileLabel: string; icon: string }[] = [
+  { key: 'all', label: 'All Projects', mobileLabel: 'All', icon: 'i-ph:squares-four' },
+  { key: 'owned', label: 'My Projects', mobileLabel: 'My Projects', icon: 'i-ph:user' },
 ];
 const statusFilters: { key: StatusFilter; label: string; icon: string }[] = [
   { key: 'featured', label: 'Our Favourites', icon: 'i-ph:star' },
@@ -29,6 +30,7 @@ const deploymentFilters: { key: DeploymentPlatform; label: string; color: string
 
 const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectFiltersProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { isMobile } = useViewport();
 
   const toggleFilter = (filter: ProjectFilters) => {
     setSearchParams({ page: '1' });
@@ -77,7 +79,7 @@ const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectF
 
   return (
     <div className="mb-6">
-      <div className="flex gap-3 justify-between items-center">
+      <div className="flex gap-1 md:gap-3 justify-between items-center">
         <div className="flex flex-wrap bg-bolt-elements-button-primary-background p-1 rounded-3xl">
           {ownershipFilters.map((filter) => {
             const isActive = activeFilters.includes(filter.key);
@@ -95,12 +97,12 @@ const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectF
                 className={cn(
                   'outline-none !rounded-3xl transition-all border',
                   isActive
-                    ? '!bg-purple-900 text-white box-border'
-                    : 'hover:text-white hover:bg-transparent bg-transparent border-transparent text-white/80',
+                    ? '!bg-purple-900 text-white box-border px-3 md:px-4'
+                    : 'hover:text-white hover:bg-transparent bg-transparent border-transparent text-white/80 px-2 md:px-4',
                 )}
               >
                 <div className={`${filter.icon} w-4 h-4 mr-2`} />
-                {filter.label}
+                {isMobile ? filter.mobileLabel : filter.label}
               </Button>
             );
 
@@ -117,7 +119,7 @@ const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectF
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="bg-bolt-elements-button-primary-background p-1 rounded-3xl">
-              <button className="inline-flex items-center justify-center text-sm font-medium h-9 px-6 box-content gap-2 rounded-3xl bg-purple-900 border-1 border-bolt-elements-borderColorActive text-white !hover:bg-purple-800/50 transition-all">
+              <button className="inline-flex items-center justify-center text-sm font-medium h-9 px-3 md:px-6 box-content gap-2 rounded-3xl bg-purple-900 border-1 border-bolt-elements-borderColorActive text-white !hover:bg-purple-800/50 transition-all">
                 <div className="i-ph:funnel h-4 w-4" />
                 Filters
                 {getActiveFiltersCount() > 0 && (

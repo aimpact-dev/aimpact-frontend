@@ -11,7 +11,7 @@ export interface PolicySection {
 export interface PolicyData {
   title: string;
   lastUpdated: string;
-  intro: string[];
+  intro: string;
   sections: PolicySection[];
 }
 
@@ -32,7 +32,7 @@ export const POLICIES = [
 
 export default function PolicyPage({ policy }: { policy: PolicyData }) {
   return (
-    <GradientPage>
+    <GradientPage withBackButton>
       <div className="flex flex-col gap-8 max-w-4xl mx-auto">
         <h1 className="text-3xl text-center">{policy.title}</h1>
         <p className="text-right text-white/80">

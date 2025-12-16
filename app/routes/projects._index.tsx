@@ -18,7 +18,7 @@ export default function Home() {
   const [activeFilters, setActiveFilters] = useState<ProjectFilters[]>(['all']);
 
   return (
-    <GradientPage>
+    <GradientPage withBackButton>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}

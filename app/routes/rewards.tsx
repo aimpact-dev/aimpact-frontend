@@ -1,12 +1,13 @@
 import { useStore } from '@nanostores/react';
 import { useEffect, useRef, useState } from 'react';
-import Navbar from '~/components/dashboard/navbar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/Tabs';
 import ReferralsTab from '~/components/rewards/referralsTab';
 import SharingTab from '~/components/rewards/sharingTab';
 import GradientPage from '~/components/wrappers/GradientPage';
 import { useRewardsApi, type WithdrawRewardsResponse } from '~/lib/hooks/api-hooks/useRewardsApi';
 import { useAuth, userInfo } from '~/lib/hooks/useAuth';
-import { classNames } from '~/utils/classNames';
+import { Card } from '~/components/ui';
+import { motion } from 'framer-motion';
 
 const TABS = {
   Referral: 'Referral',
@@ -38,44 +39,58 @@ export default function Rewards() {
   }, [isAuthorized]);
 
   return (
-    <GradientPage>
+    <GradientPage withBackButton>
       <section id="rewards">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Rewards</h1>
-          <p className="text-sm text-gray-400 mb-8 font-normal">Invite friends to receive rewards in Aimpact way.</p>
-          <div className={classNames('bg-gray-900 rounded-lg p-6 shadow-lg transition-all duration-200')}>
-            {/* Tabs inside the block */}
-            <div className="flex space-x-2 mb-8">
-              {Object.values(TABS).map((t) => (
-                <button
-                  key={t}
-                  className={`flex-1 py-2 rounded-t-lg font-semibold text-center transition-colors duration-150 ${
-                    tab === t ? 'bg-gray-800 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'
-                  }`}
-                  onClick={() => setTab(t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            {/* Tab Content */}
-            {tab === TABS.Referral && (
-              <ReferralsTab referralsCount={referralsCount || 0} refCode={userInfoData?.inviteCode || ''} />
-            )}
-            {tab === TABS.Sharing && (
-              <SharingTab
-                transactions={rewardsWithdrawalReceipts}
-                setTransactions={setRewardsWithdrawalReceipts}
-                availableRewards={userInfoData?.referralsRewards || 0}
-                totalEarnedRewards={userInfoData?.totalEarnedRewards || 0}
-                isWithdrawing={isWithdrawing}
-                isBuyingMessages={isBuyingMessages}
-                setIsWithdrawing={setIsWithdrawing}
-                setIsBuyingMessages={setIsBuyingMessages}
-              />
-            )}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 className="text-4xl font-bold text-white mb-2">Rewards</h1>
+            <p className="text-sm text-gray-400 mb-8 font-normal">Invite friends to receive rewards in Aimpact way.</p>
+            <Card variant="accented">
+              <div className="m-5">
+                <Tabs defaultValue="referral" className="items-center">
+                  <TabsList className="bg-black/25 h-9 w-full box-content mb-5">
+                    <TabsTrigger value="referral">Referral</TabsTrigger>
+                    <TabsTrigger value="sharing">Sharing</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="referral">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <ReferralsTab referralsCount={referralsCount || 0} refCode={userInfoData?.inviteCode || ''} />
+                    </motion.div>
+                  </TabsContent>
+                  <TabsContent value="sharing">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.25 }}
+                    >
+                      <SharingTab
+                        transactions={rewardsWithdrawalReceipts}
+                        setTransactions={setRewardsWithdrawalReceipts}
+                        availableRewards={userInfoData?.referralsRewards || 0}
+                        totalEarnedRewards={userInfoData?.totalEarnedRewards || 0}
+                        isWithdrawing={isWithdrawing}
+                        isBuyingMessages={isBuyingMessages}
+                        setIsWithdrawing={setIsWithdrawing}
+                        setIsBuyingMessages={setIsBuyingMessages}
+                      />
+                    </motion.div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </Card>
           </div>
-        </div>
+        </motion.div>
       </section>
     </GradientPage>
   );

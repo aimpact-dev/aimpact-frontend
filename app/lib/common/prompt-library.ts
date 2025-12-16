@@ -2,6 +2,8 @@ import { getSystemPrompt } from './prompts/prompts';
 
 export interface PromptOptions {
   cwd: string;
+  address: string;
+  convexTeamName?: string;
   allowedHtmlElements: string[];
   modificationTagName: string;
   supabase?: {
@@ -26,7 +28,7 @@ export class PromptLibrary {
     default: {
       label: 'Default Prompt',
       description: 'This is the battle tested default system Prompt',
-      get: (options) => getSystemPrompt(options.cwd),
+      get: (options) => getSystemPrompt(options.cwd, options.address, options.convexTeamName),
     },
   };
   static getList() {

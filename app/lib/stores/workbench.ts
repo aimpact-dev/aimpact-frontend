@@ -37,7 +37,7 @@ export type ArtifactUpdateState = Pick<ArtifactState, 'title' | 'closed'>;
 
 type Artifacts = MapStore<Record<string, ArtifactState>>;
 
-export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'contracts';
+export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'contracts' | 'convex';
 
 export class WorkbenchStore {
   #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());
@@ -173,6 +173,10 @@ export class WorkbenchStore {
 
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
+  }
+
+  setCurrentView(view: WorkbenchViewType) {
+    this.currentView.set(view);
   }
 
   setCurrentDocumentContent(newContent: string) {
@@ -584,7 +588,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        this.setCurrentView('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];
@@ -613,7 +617,7 @@ export class WorkbenchStore {
       }
 
       if (this.currentView.value !== 'code') {
-        this.currentView.set('code');
+        this.setCurrentView('code');
       }
 
       const doc = this.#editorStore.documents.get()[fullPath];

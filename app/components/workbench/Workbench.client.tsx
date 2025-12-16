@@ -22,7 +22,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
-import useViewport from '~/lib/hooks';
+import { useViewport } from '~/lib/hooks';
 import { PushToGitHubDialog } from '~/components/@settings/tabs/connections/components/PushToGitHubDialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip } from '../chat/Tooltip';
@@ -37,6 +37,7 @@ import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import Popup from '../common/Popup';
 import { Checkbox } from '../ui';
 import ButtonWithTimer from '../ui/ButtonWithTimer';
+import ConvexView from './convex/ConvexView';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -56,6 +57,14 @@ interface WorkspaceProps {
 
 const viewTransition = { ease: cubicEasingFn };
 
+function animationForView(view: WorkbenchViewType, selectedView: WorkbenchViewType): { x: '0%' | '100%' | '-100%' } {
+  const viewIndex = sliderOptions.findIndex(({ value }) => value === view);
+  const selectedViewIndex = sliderOptions.findIndex(({ value }) => value === selectedView);
+
+  const shift = viewIndex === selectedViewIndex ? '0%' : viewIndex < selectedViewIndex ? '-100%' : '100%';
+  return { x: shift };
+}
+
 const sliderOptions: SliderOptions<WorkbenchViewType> = [
   {
     value: 'code',
@@ -68,6 +77,10 @@ const sliderOptions: SliderOptions<WorkbenchViewType> = [
   {
     value: 'contracts',
     text: 'Smart Contracts',
+  },
+  {
+    value: 'convex',
+    text: 'Convex',
   },
   {
     value: 'preview',
@@ -353,10 +366,19 @@ export const Workbench = memo(
     const files = useStore(workbenchStore.files);
     const selectedView = useStore(workbenchStore.currentView);
 
-    const isSmallViewport = useViewport(1024);
+    const isConvexProject = useMemo(() => {
+      const actualFiles = workbenchStore.files.get();
+      return Object.entries(actualFiles).some(([path, file]) => file?.type === 'folder' && path.endsWith('convex'));
+    }, [files]);
+
+    const { isMobile, isSmallViewport } = useViewport();
+
+    const setShowWorkbench = (show: boolean) => {
+      workbenchStore.setShowWorkbench(show);
+    };
 
     const setSelectedView = (view: WorkbenchViewType) => {
-      workbenchStore.currentView.set(view);
+      workbenchStore.setCurrentView(view);
     };
 
     /**
@@ -474,7 +496,8 @@ export const Workbench = memo(
 
           customPreviewState.current = 'Starting the preview...';
           if (!previewCommandIsRunningOrPending(packageJson, workbenchStore.getMainShell)) {
-            workbenchStore.getMainShell.executeCommand(getPreviewStartCommand(packageJson)).catch((err) => {
+            let startCommand = getPreviewStartCommand(packageJson);
+            workbenchStore.getMainShell.executeCommand(startCommand).catch((err) => {
               console.error(err);
               customPreviewState.current = 'Failed to run preview. Your project structure may not be supported.';
             });
@@ -542,7 +565,7 @@ export const Workbench = memo(
         >
           <div
             className={classNames(
-              'absolute top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+              'absolute top-[3rem] md:top-[1.5rem] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
               {
                 'w-full': isSmallViewport,
                 'left-0': showWorkbench && isSmallViewport,
@@ -553,70 +576,81 @@ export const Workbench = memo(
           >
             <div className="absolute inset-0 px-2 lg:px-6">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
-                <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
-                  <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
-                  <div className="ml-auto" />
-                  {selectedView === 'code' && (
-                    <div className="flex items-center gap-2 overflow-y-auto">
-                      <PanelHeaderButton
-                        className={classNames('mr-1 text-sm flex items-center gap-2', {
-                          'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                            isAutoSaveEnabled,
-                        })}
-                        onClick={() => setIsAutoSaveEnabled((v) => !v)}
-                        aria-pressed={isAutoSaveEnabled}
-                      >
-                        <span className="text-sm">Auto-save</span>
-                        <span className="relative ml-1 flex items-center h-5">
-                          <span
-                            className={`block w-8 h-4 rounded-full transition-colors duration-200 ${isAutoSaveEnabled ? 'bg-accent-500' : 'bg-gray-600'}`}
-                          ></span>
-                          <span
-                            className={`absolute left-0 top-0 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 border border-gray-300 translate-y-1/9 ${isAutoSaveEnabled ? 'translate-x-4' : ''}`}
-                          ></span>
-                        </span>
-                      </PanelHeaderButton>
-                      <PanelHeaderButton
-                        className="mr-1 text-sm"
-                        onClick={() => {
-                          workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
-                        }}
-                      >
-                        <div className="i-ph:terminal" />
-                        Toggle Terminal
-                      </PanelHeaderButton>
-                      <DropdownMenu.Root>
-                        <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
-                          <div className="i-ph:box-arrow-up" />
-                          {/* Sync & Export */}
-                          Export
-                        </DropdownMenu.Trigger>
-                        <DropdownMenu.Content
-                          className={classNames(
-                            'min-w-[240px] z-[250]',
-                            'bg-white dark:bg-[#141414]',
-                            'rounded-lg shadow-lg',
-                            'border border-gray-200/50 dark:border-gray-800/50',
-                            'animate-in fade-in-0 zoom-in-95',
-                            'py-1',
-                          )}
-                          sideOffset={5}
-                          align="end"
-                        >
-                          <DropdownMenu.Item
-                            className={classNames(
-                              'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
-                            )}
+                <div className="flex flex-col md:flex-row items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
+                  {isMobile ? (
+                    <button
+                      onClick={() => {
+                        setShowWorkbench(false);
+                      }}
+                      className="flex gap-1 items-center text-sm self-start text-bolt-elements-textSecondary w-full"
+                    >
+                      <div className="i-ph:arrow-left-bold"></div> Back to chat
+                    </button>
+                  ) : (
+                    <>
+                      <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
+
+                      {selectedView === 'code' && (
+                        <div className="flex items-center gap-1 md:gap-2 overflow-y-auto">
+                          <PanelHeaderButton
+                            className={classNames('mr-1 text-sm flex items-center gap-2', {
+                              'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
+                                isAutoSaveEnabled,
+                            })}
+                            onClick={() => setIsAutoSaveEnabled((v) => !v)}
+                            aria-pressed={isAutoSaveEnabled}
+                          >
+                            <span className="text-sm">Auto-save</span>
+                            <span className="relative ml-1 flex items-center h-5">
+                              <span
+                                className={`block w-8 h-4 rounded-full transition-colors duration-200 ${isAutoSaveEnabled ? 'bg-accent-500' : 'bg-gray-600'}`}
+                              ></span>
+                              <span
+                                className={`absolute left-0 top-0 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 border border-gray-300 translate-y-1/9 ${isAutoSaveEnabled ? 'translate-x-4' : ''}`}
+                              ></span>
+                            </span>
+                          </PanelHeaderButton>
+                          <PanelHeaderButton
+                            className="mr-1 text-sm"
                             onClick={() => {
-                              workbenchStore.downloadZip();
+                              workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                             }}
                           >
-                            <div className="flex items-center gap-2">
-                              <div className="i-ph:download-simple"></div>
-                              <span>Download Code</span>
-                            </div>
-                          </DropdownMenu.Item>
-                          {/* <DropdownMenu.Item
+                            <div className="i-ph:terminal" />
+                            Toggle Terminal
+                          </PanelHeaderButton>
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
+                              <div className="i-ph:box-arrow-up" />
+                              {/* Sync & Export */}
+                              Export
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Content
+                              className={classNames(
+                                'min-w-[240px] z-[250]',
+                                'bg-white dark:bg-[#141414]',
+                                'rounded-lg shadow-lg',
+                                'border border-gray-200/50 dark:border-gray-800/50',
+                                'animate-in fade-in-0 zoom-in-95',
+                                'py-1',
+                              )}
+                              sideOffset={5}
+                              align="end"
+                            >
+                              <DropdownMenu.Item
+                                className={classNames(
+                                  'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
+                                )}
+                                onClick={() => {
+                                  workbenchStore.downloadZip();
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="i-ph:download-simple"></div>
+                                  <span>Download Code</span>
+                                </div>
+                              </DropdownMenu.Item>
+                              {/* <DropdownMenu.Item
                             className={classNames(
                               'cursor-pointer flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative',
                             )}
@@ -628,125 +662,127 @@ export const Workbench = memo(
                               <span>{isSyncing ? 'Syncing...' : 'Sync Files'}</span>
                             </div>
                           </DropdownMenu.Item> */}
-                        </DropdownMenu.Content>
-                      </DropdownMenu.Root>
-                    </div>
-                  )}
+                            </DropdownMenu.Content>
+                          </DropdownMenu.Root>
+                        </div>
+                      )}
 
-                  {selectedView === 'diff' && (
-                    <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
+                      {selectedView === 'diff' && (
+                        <FileModifiedDropdown fileHistory={fileHistory} onSelectFile={handleSelectFile} />
+                      )}
+
+                      <Tooltip content="Close" side="left">
+                        <IconButton
+                          icon="i-ph:x-circle"
+                          className="-mr-1"
+                          size="xl"
+                          onClick={() => setShowWorkbench(false)}
+                        />
+                      </Tooltip>
+                    </>
                   )}
-                  <Tooltip content="Close" side="left">
-                    <IconButton
-                      icon="i-ph:x-circle"
-                      className="-mr-1"
-                      size="xl"
-                      onClick={() => {
-                        workbenchStore.showWorkbench.set(false);
-                      }}
-                    />
-                  </Tooltip>
                 </div>
                 <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
-                    <EditorPanel
-                      editorDocument={currentDocument}
-                      isStreaming={isStreaming}
-                      selectedFile={selectedFile}
-                      files={files}
-                      unsavedFiles={unsavedFiles}
-                      fileHistory={fileHistory}
-                      onFileSelect={onFileSelect}
-                      onEditorScroll={onEditorScroll}
-                      onEditorChange={onEditorChange}
-                      onFileSave={onFileSave}
-                      onFileReset={onFileReset}
-                      isAutoSaveEnabled={isAutoSaveEnabled}
-                    />
-                  </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
-                  >
-                    <DiffView
-                      fileHistory={fileHistory}
-                      setFileHistory={setFileHistory}
-                      isTabOpen={selectedView === 'diff'}
-                    />
-                  </View>
-                  <View
-                    initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'contracts' ? '0%' : selectedView === 'preview' ? '-100%' : '100%' }}
-                  >
+                  {!isMobile && (
                     <>
-                      <Popup
-                        handleToggle={() => {}}
-                        isShow={showWarningPopup}
-                        useAbsolute
-                        closeByTouch={false}
-                        closeTopButton={false}
-                        childrenClasses="sm:py-4"
-                        backgroundElement={false}
-                        positionClasses="mt-8"
-                        rootDivClasses='max-h-screen min-h-[0px]'
-                      >
-                        <div className="mb-3">
-                          <h3 className="lg:text-2xl text-lg font-semibold">Before you test your the app</h3>
-                        </div>
-                        <p className="text-left mb-3 lg:text-base text-sm">
-                          This is a page where appears generated contracts by AI (ussualy only one). <br />
-                          Default workflow with contracts: <br />
-                          <div className="pl-4">
-                            1. Ask AI to create a new contract <br />
-                            2. Build newly created contract (takes from 5 minutes) <br />
-                            3. Deploy builded contract <br />
-                          </div>
-                          <br />
-                          If you want to <span className="font-semibold">test your app</span> with contracts — there is{' '}
-                          some a few pitfalls. Check this guide to make it more clear: <br />
-                          We will need to use Phantom for testing. It will not be possible to test contracts in other{' '}
-                          wallets. <br />
-                          <div className="pl-4">
-                            • It is recommended to use a new wallet or a wallet without money in the mainnet. Just to be{' '}
-                            on the side of caution <br />• Go to the faucet, connect your GitHub account, and receive
-                            test SOL to your address (any amount will do) <br />• Open{' '}
-                            <span className="font-semibold">Phantom</span> → in the upper left corner, select{' '}
-                            <span className="font-semibold">Accounts</span> → at the bottom left, select{' '}
-                            <span className="font-semibold">Settings</span> → scroll down →{' '}
-                            <span className="font-semibold">Developer settings</span> →{' '}
-                            <span className="font-semibold">Testnet mode</span> and make sure Solana Devnet is selected{' '}
-                            <br />• Now you can test contracts. During transactions in preview, Phantom may warn you{' '}
-                            about a danger and this is normal. The application is running locally, so the wallet{' '}
-                            considers this to be atypical behavior <br />
-                          </div>
-                        </p>
+                      <View initial={{ x: '0%' }} animate={animationForView('code', selectedView)}>
+                        <EditorPanel
+                          editorDocument={currentDocument}
+                          isStreaming={isStreaming}
+                          selectedFile={selectedFile}
+                          files={files}
+                          unsavedFiles={unsavedFiles}
+                          fileHistory={fileHistory}
+                          onFileSelect={onFileSelect}
+                          onEditorScroll={onEditorScroll}
+                          onEditorChange={onEditorChange}
+                          onFileSave={onFileSave}
+                          onFileReset={onFileReset}
+                          isAutoSaveEnabled={isAutoSaveEnabled}
+                        />
+                      </View>
+                      <View initial={{ x: '100%' }} animate={animationForView('diff', selectedView)}>
+                        <DiffView
+                          fileHistory={fileHistory}
+                          setFileHistory={setFileHistory}
+                          isTabOpen={selectedView === 'diff'}
+                        />
+                      </View>
 
-                        <div className="space-x-1 mb-3">
-                          <Checkbox
-                            onCheckedChange={(checked) => {
-                              const key = 'doNotShowWarningPopup';
-                              checked ? localStorage.setItem(key, 'true') : localStorage.removeItem(key);
-                            }}
-                          />
-                          <label>Do not show again</label>
-                        </div>
+                      <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
+                        <>
+                          <Popup
+                            isShow={showWarningPopup}
+                            useAbsolute
+                            closeByTouch={false}
+                            closeTopButton={false}
+                            childrenClasses="sm:py-4"
+                            backgroundElement={false}
+                            positionClasses="mt-8"
+                            rootDivClasses="max-h-screen min-h-[0px]"
+                          >
+                            <div className="mb-3">
+                              <h3 className="lg:text-2xl text-lg font-semibold">Before you test your the app</h3>
+                            </div>
+                            <p className="text-left mb-3 lg:text-base text-sm">
+                              This is a page where appears generated contracts by AI (ussualy only one). <br />
+                              Default workflow with contracts: <br />
+                              <div className="pl-4">
+                                1. Ask AI to create a new contract <br />
+                                2. Build newly created contract (takes from 5 minutes) <br />
+                                3. Deploy builded contract <br />
+                              </div>
+                              <br />
+                              If you want to <span className="font-semibold">test your app</span> with contracts — there
+                              is some a few pitfalls. Check this guide to make it more clear: <br />
+                              We will need to use Phantom for testing. It will not be possible to test contracts in
+                              other wallets. <br />
+                              <div className="pl-4">
+                                • It is recommended to use a new wallet or a wallet without money in the mainnet. Just
+                                to be on the side of caution <br />• Go to the faucet, connect your GitHub account, and
+                                receive test SOL to your address (any amount will do) <br />• Open{' '}
+                                <span className="font-semibold">Phantom</span> → in the upper left corner, select{' '}
+                                <span className="font-semibold">Accounts</span> → at the bottom left, select{' '}
+                                <span className="font-semibold">Settings</span> → scroll down →{' '}
+                                <span className="font-semibold">Developer settings</span> →{' '}
+                                <span className="font-semibold">Testnet mode</span> and make sure Solana Devnet is
+                                selected <br />• Now you can test contracts. During transactions in preview, Phantom may
+                                warn you about a danger and this is normal. The application is running locally, so the
+                                wallet considers this to be atypical behavior <br />
+                              </div>
+                            </p>
 
-                        <ButtonWithTimer
-                          onClick={() => {
-                            setShowWarningPopup((val) => !val);
-                          }}
-                          className="max-w-36 w-full"
-                          startTimer={selectedView === 'contracts'}
-                          timeToWait={4}
-                          variant="secondary"
-                        >
-                          Close
-                        </ButtonWithTimer>
-                      </Popup>
-                      <SmartContractView postMessage={postMessage} />
+                            <div className="space-x-1 mb-3">
+                              <Checkbox
+                                onCheckedChange={(checked) => {
+                                  const key = 'doNotShowWarningPopup';
+                                  checked ? localStorage.setItem(key, 'true') : localStorage.removeItem(key);
+                                }}
+                              />
+                              <label>Do not show again</label>
+                            </div>
+
+                            <ButtonWithTimer
+                              onClick={() => {
+                                setShowWarningPopup((val) => !val);
+                              }}
+                              className="max-w-36 w-full"
+                              startTimer={selectedView === 'contracts'}
+                              timeToWait={4}
+                              variant="secondary"
+                            >
+                              Close
+                            </ButtonWithTimer>
+                          </Popup>
+                          <SmartContractView postMessage={postMessage} />
+                        </>
+                      </View>
                     </>
+                  )}
+                  <View initial={{ x: '100%' }} animate={animationForView('convex', selectedView)}>
+                    <ConvexView isConvexProject={isConvexProject} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                  <View initial={{ x: '100%' }} animate={animationForView('preview', selectedView)}>
                     <Preview customText={customPreviewState.current} />
                   </View>
                 </div>

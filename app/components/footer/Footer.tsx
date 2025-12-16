@@ -13,7 +13,7 @@ export default function Footer({ withLabel }: FooterProps) {
       <div className="flex flex-col gap-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs">
         <div className="flex justify-center gap-5 text-white/80">
           {POLICIES.map((p) => (
-            <button onClick={() => navigate(p.url)} className="hover:text-white transition-all">
+            <button key={p.name} onClick={() => navigate(p.url)} className="hover:text-white transition-all">
               {p.name}{' '}
             </button>
           ))}
