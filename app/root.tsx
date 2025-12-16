@@ -155,6 +155,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           pauseOnFocusLoss
           transition={toastAnimation}
           autoClose={3000}
+          theme='dark'
         />
       </Providers>
       <ScrollRestoration />
