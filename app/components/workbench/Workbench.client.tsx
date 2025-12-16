@@ -713,8 +713,6 @@ export const Workbench = memo(
                         <>
                           <Popup
                             isShow={showWarningPopup}
-                            useAbsolute
-                            closeByTouch={false}
                             closeTopButton={false}
                             childrenClasses="sm:py-4"
                             backgroundElement={false}

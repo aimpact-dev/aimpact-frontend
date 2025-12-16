@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { motion } from 'framer-motion';
 import { twMerge } from 'tailwind-merge';
 import React, { type PropsWithChildren } from 'react';
