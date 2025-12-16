@@ -122,7 +122,7 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
-  parse(messageId: string, input: string, messageList?: string[]) {
+  parse(messageId: string, input: string) {
     let state = this.#messages.get(messageId);
 
     if (!state) {
@@ -141,6 +141,7 @@ export class StreamingMessageParser {
     let i = state.position;
     let earlyBreak = false;
 
+    console.log('input len', i, input.length);
     while (i < input.length) {
       if (state.insideArtifact) {
         const currentArtifact = state.currentArtifact;
@@ -264,6 +265,7 @@ export class StreamingMessageParser {
 
             const openTagEnd = input.indexOf('>', j);
 
+            console.log('tag index', openTagEnd);
             if (openTagEnd !== -1) {
               const artifactTag = input.slice(i, openTagEnd + 1);
 

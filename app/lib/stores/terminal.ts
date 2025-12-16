@@ -1,15 +1,12 @@
 import { atom, type WritableAtom } from 'nanostores';
 import type { ITerminal } from '~/types/terminal';
-import { coloredText } from '~/utils/terminal';
 import { AimpactShell, newAimpactShellProcess } from '~/lib/aimpactshell/aimpactShell';
-import type { LazySandbox } from '~/lib/daytona/lazySandbox';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
 export class TerminalStore {
   private readonly sandbox: Promise<AimpactSandbox>;
   private readonly aimpactFs: Promise<AimpactFs>;
-  private aimpactTerminals: Array<AimpactShell> = [];
   private readonly mainShell: AimpactShell;
 
   showTerminal: WritableAtom<boolean> = import.meta.hot?.data.showTerminal ?? atom(true);
@@ -23,7 +20,6 @@ export class TerminalStore {
     if (import.meta.hot) {
       import.meta.hot.data.showTerminal = this.showTerminal;
     }
-
   }
   get getMainShell() {
     return this.mainShell;
@@ -35,17 +31,5 @@ export class TerminalStore {
 
   async attachMainAimpactTerminal(terminal: ITerminal) {
     this.mainShell.setTerminal(terminal);
-  }
-
-  async attachAimpactTerminal(terminal: ITerminal){
-    try{
-      const aimpactShell = newAimpactShellProcess(this.sandbox, this.aimpactFs);
-      aimpactShell.setTerminal(terminal);
-      this.aimpactTerminals.push(aimpactShell);
-    }
-    catch (error: any) {
-      terminal.write(coloredText.red('Failed to spawn aimpact shell\n\n') + error.message);
-      return;
-    }
   }
 }

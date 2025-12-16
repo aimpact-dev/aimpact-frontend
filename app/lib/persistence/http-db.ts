@@ -1,7 +1,7 @@
 import type { Snapshot } from './types';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { IChatMetadata } from './db';
-import type { Message } from 'ai';
+import type { UIMessage } from '~/lib/message';
 import type { FileMap } from '../stores/files';
 import { useFetch } from '~/lib/hooks/useFetch';
 
@@ -16,7 +16,7 @@ interface ProjectResponse {
 
 interface ChatResponse {
   projectId: string;
-  messages: Message[];
+  messages: UIMessage[];
   metadata?: IChatMetadata;
   createdAt: string;
 }
@@ -67,7 +67,7 @@ export function useHttpDb() {
 
   const setMessages = async (
     projectId: string,
-    messages: Message[],
+    messages: UIMessage[],
     description?: string,
     metadata?: IChatMetadata,
   ): Promise<void> => {
