@@ -33,8 +33,7 @@ import { detectStartCommand } from '~/utils/projectCommands';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import ConvexView from './convex/ConvexView';
-import { chatStore, someActionsFinishedTime } from '~/lib/stores/chat';
-import { id } from 'zod/v4/locales';
+import { someActionsFinishedTime } from '~/lib/stores/chat';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -323,9 +322,6 @@ export const Workbench = memo(
     const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
-    const chatSummary = useStore(lastChatSummary);
-    const lastSnapshotRef = useRef<number | null>(null);
-    const chatState = useStore(chatStore);
     const waitingForActionsRef = useRef(false);
     const messagesMetadataState = useStore(workbenchStore.messagesMetadata);
     const artifactsState = useStore(workbenchStore.artifacts);
@@ -334,7 +330,7 @@ export const Workbench = memo(
       if (waitingForActionsRef.current) return;
 
       const waitForActions = async () => {
-        const maxAttempts = 240;
+        const maxAttempts = 240; // it's 240 seconds timeout
         const cooldown = 1000;
         let attempt = 0;
         while (attempt < maxAttempts) {
@@ -347,10 +343,11 @@ export const Workbench = memo(
           );
 
           const allActionsFinished = messagesMetadata.every((m) => m.meta?.artifactActionsFinished);
-          const anyClosedArtifact = Object.values(artifacts).some((a) => a.closed);
+          const someClosedArtifact = Object.values(artifacts).some((a) => a.closed);
 
-          // if all actions already finished and commited OR there is no closed artifact
-          if (allActionsFinished || !anyClosedArtifact) {
+          // if all actions already finished and commited OR there is no closed artifact.
+          // we rerun this func every artifact state change, so we can just skip on 0 valid artifacts and just optimize memory
+          if (allActionsFinished || !someClosedArtifact) {
             return;
           }
 
@@ -387,8 +384,6 @@ export const Workbench = memo(
               console.error(e);
             });
 
-          // make cooldown between waitForActions
-          await sleep(1000);
           return { artifacts, messageToActions };
         }
 
