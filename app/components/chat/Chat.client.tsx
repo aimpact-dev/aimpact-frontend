@@ -14,7 +14,7 @@ import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
-import { useSearchParams } from '@remix-run/react';
+import { data, useSearchParams } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
