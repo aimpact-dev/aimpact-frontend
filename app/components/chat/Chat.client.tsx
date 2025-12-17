@@ -1,12 +1,12 @@
 import { useStore } from '@nanostores/react';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'react-toastify';
-import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { cssTransition, toast, ToastContainer } from 'react-toastify';
+import { useMessageParser, usePromptEnhancer, useShortcuts, type MessageState } from '~/lib/hooks';
 import { chatId, description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { chatStore } from '~/lib/stores/chat';
-import { workbenchStore } from '~/lib/stores/workbench';
+import { chatStore, someActionsFinishedTime } from '~/lib/stores/chat';
+import { workbenchStore, type ArtifactState } from '~/lib/stores/workbench';
 import { PROMPT_COOKIE_KEY } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -31,7 +31,8 @@ const logger = createScopedLogger('Chat');
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, storeMessageHistory, importChat, exportChat, error } = useChatHistory();
+  const { ready, initialMessages, actionMessages, storeMessageHistory, importChat, exportChat, error } =
+    useChatHistory();
 
   const title = useStore(description);
   useEffect(() => {
@@ -63,13 +64,14 @@ export function Chat() {
 const processSampledMessages = createSampler(
   (options: {
     messages: UIMessage[];
+    setMessages: (messages: UIMessage[]) => void;
     initialMessages: UIMessage[];
     isLoading: boolean;
-    parseMessages: (messages: UIMessage[], isLoading: boolean) => void;
+    parseMessages: (messages: UIMessage[], isLoading: boolean) => Record<string, MessageState>;
     storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
   }) => {
     let { messages } = options;
-    const { initialMessages, isLoading, parseMessages, storeMessageHistory } = options;
+    const { initialMessages, setMessages, isLoading, parseMessages, storeMessageHistory } = options;
 
     messages = messages.filter((message) => {
       if (message.role === 'user') return true;
@@ -84,17 +86,41 @@ const processSampledMessages = createSampler(
       };
     });
 
-    const filteredMessages = messages.filter((message) => {
-      return message.metadata ? !message.metadata.ignoreActions : true;
-    });
-    parseMessages(filteredMessages, isLoading);
+    const messagesState = parseMessages(messages, isLoading);
 
-    if (messages.length > initialMessages.length) {
+    // after parse we can filter for noStore
+    messages = messages.filter((m) => !m.metadata?.noStore);
+
+    // i think i should check is all actions done in artifact + artifact closed
+    // i need to check actions for specific messages
+    let someMetadataChanged = false;
+    messages = messages.map((m) => {
+      if (!m.metadata) {
+        m.metadata = {};
+      }
+      const artifact = workbenchStore.getArtifact(m.id);
+      if (artifact) {
+        if (!m.metadata.artifactActionsFinished && artifact.allActionsFinished) {
+          someMetadataChanged = true;
+          m.metadata.artifactActionsFinished = artifact.allActionsFinished;
+        }
+      }
+      return m;
+    });
+
+    const messageToMetadata = Object.fromEntries(messages.map((m) => [m.id, { role: m.role, meta: m.metadata }]));
+    workbenchStore.messagesMetadata.set(messageToMetadata);
+
+    // we need this to prevent infinite useEffect loop
+    if (someMetadataChanged) {
+      setMessages(messages);
+    }
+    if (messages.length > initialMessages.length || someMetadataChanged) {
       if (!messages.length) return;
       storeMessageHistory(messages).catch((error) => toast.error(error.message));
     }
   },
-  50,
+  100,
 );
 
 interface ChatProps {
@@ -137,6 +163,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, []); // Empty dependency array for cleanup on unmount
 
   const { showChat } = useStore(chatStore);
+  const lastActionsFinsihedTime = useStore(someActionsFinishedTime);
   const showWorkbench = useStore(workbenchStore.showWorkbench);
 
   const [animationScope, animate] = useAnimate();
@@ -158,10 +185,12 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [input, setInput] = useState(Cookies.get(PROMPT_COOKIE_KEY) || '');
   const [streamDataEvents, setStreamDataEvents] = useState<MessageDataEvent[]>([]);
 
+  const streamEndpoint = import.meta.env.GLOBAL_DEBUG_MODE === 'true' ? '/chat/test-stream' : '/chat/stream';
+
   const { messages, status, stop, sendMessage, setMessages, regenerate, error } = useChat<UIMessage>({
     onError: (e) => {
       logger.error('Request failed\n\n', e, error);
-      console.log('error', e, e?.message, typeof e);
+      console.error('error on stream llm response', e, e?.message, typeof e);
       logStore.logError('Chat request failed', e, {
         component: 'Chat',
         action: 'request',
@@ -199,7 +228,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
       takeSnapshot(chatIdx, files, undefined, chatSummary)
         .then(() => logger.debug('Project saved after message on finish'))
-        .catch((e) => {
+        .catch((e: any) => {
           logger.error('error in take snapshot!!!');
           logger.error(e);
         });
@@ -217,7 +246,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           ],
           role: 'system',
         };
-        setMessages([...messages, templateUIMessage]);
+        setMessages((messages) => [...messages, templateUIMessage]);
       }
 
       if (dataPart.type.startsWith('data-')) {
@@ -226,12 +255,17 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
 
     messages: initialMessages,
-    experimental_throttle: 100,
+    experimental_throttle: 150,
 
     transport: new DefaultChatTransport({
-      api: new URL('/chat/stream', import.meta.env.PUBLIC_BACKEND_URL)?.href,
-      headers: () => headersRef.current,
-      body: () => bodyRef.current,
+      api: new URL(streamEndpoint, import.meta.env.PUBLIC_BACKEND_URL)?.href,
+      prepareSendMessagesRequest: ({ messages }) => {
+        messages = messages.filter((m) => !m.metadata?.noStore);
+        return {
+          headers: headersRef.current,
+          body: { ...bodyRef.current, messages },
+        };
+      },
     }),
   });
 
@@ -268,8 +302,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       isLoading: status == 'streaming',
       parseMessages,
       storeMessageHistory,
+      setMessages,
     });
-  }, [messages, status, parseMessages]);
+  }, [messages, status, parseMessages, lastActionsFinsihedTime]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -342,7 +377,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       logger.info(`AUTO SELECT TEMPLATE: ${autoSelectTemplate}`);
 
       // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
-      const id = Date.now().toString();
+      const id = generateId();
       sendMessage({
         id,
         role: 'user',
@@ -387,6 +422,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         //   })),
       ],
     });
+
     setFakeLoading(false);
 
     if (error != null) {

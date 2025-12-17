@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import { ky } from 'query';
+import { type KyResponse } from 'ky';
 import { client } from '~/lib/api/backend/api';
 
 interface AppDeployments {

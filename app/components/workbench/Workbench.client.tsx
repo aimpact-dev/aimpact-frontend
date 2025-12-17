@@ -29,12 +29,11 @@ import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { currentParsingMessageState } from '~/lib/stores/parse';
-import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
 import ConvexView from './convex/ConvexView';
+import { someActionsFinishedTime } from '~/lib/stores/chat';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -308,6 +307,10 @@ const FileModifiedDropdown = memo(
   },
 );
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
@@ -319,40 +322,94 @@ export const Workbench = memo(
     const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
-    const chatSummary = useStore(lastChatSummary);
-    const lastSnapshotRef = useRef<number | null>(null);
-
-    const snapshotTakeCooldown = 5000;
-
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
+    const waitingForActionsRef = useRef(false);
+    const messagesMetadataState = useStore(workbenchStore.messagesMetadata);
+    const artifactsState = useStore(workbenchStore.artifacts);
 
     useEffect(() => {
-      // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
+      if (waitingForActionsRef.current) return;
 
-      const removeSubscribe = workbenchStore.files.listen((files) => {
-        const { initialMessagesIds } = chatStore.get();
-        const currentParsingMessage = currentParsingMessageState.get();
-        const chatIdx = lastChatIdx.get();
-        console.log('chat idx in workbench', chatIdx);
-        if (!chatIdx) return;
-        // if (streamingState.get()) return;
+      const waitForActions = async () => {
+        const maxAttempts = 240; // it's 240 seconds timeout
+        const cooldown = 1000;
+        let attempt = 0;
+        while (attempt < maxAttempts) {
+          await sleep(cooldown);
+          const artifacts = workbenchStore.artifacts.get();
 
-        const snapshotHaveChanges = Object.keys(files).length > 0;
-        if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
-          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
-            takeSnapshot(chatIdx, files, undefined, chatSummary);
-            console.log('Snapshot was taken on file change');
-            lastSnapshotRef.current = Date.now();
+          // get only assistant or system messages metadata
+          const messagesMetadata = Object.values(workbenchStore.messagesMetadata.get()).filter(
+            (m) => m.role !== 'user',
+          );
+
+          const allActionsFinished = messagesMetadata.every((m) => m.meta?.artifactActionsFinished);
+          const someClosedArtifact = Object.values(artifacts).some((a) => a.closed);
+
+          // if all actions already finished and commited OR there is no closed artifact.
+          // we rerun this func every artifact state change, so we can just skip on 0 valid artifacts and just optimize memory
+          if (allActionsFinished || !someClosedArtifact) {
+            return;
           }
-        }
-      });
 
-      return () => {
-        removeSubscribe();
+          const messageToActions = Object.fromEntries(
+            Object.entries(artifacts).map(([key, artifact]) => [
+              key,
+              Object.values(artifact?.runner?.actions.get() ?? []),
+            ]),
+          );
+          let havePendingAction: null | string = null;
+          for (const [id, actions] of Object.entries(messageToActions)) {
+            if (actions.some((a) => a.status === 'pending' || a.status === 'running')) {
+              havePendingAction = id;
+              continue;
+            }
+          }
+          if (havePendingAction) {
+            attempt += 1;
+            continue;
+          }
+
+          const chatIdx = lastChatIdx.get();
+          if (!chatIdx) return;
+          const chatSummary = lastChatSummary.get();
+          const files = workbenchStore.files.get();
+
+          takeSnapshot(chatIdx, files, undefined, chatSummary)
+            .then(() => {
+              someActionsFinishedTime.set(Date.now());
+              console.log('Snapshot was taken on wait for actions');
+            })
+            .catch((e) => {
+              console.error('error in take snapshot!!!');
+              console.error(e);
+            });
+
+          return { artifacts, messageToActions };
+        }
+
+        return null;
       };
-    }, [chatSummary]);
+
+      // why just don't use [artifact] in deps and get message by artifact id? this should be better
+      waitingForActionsRef.current = true;
+      waitForActions()
+        .then((result) => {
+          if (!result) {
+            return;
+          }
+
+          // this code just got harder. so this loop need for checking already completed
+          // actions only AFTER already saved snapshot. this is necessary for correct import
+          const { artifacts, messageToActions } = result;
+          for (const [id, actions] of Object.entries(messageToActions)) {
+            if (!actions.length) continue;
+            workbenchStore.artifacts.setKey(id, { ...artifacts[id], allActionsFinished: true });
+          }
+        })
+        .finally(() => {
+          waitingForActionsRef.current = false;
+        });
+    }, [messagesMetadataState, artifactsState]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -527,7 +584,13 @@ export const Workbench = memo(
     const onFileSave = useCallback(() => {
       workbenchStore
         .saveCurrentDocument()
-        .then(() => {})
+        .then(() => {
+          const chatIdx = lastChatIdx.get();
+          if (!chatIdx) return;
+          takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, lastChatSummary.get()).then(() => {
+            console.log('Snapshot was taken on file save'); // this log is usefull
+          });
+        })
         .catch(() => {
           toast.error('Failed to update file content');
         });

@@ -50,6 +50,7 @@ export function useChatHistory() {
 
   const [archivedMessages, setArchivedMessages] = useState<UIMessage[]>([]);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [actionMessages, setActionMessages] = useState<UIMessage[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -79,7 +80,6 @@ export function useChatHistory() {
 
               const rewindId = searchParams.get('rewindTo');
 
-              let useProjectImport = false;
               const endingIndex = rewindId
                 ? storedMessages.messages.findIndex((m) => m.id === rewindId) + 1
                 : storedMessages.messages.length - 1;
@@ -87,59 +87,41 @@ export function useChatHistory() {
 
               let archivedMessages: UIMessage[] = [];
               if (snapshotIndex >= 0 && snapshotIndex < endingIndex) {
-                useProjectImport = true;
                 archivedMessages = storedMessages.messages.slice(0, snapshotIndex + 1);
               }
 
-              let filteredMessages = storedMessages.messages.slice(
-                useProjectImport ? snapshotIndex : 0,
-                endingIndex + 1,
-              );
+              let filteredMessages = storedMessages.messages.slice(0, endingIndex + 1);
               filteredMessages = filteredMessages.map((message) => {
                 if (!message.metadata) {
-                  message.metadata = { noSnapshotSave: true, ignoreActions: true };
-                } else {
-                  message.metadata.noSnapshotSave = true;
-                  message.metadata.ignoreActions = true;
+                  message.metadata = {};
                 }
+                message.metadata.ignoreActions = true;
                 return message;
               });
 
               setArchivedMessages(archivedMessages);
 
-              if (useProjectImport) {
-                const files = Object.entries(validSnapshot?.files || {})
-                  .map(([key, value]) => {
-                    if (value?.type !== 'file') {
-                      return null;
-                    }
+              const files = Object.entries(validSnapshot?.files || {})
+                .map(([key, value]) => {
+                  if (value?.type !== 'file') {
+                    return null;
+                  }
 
-                    return {
-                      content: value.content,
-                      path: key,
-                    };
-                  })
-                  .filter((x): x is { content: string; path: string } => !!x); // Type assertion
-                const projectCommands = await detectProjectCommands(files);
+                  return {
+                    content: value.content,
+                    path: key,
+                  };
+                })
+                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
+              const projectCommands = await detectProjectCommands(files);
 
-                // Call the modified function to get only the command actions string
-                const commandActionsString = createCommandActionsString(projectCommands);
-
-                filteredMessages = [
+              // Call the modified function to get only the command actions string
+              let actionMessages: UIMessage[] = [];
+              if (filteredMessages.some((m) => m.role === 'assistant')) {
+                actionMessages = [
                   {
                     id: generateId(),
-                    role: 'user',
-                    parts: [
-                      {
-                        type: 'text',
-                        text: 'Restore project from snapshot',
-                      },
-                    ],
-                    metadata: { noStore: true, hidden: true },
-                  },
-                  {
-                    id: storedMessages.messages[snapshotIndex].id,
-                    role: 'assistant',
+                    role: 'system',
 
                     // Combine followup message and the artifact with files and command actions
                     parts: [
@@ -160,14 +142,13 @@ export function useChatHistory() {
                         }
                       })
                       .join('\n')}
-                    ${commandActionsString}
                     </boltArtifact>
                     `,
                       },
                     ],
                     metadata: {
                       noStore: true,
-                      noSnapshotSave: true,
+                      hidden: true,
                       summary: summary
                         ? ({
                             chatId: storedMessages.messages[snapshotIndex].id,
@@ -177,16 +158,15 @@ export function useChatHistory() {
                         : null,
                     },
                   },
-                  ...filteredMessages,
                 ];
-                restoreSnapshot(mixedId);
               }
-              // setInitialMessages(storedMessages.messages);
+
+              filteredMessages = actionMessages.concat(filteredMessages);
+
               setInitialMessages(filteredMessages);
-              chatStore.setKey(
-                'initialMessagesIds',
-                filteredMessages.map((m) => m.id),
-              );
+              setActionMessages(actionMessages);
+
+              chatStore.setKey('initialMessagesIds', [...filteredMessages.map((m) => m.id), actionMessages[0].id]);
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);
@@ -203,7 +183,7 @@ export function useChatHistory() {
             console.error(error);
 
             logStore.logError('Failed to load chat messages or snapshot', error); // Updated error message
-            console.log(error);
+            console.error(error);
             if (error?.status && error.status !== 404) {
               toast.error('Failed to load chat: ' + error.message); // More specific error
             }
@@ -241,39 +221,10 @@ export function useChatHistory() {
     }
   };
 
-  const restoreSnapshot = useCallback(async (id: string, snapshot?: Snapshot) => {
-    // const snapshotStr = localStorage.getItem(`snapshot:${id}`); // Remove localStorage usage
-    const fs = await getAimpactFs();
-    const workdir = await fs.workdir();
-    const validSnapshot = snapshot || { chatIndex: '', files: {} };
-
-    if (!validSnapshot?.files) {
-      return;
-    }
-
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (key.startsWith(workdir)) {
-        key = key.replace(workdir, '');
-      }
-
-      if (value?.type === 'folder') {
-        await fs.mkdir(key);
-      }
-    });
-    Object.entries(validSnapshot.files).forEach(async ([key, value]) => {
-      if (value?.type === 'file') {
-        if (key.startsWith(workdir)) {
-          key = key.replace(workdir, '');
-        }
-
-        await fs.writeFile(key, value.content, value.isBinary ? 'base64' : 'utf-8');
-      }
-    });
-  }, []);
-
   return {
     ready: !mixedId || ready,
     initialMessages,
+    actionMessages,
     error,
     takeSnapshot,
     updateChatMetaData: async (metadata: IChatMetadata) => {
@@ -329,15 +280,7 @@ export function useChatHistory() {
       const lastMessage = messages[messages.length - 1];
 
       if (lastMessage.role === 'assistant') {
-        const annotations = lastMessage.metadata;
-        const filteredAnnotations = (annotations?.filter(
-          (annotation: JSONValue) =>
-            annotation && typeof annotation === 'object' && Object.keys(annotation).includes('type'),
-        ) || []) as { type: string; value: any } & { [key: string]: any }[];
-
-        if (filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')) {
-          chatSummary = filteredAnnotations.find((annotation) => annotation.type === 'chatSummary')?.summary;
-        }
+        chatSummary = lastMessage.metadata?.chatSummary;
       }
 
       if (!description.get() && firstArtifact?.title) {
