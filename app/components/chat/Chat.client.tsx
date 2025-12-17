@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { chatId, description, lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
@@ -14,7 +14,6 @@ import { BaseChat } from './BaseChat';
 import Cookies from 'js-cookie';
 import { debounce } from '~/utils/debounce';
 import { useSettings } from '~/lib/hooks/useSettings';
-import type { ProviderInfo } from '~/types/model';
 import { data, useSearchParams } from '@remix-run/react';
 import { createSampler } from '~/utils/sampler';
 import { logStore } from '~/lib/stores/logs';
