@@ -166,7 +166,12 @@ export function useChatHistory() {
               setInitialMessages(filteredMessages);
               setActionMessages(actionMessages);
 
-              chatStore.setKey('initialMessagesIds', [...filteredMessages.map((m) => m.id), actionMessages[0].id]);
+              const initialMessages = filteredMessages.map((m) => m.id);
+              if (actionMessages[0]) {
+                initialMessages.push(actionMessages[0].id);
+              }
+              chatStore.setKey('initialMessagesIds', initialMessages);
+              console.log(chatStore.get().initialMessagesIds)
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);
