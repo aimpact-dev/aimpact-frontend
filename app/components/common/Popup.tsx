@@ -6,6 +6,7 @@ import { classNames } from '~/utils/classNames';
 
 interface CustDevPopupProps extends PropsWithChildren {
   isShow: boolean;
+  closeTopButton?: boolean;
   handleToggle: (open?: boolean) => void;
   title?: string | React.ReactNode;
   titleClasses?: string;
@@ -18,6 +19,7 @@ interface CustDevPopupProps extends PropsWithChildren {
 export default function Popup({
   isShow,
   handleToggle,
+  closeTopButton,
   title,
   titleClasses,
   description,
@@ -32,9 +34,10 @@ export default function Popup({
           'flex flex-col overflow-hidden w-[90%]  max-h-[90vh]  max-w-md sm:max-w-lg  bg-bolt-elements-background-depth-3 text-center',
           className,
         )}
+        showCloseButton={closeTopButton}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{   opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
           transition={{ duration: 0.05 }}

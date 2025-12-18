@@ -102,6 +102,20 @@ export function useChatHistory() {
 
               setArchivedMessages(archivedMessages);
 
+              const files = Object.entries(validSnapshot?.files || {})
+                .map(([key, value]) => {
+                  if (value?.type !== 'file') {
+                    return null;
+                  }
+
+                  return {
+                    content: value.content,
+                    path: key,
+                  };
+                })
+                .filter((x): x is { content: string; path: string } => !!x); // Type assertion
+              const projectCommands = await detectProjectCommands(files);
+
               // Call the modified function to get only the command actions string
               let actionMessages: UIMessage[] = [];
               if (filteredMessages.some((m) => m.role === 'assistant')) {
@@ -148,9 +162,8 @@ export function useChatHistory() {
                   },
                 ];
               }
-              
+
               filteredMessages = actionMessages.concat(filteredMessages);
-              console.log('messages history', actionMessages, filteredMessages)
 
               setInitialMessages(filteredMessages);
               setActionMessages(actionMessages);

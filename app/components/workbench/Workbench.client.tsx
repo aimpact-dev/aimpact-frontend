@@ -32,9 +32,11 @@ import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence'
 import { detectStartCommand } from '~/utils/projectCommands';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+import Popup from '../common/Popup';
+import { Checkbox } from '../ui';
+import ButtonWithTimer from '../ui/ButtonWithTimer';
 import ConvexView from './convex/ConvexView';
-import { chatStore, someActionsFinsihedTime } from '~/lib/stores/chat';
-import { id } from 'zod/v4/locales';
+import { chatStore, someActionsFinishedTime } from '~/lib/stores/chat';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -323,6 +325,7 @@ export const Workbench = memo(
     const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
+
     const chatSummary = useStore(lastChatSummary);
     const lastSnapshotRef = useRef<number | null>(null);
     const chatState = useStore(chatStore);
@@ -334,7 +337,7 @@ export const Workbench = memo(
       if (waitingForActionsRef.current) return;
 
       const waitForActions = async () => {
-        const maxAttempts = 240;
+        const maxAttempts = 240; // it's 240 seconds timeout
         const cooldown = 1000;
         let attempt = 0;
         while (attempt < maxAttempts) {
@@ -347,10 +350,11 @@ export const Workbench = memo(
           );
 
           const allActionsFinished = messagesMetadata.every((m) => m.meta?.artifactActionsFinished);
-          const anyClosedArtifact = Object.values(artifacts).some((a) => a.closed);
+          const someClosedArtifact = Object.values(artifacts).some((a) => a.closed);
 
-          // if all actions already finished and commited OR there is no closed artifact
-          if (allActionsFinished || !anyClosedArtifact) {
+          // if all actions already finished and commited OR there is no closed artifact.
+          // we rerun this func every artifact state change, so we can just skip on 0 valid artifacts and just optimize memory
+          if (allActionsFinished || !someClosedArtifact) {
             return;
           }
 
@@ -379,7 +383,7 @@ export const Workbench = memo(
 
           takeSnapshot(chatIdx, files, undefined, chatSummary)
             .then(() => {
-              someActionsFinsihedTime.set(Date.now());
+              someActionsFinishedTime.set(Date.now());
               console.log('Snapshot was taken on wait for actions');
             })
             .catch((e) => {
@@ -387,8 +391,6 @@ export const Workbench = memo(
               console.error(e);
             });
 
-          // make cooldown between waitForActions
-          await sleep(1000);
           return { artifacts, messageToActions };
         }
 
@@ -607,7 +609,16 @@ export const Workbench = memo(
 
     const handleSelectFile = useCallback((filePath: string) => {
       workbenchStore.setSelectedFile(filePath);
-      workbenchStore.setCurrentView('diff');
+      workbenchStore.currentView.set('diff');
+    }, []);
+
+    const [showWarningPopup, setShowWarningPopup] = useState(false);
+
+    useEffect(() => {
+      const doNotShowPopup = localStorage.getItem('doNotShowWarningPopup');
+      if (!doNotShowPopup || doNotShowPopup === 'false') {
+        setShowWarningPopup(true);
+      }
     }, []);
 
     return (
@@ -763,12 +774,76 @@ export const Workbench = memo(
                           isTabOpen={selectedView === 'diff'}
                         />
                       </View>
+
+                      <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
+                        <>
+                          {selectedView === 'contracts' && (
+                            <Popup
+                              isShow={showWarningPopup}
+                              closeTopButton={false}
+                              childrenClasses="sm:py-4"
+                              handleToggle={() => {}}
+                            >
+                              <div className="mb-3">
+                                <h3 className="lg:text-2xl text-lg font-semibold">Before you test your the app</h3>
+                              </div>
+                              <p className="text-left mb-3 lg:text-base text-sm">
+                                This is a page where appears generated contracts by AI (ussualy only one). <br />
+                                Default workflow with contracts: <br />
+                                <div className="pl-4">
+                                  1. Ask AI to create a new contract <br />
+                                  2. Build newly created contract (takes from 5 minutes) <br />
+                                  3. Deploy builded contract <br />
+                                </div>
+                                <br />
+                                If you want to <span className="font-semibold">test your app</span> with contracts —
+                                there is some a few pitfalls. Check this guide to make it more clear: <br />
+                                We will need to use Phantom for testing. It will not be possible to test contracts in
+                                other wallets. <br />
+                                <div className="pl-4">
+                                  • It is recommended to use a new wallet or a wallet without money in the mainnet. Just
+                                  to be on the side of caution <br />• Go to the faucet, connect your GitHub account,
+                                  and receive test SOL to your address (any amount will do) <br />• Open{' '}
+                                  <span className="font-semibold">Phantom</span> → in the upper left corner, select{' '}
+                                  <span className="font-semibold">Accounts</span> → at the bottom left, select{' '}
+                                  <span className="font-semibold">Settings</span> → scroll down →{' '}
+                                  <span className="font-semibold">Developer settings</span> →{' '}
+                                  <span className="font-semibold">Testnet mode</span> and make sure Solana Devnet is
+                                  selected <br />• Now you can test contracts. During transactions in preview, Phantom
+                                  may warn you about a danger and this is normal. The application is running locally, so
+                                  the wallet considers this to be atypical behavior <br />
+                                </div>
+                              </p>
+
+                              <div className="space-x-1 mb-3">
+                                <Checkbox
+                                  onCheckedChange={(checked) => {
+                                    const key = 'doNotShowWarningPopup';
+                                    checked ? localStorage.setItem(key, 'true') : localStorage.removeItem(key);
+                                  }}
+                                  defaultChecked
+                                />
+                                <label>Do not show again</label>
+                              </div>
+
+                              <ButtonWithTimer
+                                onClick={() => {
+                                  setShowWarningPopup((val) => !val);
+                                }}
+                                className="max-w-36 w-full"
+                                startTimer={selectedView === 'contracts'}
+                                timeToWait={4}
+                                variant="secondary"
+                              >
+                                Close
+                              </ButtonWithTimer>
+                            </Popup>
+                          )}
+                          <SmartContractView postMessage={postMessage} />
+                        </>
+                      </View>
                     </>
                   )}
-
-                  <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
-                    <SmartContractView postMessage={postMessage} />
-                  </View>
                   <View initial={{ x: '100%' }} animate={animationForView('convex', selectedView)}>
                     <ConvexView isConvexProject={isConvexProject} />
                   </View>

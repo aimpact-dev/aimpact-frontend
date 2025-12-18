@@ -7,4 +7,4 @@ export const chatStore = map({
   initialMessagesIds: [] as string[],
 });
 
-export const someActionsFinsihedTime = atom<null | number>(null);
+export const someActionsFinishedTime = atom<null | number>(null);
