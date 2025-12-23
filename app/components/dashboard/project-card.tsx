@@ -3,7 +3,7 @@
 import type { Project } from 'query/use-project-query';
 import { BadgeCustom, type BadgeCustomProps } from '@/components/ui/badge-custom';
 import { formatDistanceToNow } from 'date-fns';
-import { useNavigate } from '@remix-run/react';
+import { useLocation, useNavigate } from '@remix-run/react';
 import { Tooltip } from '../chat/Tooltip';
 import { formatUrl } from '~/utils/urlUtils';
 
@@ -16,7 +16,9 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   const s3Deployment = appDeployments?.find((d) => d.provider === 'AWS');
   const icpDeployment = appDeployments?.find((d) => d.provider === 'ICP');
   const akashDeployment = appDeployments?.find((d) => d.provider === 'Akash');
+
   const navigate = useNavigate();
+  const location = useLocation();
 
   const deployments = [
     { name: 'AWS', tooltip: 'Deployed on AWS', data: s3Deployment },
@@ -37,7 +39,13 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
     <div className="group relative bg-black/25 hover:bg-black/35 border-1 border-white/15 hover:border-bolt-elements-borderColorActive hover:scale-[1.02] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
       <div
         className="flex flex-col justify-between h-full  p-6 relative z-10 cursor-pointer"
-        onClick={() => navigate(`/projects/${project.id}`)}
+        onClick={() =>
+          navigate(`/projects/${project.id}`, {
+            state: {
+              from: location.pathname + location.search,
+            },
+          })
+        }
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">

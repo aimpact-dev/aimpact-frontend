@@ -2,7 +2,7 @@ import { useNavigate } from '@remix-run/react';
 import { classNames } from '~/utils/classNames';
 
 interface Props {
-  url: string;
+  url: string | number;
   children: React.ReactNode;
   size?: 'lg' | 'xl' | '2xl' | '3xl';
   className?: string;
