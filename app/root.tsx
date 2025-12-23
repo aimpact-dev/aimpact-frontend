@@ -82,8 +82,8 @@ export const Head = createHead(() => (
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <Meta />
     <Links />
+    <script defer src="https://app.youform.com/embed.js"></script>
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
-    <script src="https://app.youform.com/embed.js" async></script>
     <script defer data-domain="aimpact.dev" src="https://plausible.io/js/script.js" />
     <script>{`window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }`}</script>
   </>

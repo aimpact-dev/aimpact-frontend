@@ -4,7 +4,9 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import Popup from '../common/Popup';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
-import { Badge, Card } from '../ui';
+import { Badge, Button, Card } from '../ui';
+import { motion } from 'framer-motion';
+import { cn } from '~/lib/utils';
 
 function trackDailyPopup(key: string) {
   const lastShown = parseInt(localStorage.getItem(`${key}:lastShown`) ?? '0');
@@ -16,20 +18,51 @@ function trackDailyPopup(key: string) {
   return { lastShown, markShown };
 }
 
-const FormWrapper = ({ dataForm }: { dataForm: string }) => (
-  <div className="relative w-full h-[600px] flex items-center justify-center my-2">
-    {/* Spinner that stays under the form */}
-    <div className="absolute i-ph:circle-notch-duotone scale-98 animate-spin"></div>
+const FormWrapper = ({ dataForm }: { dataForm: string }) => {
+  const [introSkipped, setIntroSkipped] = useState(false);
 
-    <div
-      data-youform-embed
-      data-form={dataForm}
-      data-width="100%"
-      data-height="600"
-      className="relative z-10 w-full h-full"
-    ></div>
-  </div>
-);
+  return (
+    <div className="relative w-full h-[600px]">
+      {/* Form container — ALWAYS mounted */}
+      <div
+        data-youform-embed
+        data-form={dataForm}
+        data-width="100%"
+        data-height="500"
+        className={
+          introSkipped
+            ? 'absolute inset-0 z-10 w-full h-full'
+            : 'absolute inset-0 opacity-0 pointer-events-none w-full h-full'
+        }
+      />
+
+      {/* Spinner — only during step 2 */}
+      {introSkipped && (
+        <span className="absolute inset-0 flex items-center justify-center z-0 gap-1">
+          Just a moment
+          <div className="i-ph:circle-notch scale-98 animate-spin"></div>
+        </span>
+      )}
+
+      {/* Intro — only during step 1 */}
+      {!introSkipped && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.15 }}
+          className="h-full flex flex-col items-center justify-center gap-5"
+        >
+          <h1 className="text-2xl font-bold">Hi from the AImpact team!</h1>
+          <span>Could you answer a couple of questions in the following form?</span>
+          <Button onClick={() => setIntroSkipped(true)} tabIndex={-1}>
+            Show the form
+          </Button>
+        </motion.div>
+      )}
+    </div>
+  );
+};
 
 type GlobalPopupsContextType = {
   showWhatsNewPopup: () => void;
