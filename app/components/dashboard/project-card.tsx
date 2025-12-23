@@ -9,7 +9,6 @@ import { formatUrl } from '~/utils/urlUtils';
 
 interface ProjectCardProps {
   project: Project;
-  index: number;
 }
 
 const ProjectCard = ({ project }: ProjectCardProps) => {
