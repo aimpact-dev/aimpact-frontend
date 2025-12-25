@@ -27,7 +27,7 @@ export class LazySandbox implements AimpactSandbox {
     this.sandboxId = sandboxId;
   }
 
-  private getSandboxPromise(): Promise<Sandbox>{
+  private getSandboxPromise(): Promise<Sandbox> {
     if (this.sandboxPromise) {
       return this.sandboxPromise;
     }
@@ -36,17 +36,17 @@ export class LazySandbox implements AimpactSandbox {
   }
 
   private async ensureDependenciesInstalled(): Promise<void> {
-    if(!this.dependenciesPromise) {
+    if (!this.dependenciesPromise) {
       this.dependenciesPromise = this.installDependencies();
     }
     return this.dependenciesPromise;
   }
 
-  private async createSandbox() : Promise<Sandbox>{
+  private async createSandbox(): Promise<Sandbox> {
     const daytona = new Daytona({
       apiKey: this.apiKey,
     });
-    if(this.sandboxId){
+    if (this.sandboxId) {
       const existingSandbox = await daytona.get(this.sandboxId);
       return existingSandbox;
     }
@@ -68,8 +68,8 @@ export class LazySandbox implements AimpactSandbox {
     return sandbox;
   }
 
-  private async installDependencies(){
-    const sandbox  = await this.getSandboxPromise();
+  private async installDependencies() {
+    const sandbox = await this.getSandboxPromise();
     const corepackInstallResponse = await sandbox.process.executeCommand("npm install --global corepack@latest");
     if (corepackInstallResponse.exitCode !== 0) {
       console.error('Failed to install corepack:', corepackInstallResponse.result);
@@ -88,7 +88,7 @@ export class LazySandbox implements AimpactSandbox {
    * @param path
    * @private
    */
-  private resolvePath(path: string): string{
+  private resolvePath(path: string): string {
     if (!path.startsWith('/')) {
       return `${DAYTONA_WORK_DIR}/${path}`;
     }
@@ -99,12 +99,12 @@ export class LazySandbox implements AimpactSandbox {
    * Use this function to force lazy sandbox to initialize and get it id.
    * This function does not start dependencies installation.
    */
-  async initialize(): Promise<string>{
+  async initialize(): Promise<string> {
     const sandbox = await this.getSandboxPromise();
     return sandbox.id;
   }
 
-  async getPreviewLink(port: number){
+  async getPreviewLink(port: number) {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -138,7 +138,7 @@ export class LazySandbox implements AimpactSandbox {
     return previewLink;
   }
 
-  async fileExists(filePath: string): Promise<boolean>{
+  async fileExists(filePath: string): Promise<boolean> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -147,7 +147,7 @@ export class LazySandbox implements AimpactSandbox {
 
     filePath = this.resolvePath(filePath);
     const fileName = filePath.split('/').pop();
-    if(!fileName){
+    if (!fileName) {
       return false;
     }
     const dirPath = filePath.substring(0, filePath.length - fileName.length);
@@ -161,7 +161,7 @@ export class LazySandbox implements AimpactSandbox {
   async createFolder(
     path: string,
     mode: string,
-  ): Promise<void>{
+  ): Promise<void> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -174,7 +174,7 @@ export class LazySandbox implements AimpactSandbox {
 
   async deleteFile(
     path: string,
-  ): Promise<void>{
+  ): Promise<void> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -190,7 +190,7 @@ export class LazySandbox implements AimpactSandbox {
     cwd?: string,
     env?: Record<string, string>,
     timeout?: number,
-  ): Promise<ExecuteResponse>{
+  ): Promise<ExecuteResponse> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -213,6 +213,9 @@ export class LazySandbox implements AimpactSandbox {
     if (fileName.endsWith('.jsx')) {
       return 'application/javascript';
     }
+    if (fileName.startsWith('.')) {
+      return 'text/plain';
+    }
     return false;
   }
 
@@ -225,7 +228,7 @@ export class LazySandbox implements AimpactSandbox {
   async uploadFile(
     file: Buffer,
     remotePath: string,
-  ): Promise<void>{
+  ): Promise<void> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -237,7 +240,7 @@ export class LazySandbox implements AimpactSandbox {
       throw new Error('Invalid remote path: file name is missing');
     }
     let mime = lookup(fileName);
-    if(!mime){
+    if (!mime) {
       mime = this.mimeFallback(fileName);
       if (!mime) {
         throw new Error(`Could not determine MIME type for file: ${fileName}`);
@@ -274,7 +277,7 @@ export class LazySandbox implements AimpactSandbox {
   async searchFiles(
     path: string,
     pattern: string,
-  ): Promise<SearchFilesResponse>{
+  ): Promise<SearchFilesResponse> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -301,7 +304,7 @@ export class LazySandbox implements AimpactSandbox {
 
   async listFiles(
     path: string,
-  ): Promise<FileInfo[]>{
+  ): Promise<FileInfo[]> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -314,7 +317,7 @@ export class LazySandbox implements AimpactSandbox {
 
   async createSession(
     sessionId: string,
-  ): Promise<void>{
+  ): Promise<void> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -340,7 +343,7 @@ export class LazySandbox implements AimpactSandbox {
     sessionId: string,
     req: SessionExecuteRequest,
     timeout?: number,
-  ): Promise<SessionExecuteResponse>{
+  ): Promise<SessionExecuteResponse> {
     const sandbox = await this.getSandboxPromise();
     if (!sandbox) {
       throw new Error('Sandbox is not initialized');
@@ -379,7 +382,7 @@ export class LazySandbox implements AimpactSandbox {
   }
 
   async dispose() {
-    if (this.sandboxPromise){
+    if (this.sandboxPromise) {
       const sandbox = await this.sandboxPromise;
       await fetch(`${this.apiUrl}/sandbox/${sandbox.id}/stop`, {
         method: 'POST',

@@ -82,7 +82,7 @@ export default defineConfig((config) => {
   if (isDev) {
     console.log("App running in dev mode!")
   }
-  
+
 
   return {
     define: {
@@ -112,7 +112,7 @@ export default defineConfig((config) => {
           'electron',
           'fs',
           'util',
-  
+
           // Add all Node.js built-in modules as external
           'node:fs',
           'node:path',

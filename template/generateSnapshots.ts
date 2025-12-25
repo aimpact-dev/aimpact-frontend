@@ -1,7 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from 'url';
 
-const ignorePaths = ["node_modules", ".git", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "dist", "build", ".DS_Store"];
+const ignorePaths = ["node_modules", ".git", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "dist", "build", ".DS_Store", ".next", ".cache", "cache", "target"];
+const base64EncodedFileTypes = ["png", "jpg", "jpeg", "gif", "webp", "svg", "ico"];
 
 interface File {
   type: 'file';
@@ -24,11 +26,11 @@ interface Snapshot {
 }
 
 function getTemplatesDir(): string {
-  return path.dirname(__filename);
+  return path.dirname(fileURLToPath(import.meta.url));
 }
 
 // We treat the names of the folders where templates are located as names of those templates.
-async function getTemplatesNames(): Promise<string[]>{
+async function getTemplatesNames(): Promise<string[]> {
   const templatesDir = getTemplatesDir();
   const entries = await fs.promises.readdir(templatesDir, { withFileTypes: true });
   return entries
@@ -63,6 +65,16 @@ async function walk(template: string, dirPath: string, result: Record<string, Fi
     } else if (entry.isFile()) {
       try {
         const content = await fs.promises.readFile(fullPath, 'utf8');
+        if (base64EncodedFileTypes.some(type => relativePath.endsWith(type))) {
+          const base64Content = Buffer.from(content).toString('base64');
+          result[`/home/project/${relativePath}`] = {
+            type: 'file',
+            content: base64Content,
+            isBinary: true,
+          };
+          continue;
+        }
+
         result[`/home/project/${relativePath}`] = {
           type: 'file',
           content,
@@ -75,7 +87,7 @@ async function walk(template: string, dirPath: string, result: Record<string, Fi
 }
 
 //Remember: template name == its folder name
-async function generateSnapshotForTemplate(templateName: string):Promise<Snapshot>{
+async function generateSnapshotForTemplate(templateName: string): Promise<Snapshot> {
   const files: Record<string, File | Folder> = {};
   await walk(templateName, path.join(getTemplatesDir(), templateName), files);
 

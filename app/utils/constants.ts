@@ -49,6 +49,43 @@ export const STARTER_TEMPLATES: Template[] = [
     files: snapshotsData['vite-react-app'].files,
   },
   {
+    name: 'dapp-scaffold-main',
+    label: ' NextJS + Typescript',
+    description: `Solana dApp Scaffold:
+  - Next.js (TypeScript)
+  - The Home screen imports and uses <GameSandbox />.
+  - At the bottom of my file I have:
+
+  const GameSandbox: FC = () => {
+    return (
+      <div>
+        Your No-Code Jam Game
+      </div>
+    );
+  };
+
+  I need you to REPLACE ONLY that GameSandbox component
+  with a fully working mini-game using React + Tailwind CSS.
+
+  Rules:
+  • Keep the function name and type EXACTLY:
+    const GameSandbox: FC = () => { ... }
+  • Do NOT add any new imports.
+  • Do NOT change HomeView or anything else in the file.
+  • Use only React hooks (like useState) and Tailwind classes.
+  • Must compile in a Next.js + TypeScript project.
+  • Must fit inside a vertical phone card (9:16 ratio).
+  • Must show a SCORE.
+  • Must have a clear GAME OVER or WIN condition.
+  • Must have a RESTART button.
+  • Must be playable with mouse or touch (click / tap).
+  • No external libraries, no canvas, no backend, no wallet logic.
+`,
+    tags: ['typescript', 'vite', 'nextjs'],
+    icon: 'i-bolt:react',
+    files: snapshotsData['dapp-scaffold-main'].files,
+  },
+  {
     name: 'vite-threejs-app',
     label: 'Vite + Threejs + Typescript',
     description: 'Threejs + Tailwind starter template powered by Vite for fast development experience',

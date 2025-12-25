@@ -3,7 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateSnapshots = generateSnapshots;
 const fs = require("fs");
 const path = require("path");
-const ignorePaths = ["node_modules", ".git", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "dist", "build"];
+const ignorePaths = ["node_modules", ".git", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "dist", "build", ".DS_Store", ".next", ".cache", "cache", "target"];
+
 // We treat the names of the folders where templates are located as names of those templates.
 async function getTemplatesNames() {
     const templatesDir = path.join(__dirname);

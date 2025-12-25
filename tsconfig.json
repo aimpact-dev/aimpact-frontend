@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ESNext"
+    ],
     "types": [
       "@remix-run/cloudflare",
       "vite/client",
@@ -21,11 +25,16 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"],
-      "@/*": ["./app/*"],
-      "~/template/*": ["./template/*"],
+      "~/*": [
+        "./app/*"
+      ],
+      "@/*": [
+        "./app/*"
+      ],
+      "~/template/*": [
+        "./template/*"
+      ]
     },
-
     // vite takes care of building everything, not tsc
     "noEmit": true
   },

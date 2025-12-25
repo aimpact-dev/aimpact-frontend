@@ -412,16 +412,16 @@ Available templates:
   <tags>basic, script</tags>
 </template>
 ${templates
-  .map(
-    (template) => `
+    .map(
+      (template) => `
 <template>
   <name>${template.name}</name>
   <description>${template.description}</description>
   ${template.tags ? `<tags>${template.tags.join(', ')}</tags>` : ''}
 </template>
 `,
-  )
-  .join('\n')}
+    )
+    .join('\n')}
 
 Response Format:
 <selection>
@@ -449,6 +449,15 @@ Response:
 </selection>
 </example>
 
+<example>
+User: I need to build a tetris game for Scrolly hackathon
+Response:
+<selection>
+  <templateName>dapp-scaffold-main</templateName>
+  <title>Tetris game Scrolly</title>
+</selection>
+</example>
+
 Instructions:
 1. For trivial tasks and simple scripts, always recommend the blank template
 2. For more complex projects, recommend templates from the provided list
@@ -456,6 +465,7 @@ Instructions:
 4. Consider both technical requirements and tags
 5. If no perfect match exists, recommend the closest option
 6. Title will be displayed to the user. Make it clear.
+7. If user message contains "Scrolly", then always recommend dapp-scaffold-main template
 
 Important: Provide only the selection tags in your response, no additional text.
 MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH
