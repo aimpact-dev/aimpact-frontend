@@ -70,6 +70,7 @@ export function useChatHistory() {
           getSnapshot(mixedId), // Fetch snapshot from backend
         ])
           .then(async ([storedMessages, snapshot]) => {
+            console.log('start chat import')
             if (storedMessages && storedMessages.messages.length > 0) {
               /*
                * const snapshotStr = localStorage.getItem(`snapshot:${mixedId}`); // Remove localStorage usage
@@ -149,6 +150,7 @@ export function useChatHistory() {
                     metadata: {
                       noStore: true,
                       hidden: true,
+                      importMessage: true,
                       summary: summary
                         ? ({
                             chatId: storedMessages.messages[snapshotIndex].id,
@@ -171,7 +173,6 @@ export function useChatHistory() {
                 initialMessages.push(actionMessages[0].id);
               }
               chatStore.setKey('initialMessagesIds', initialMessages);
-              console.log(chatStore.get().initialMessagesIds)
 
               description.set(storedMessages.description);
               chatId.set(storedMessages.id);

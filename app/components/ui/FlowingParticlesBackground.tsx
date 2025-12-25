@@ -26,7 +26,8 @@ export const FlowingParticlesBackground = () => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fillStyle = p.color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 15;
+        ctx.filter = "blur(2.5px)";
         ctx.shadowColor = p.color;
         ctx.fill();
 
