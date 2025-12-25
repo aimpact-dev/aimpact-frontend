@@ -106,7 +106,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
               setPopupState({ state: 'nps', markShown: trackNPS.markShown });
             }
           },
-          5000, // change time here to 10 minuts 10 * 60 * 1000
+          10 * 60 * 1000,
         );
 
         return () => {
