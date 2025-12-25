@@ -1,6 +1,6 @@
 import { memo, Fragment, useEffect } from 'react';
 import { Markdown } from './Markdown';
-import type { JSONValue } from 'ai';
+import type { JSONValue, LanguageModelUsage } from 'ai';
 import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -44,11 +44,7 @@ export const AssistantMessage = memo(({ content, metadata, messageId, onRewind, 
   const chatSummary: string | undefined = metadata?.chatSummary;
   const codeContext: string[] | undefined = metadata?.codeContext;
 
-  const usage: {
-    completionTokens?: number;
-    promptTokens?: number;
-    totalTokens?: number;
-  } = metadata?.usage;
+  const usage: LanguageModelUsage = metadata?.usage;
 
   return (
     <div className="overflow-hidden w-full">
@@ -94,9 +90,10 @@ export const AssistantMessage = memo(({ content, metadata, messageId, onRewind, 
             </Popover>
           )}
           <div className="flex w-full items-center justify-between">
-            {usage && usage.completionTokens && usage.promptTokens && usage.totalTokens && (
+            {usage && usage.inputTokens && usage.outputTokens && usage.totalTokens && (
               <div>
-                Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
+                Tokens: {usage.totalTokens} (input: {usage.inputTokens}, output:{' '}
+                {usage.outputTokens + (usage.reasoningTokens ?? 0)})
               </div>
             )}
             {(onRewind || onFork) && messageId && (

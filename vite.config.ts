@@ -144,14 +144,6 @@ export default defineConfig((config) => {
     },
     plugins: [
       UnoCSS(),
-      isDev &&
-        visualizer({
-          filename: 'dist/stats.html',
-          open: false,
-          gzipSize: true,
-          brotliSize: true,
-          template: 'treemap', // or 'sunburst', 'network'
-        }),
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {
