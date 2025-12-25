@@ -3,32 +3,28 @@
 import ProjectCard from '@/components/dashboard/project-card';
 import DataPagination from '@/components/common/DataPagination';
 import { motion } from 'framer-motion';
-import { useProjectsQuery, type Project, type ProjectFilters } from 'query/use-project-query';
-import { useAuth } from '~/lib/hooks/useAuth';
-import { useSearchParams } from '@remix-run/react';
+import type { Project, ProjectFilters } from 'query/use-project-query';
+import { PROJECTS_PER_PAGE } from '~/routes/projects._index';
 
 interface ProjectGridProps {
   projects?: Project[];
+  pagination?: {
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+  filters: ProjectFilters;
   isLoading?: boolean;
-  error?: string;
-  filters?: ProjectFilters[];
+  error?: Error;
+  onPageChange: (page: number) => void;
 }
 
-const itemsPerPage = 9;
-
-const ProjectGrid = ({ filters = ['all'] }: ProjectGridProps) => {
-  const auth = useAuth();
-
-  const [searchParams, setSearchParams] = useSearchParams();
-  const currentPage = Number(searchParams.get('page')) || 1;
-
-  const projectsQuery = useProjectsQuery(currentPage, itemsPerPage, filters, 'createdAt', 'DESC', auth.jwtToken);
-
-  if (projectsQuery.isLoading || projectsQuery.isPending) {
+export const ProjectGrid = ({ projects, pagination, filters, isLoading, error, onPageChange }: ProjectGridProps) => {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: itemsPerPage }).map((_, index) => (
+          {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className="bg-black/30 rounded-xl shadow-lg animate-pulse h-64">
               <div className="p-6 h-full">
                 <div className="flex items-start justify-between mb-4">
@@ -59,7 +55,7 @@ const ProjectGrid = ({ filters = ['all'] }: ProjectGridProps) => {
     );
   }
 
-  if (projectsQuery.isError) {
+  if (error) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -67,7 +63,7 @@ const ProjectGrid = ({ filters = ['all'] }: ProjectGridProps) => {
         className="bg-destructive/10 border border-destructive rounded-lg p-6 text-center"
       >
         <h3 className="text-lg font-medium text-destructive mb-2">Error Loading Projects</h3>
-        <p className="text-muted-foreground">{projectsQuery.error.message}</p>
+        <p className="text-muted-foreground">{error.message}</p>
         <button
           className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           onClick={() => window.location.reload()}
@@ -78,15 +74,16 @@ const ProjectGrid = ({ filters = ['all'] }: ProjectGridProps) => {
     );
   }
 
-  const projects = projectsQuery.data.data;
-  const pagination = projectsQuery.data.pagination;
+  if (!projects || !pagination) {
+    return;
+  }
 
   if (projects.length === 0) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-black/30 rounded-lg p-10 text-center">
         <h3 className="text-lg font-medium mb-2">No Projects Found</h3>
         <p className="text-muted-foreground">
-          {filters.includes('owned')
+          {filters.owned
             ? "You haven't created any projects yet. Press 'Build a new app' to get started or change the filter to view all projects."
             : 'There are currently no blockchain projects to display.'}
         </p>
@@ -94,35 +91,27 @@ const ProjectGrid = ({ filters = ['all'] }: ProjectGridProps) => {
     );
   }
 
-  const totalProjects = pagination.total || 0;
-  const totalPages = Math.ceil(totalProjects / itemsPerPage);
-
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-
-  const paginationLabel = `Showing ${startIndex + 1} to ${Math.min(endIndex, totalProjects)} of ${totalProjects} projects`;
-
-  const handlePageChange = (page: number) => {
-    setSearchParams({ page: page.toString() });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const allItems = pagination.total;
+  const startItem = (pagination.page - 1) * pagination.pageSize + 1;
+  const endItem = Math.min(pagination.page * pagination.pageSize, allItems);
+  const paginationLabel = `Showing projects ${startItem}-${endItem} out of ${allItems}`;
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project, index) => (
-          <ProjectCard key={project.id} project={project} index={startIndex + index} />
+        {projects.map((project) => (
+          <ProjectCard key={project.id} project={project} />
         ))}
       </div>
 
-      <DataPagination
-        totalPages={totalPages}
-        currentPage={currentPage}
-        label={paginationLabel}
-        onChange={handlePageChange}
-      />
+      {pagination.total > 1 && (
+        <DataPagination
+          totalPages={Math.ceil(pagination.total / PROJECTS_PER_PAGE)}
+          currentPage={pagination.page}
+          label={paginationLabel}
+          onChange={onPageChange}
+        />
+      )}
     </div>
   );
 };
-
-export default ProjectGrid;
