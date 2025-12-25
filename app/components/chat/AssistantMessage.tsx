@@ -1,6 +1,6 @@
 import { memo, Fragment, useEffect } from 'react';
 import { Markdown } from './Markdown';
-import type { JSONValue } from 'ai';
+import type { JSONValue, LanguageModelUsage } from 'ai';
 import Popover from '~/components/ui/Popover';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -110,7 +110,8 @@ export const AssistantMessage = memo(({ content, annotations, messageId, onRewin
           <div className="flex w-full items-center justify-between">
             {usage && (
               <div>
-                Tokens: {usage.totalTokens} (prompt: {usage.promptTokens}, completion: {usage.completionTokens})
+                Tokens: {usage.totalTokens} (input: {usage.promptTokens}, output:{' '}
+                {usage.completionTokens})
               </div>
             )}
             {(onRewind || onFork) && messageId && (
