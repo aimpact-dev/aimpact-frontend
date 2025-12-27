@@ -179,7 +179,7 @@ export default defineConfig((config) => {
       }),
       tsconfigPaths(),
       chrome129IssuePlugin(),
-      config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
+      // config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
       babel({
         filter: /\.[jt]sx?$/,
         babelConfig: {
