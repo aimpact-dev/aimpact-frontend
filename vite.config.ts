@@ -191,6 +191,7 @@ export default defineConfig((config) => {
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
       babel({
         filter: /\.[jt]sx?$/,
+        exclude: /node_modules/,
         babelConfig: {
           presets: ['@babel/preset-typescript'], // if you use TypeScript
           plugins: [['babel-plugin-react-compiler', reactCompilerConfig]],
