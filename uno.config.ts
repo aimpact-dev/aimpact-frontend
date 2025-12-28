@@ -1,7 +1,7 @@
 import { globSync } from 'fast-glob';
 import fs from 'node:fs/promises';
 import { basename } from 'node:path';
-import { defineConfig, presetIcons, presetUno, transformerDirectives, presetWind } from 'unocss';
+import { defineConfig, presetIcons, transformerDirectives, presetWind3 } from 'unocss';
 import { getIcons } from '@iconify/utils';
 import type { IconifyJSON } from '@iconify/types';
 
@@ -106,6 +106,12 @@ const COLOR_PRIMITIVES = {
 };
 
 export default defineConfig({
+  content: {
+    pipeline: {
+      include: [/\.(vue|svelte|[jt]sx|mdx?|html)($|\?)/, 'src/**/*.{js,ts}'],
+      exclude: ['node_modules', 'dist', '.cache', '.pnpm-store'],
+    },
+  },
   safelist: [
     ...Object.keys(customIconCollection[collectionName] || {}).map((x) => `i-bolt:${x}`),
     ...range(1, 9).map((i) => `bg-green-${100 * i}`),
@@ -283,12 +289,6 @@ export default defineConfig({
   },
   transformers: [transformerDirectives()],
   presets: [
-    presetUno({
-      dark: {
-        light: '[data-theme="light"]',
-        dark: '[data-theme="dark"]',
-      },
-    }),
     presetIcons({
       warn: true,
       collections: {
@@ -301,7 +301,12 @@ export default defineConfig({
       },
       unit: 'em',
     }),
-    presetWind(),
+    presetWind3({
+      dark: {
+        light: '[data-theme="light"]',
+        dark: '[data-theme="dark"]',
+      },
+    }),
   ],
   variants: [
     // aria-invalid:
