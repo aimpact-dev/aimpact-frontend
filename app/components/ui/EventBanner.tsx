@@ -35,7 +35,18 @@ export function EventBanner({ className, children }: Props) {
     >
       <FlowingParticlesBackground />
       <div className="bg-bolt-elements-background-depth-4 w-full py-1 rounded-md">
-        <p className="text-md md:text-sm mr-8">{children}</p>
+        <p className="text-sm md:text-base">
+          🎉Join the{' '}
+          <a
+            href="https://earn.superteam.fun/listing/scrolly-x-superteam-uk-or-no-code-game-jam"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-gray-200 transition-colors"
+          >
+            Scrolly No Code Game Jam
+          </a>{' '}
+          till 31 Dec and get a chance to win 500$ and Solana mobile!
+        </p>
         <button
           onClick={() => setVisible(false)}
           className="absolute right-3 top-1/2 -translate-y-1/2 p-1  rounded-full hover:bg-white/10 transition-colors z-10000"
