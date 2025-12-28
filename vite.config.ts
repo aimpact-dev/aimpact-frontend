@@ -9,8 +9,7 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import babel from 'vite-plugin-babel';
-import { visualizer } from "rollup-plugin-visualizer";
-
+import { visualizer } from 'rollup-plugin-visualizer';
 
 dotenv.config();
 
@@ -77,12 +76,11 @@ const pkg = getPackageJson();
 const gitInfo = getGitInfo();
 
 export default defineConfig((config) => {
-  const isDev = process.env.ENVIRONMENT == "development";
+  const isDev = process.env.ENVIRONMENT == 'development';
   const isSsrBuild = Boolean(config.isSsrBuild);
   if (isDev) {
-    console.log("App running in dev mode!")
+    console.log('App running in dev mode!');
   }
-  
 
   return {
     define: {
@@ -112,7 +110,7 @@ export default defineConfig((config) => {
           'electron',
           'fs',
           'util',
-  
+
           // Add all Node.js built-in modules as external
           'node:fs',
           'node:path',
@@ -126,7 +124,7 @@ export default defineConfig((config) => {
         treeshake: {
           preset: 'recommended',
           propertyReadSideEffects: false,
-          tryCatchDeoptimization: false
+          tryCatchDeoptimization: false,
         },
         // output: {
         //   manualChunks: isSsrBuild
@@ -146,13 +144,6 @@ export default defineConfig((config) => {
     },
     plugins: [
       UnoCSS(),
-      isDev && visualizer({
-        filename: 'dist/stats.html',
-        open: false,
-        gzipSize: true,
-        brotliSize: true,
-        template: 'treemap' // or 'sunburst', 'network'
-      }),
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {
@@ -205,6 +196,7 @@ export default defineConfig((config) => {
       'OLLAMA_API_BASE_URL',
       'LMSTUDIO_API_BASE_URL',
       'TOGETHER_API_BASE_URL',
+      'GLOBAL_DEBUG_MODE',
     ],
     css: {
       preprocessorOptions: {

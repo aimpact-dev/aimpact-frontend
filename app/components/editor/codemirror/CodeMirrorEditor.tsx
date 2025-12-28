@@ -212,7 +212,7 @@ export const CodeMirrorEditor = memo(
       const view = new EditorView({
         parent: containerRef.current!,
         dispatchTransactions(transactions) {
-          if(docRef.current && docRef.current.isBinary) {
+          if (docRef.current && docRef.current.isBinary) {
             onUpdate({
               selection: EditorSelection.create([]),
               content: '',
@@ -280,7 +280,6 @@ export const CodeMirrorEditor = memo(
         return;
       }
 
-
       if (doc.isBinary) {
         return;
       }
@@ -324,11 +323,8 @@ export const CodeMirrorEditor = memo(
 
     return (
       <div className={classNames('relative h-full', className)}>
-        {doc?.isBinary && (<BinaryContent />)}
-        <div className={classNames(
-          'h-full overflow-hidden',
-          doc?.isBinary ? 'hidden' : ''
-        )} ref={containerRef}  />
+        {doc?.isBinary && <BinaryContent />}
+        <div className={classNames('h-full overflow-hidden', doc?.isBinary ? 'hidden' : '')} ref={containerRef} />
       </div>
     );
   },
@@ -521,12 +517,7 @@ function setEditorDocument(
 
       if (autoFocus && editable) {
         if (needsScrolling) {
-          view.scrollDOM.addEventListener(
-            'scroll',
-            () => {
-            },
-            { once: true },
-          );
+          view.scrollDOM.addEventListener('scroll', () => {}, { once: true });
         }
       }
 

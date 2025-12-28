@@ -4,13 +4,32 @@ import { useAuth } from '~/lib/hooks/useAuth';
 import Popup from '../common/Popup';
 import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
-import { Badge, Card } from '../ui';
+import WhatsNew, { type WhatsNewPost } from '../info/WhatsNew';
+import { useQuery } from '@tanstack/react-query';
+import { ky } from 'query';
+import { useUserMetadata, useUpdateUserMetadata } from '~/lib/hooks/tanstack/useUserMetadata';
 
-function trackDailyPopup(key: string) {
-  const lastShown = parseInt(localStorage.getItem(`${key}:lastShown`) ?? '0');
+function trackDailyPopup(
+  key: string,
+  metadata: Record<string, any>,
+  updateMetadata: (updated: Record<string, any>) => void,
+) {
+  const formattedKey = `${key}:lastShown`;
+
+  const dbValue = metadata?.[formattedKey];
+  const lsRaw = localStorage.getItem(formattedKey);
+  const lsValue = lsRaw ? parseInt(lsRaw, 10) : undefined;
+
+  // migrate from localStorage only if DB has no value yet
+  if (typeof dbValue !== 'number' && typeof lsValue === 'number' && !Number.isNaN(lsValue)) {
+    updateMetadata({ [formattedKey]: lsValue });
+    localStorage.removeItem(formattedKey);
+  }
+
+  const lastShown = typeof dbValue === 'number' ? dbValue : typeof lsValue === 'number' ? lsValue : 0;
 
   function markShown() {
-    localStorage.setItem(`${key}:lastShown`, String(Date.now()));
+    updateMetadata({ [formattedKey]: Date.now() });
   }
 
   return { lastShown, markShown };
@@ -37,45 +56,6 @@ type GlobalPopupsContextType = {
 
 const GlobalPopupsContext = createContext<GlobalPopupsContextType | undefined>(undefined);
 
-const WhatsNew = ({
-  newsArticles,
-}: {
-  newsArticles: {
-    heading: string;
-    text: string;
-    date: Date;
-  }[];
-}) => (
-  <>
-    <div>
-      {newsArticles.map((article) => {
-        return (
-          <Card variant="accented" withHoverEffect key={article.date.getTime()}>
-            <div className="flex flex-col gap-2 border-b border-border-light p-4">
-              <div className="flex justify-between items-center">
-                <Badge variant="primary">Integration</Badge>
-                <span className="text-sm text-bolt-elements-textSecondary">
-                  {article.date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </span>
-              </div>
-              <div className="flex items-center  gap-2">
-                <div className="inline-block i-ph:plug-bold text-accent-500"></div>
-                <h2 className="text-xl font-bold">{article.heading}</h2>
-              </div>
-            </div>
-
-            <p className="text-left p-4">{article.text}</p>
-          </Card>
-        );
-      })}
-    </div>
-  </>
-);
-
 type PopupState =
   | { state: 'intro'; markShown: () => void }
   | { state: 'whatsnew'; markShown: () => void }
@@ -88,47 +68,63 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
   const { isAuthorized } = useAuth();
   const { started: chatStarted } = useStore(chatStore);
 
+  const { data: metadata } = useUserMetadata(isAuthorized);
+  const { mutate: updateMetadata } = useUpdateUserMetadata();
+
   const [popupState, setPopupState] = useState<PopupState>({ state: 'none' });
 
-  const newsArticles = [
-    {
-      heading: 'Vibecoding meets x402 !',
-      text: 'We’ve integrated x402 standard directly into AImpact — now you can vibecode apps with built-in payments and seamless interoperability. This update unlocks a new layer of flexibility for Solana-based Web3 products, where every transaction and access request becomes part of a unified, intuitive ecosystem.',
-      date: new Date(2025, 10, 11), // use monthIndex (10 is November)
+  const {
+    data: whatsNewPosts,
+    error: whatsNewPostsError,
+    isPending: whatsNewPostsPending,
+    isLoading: whatsNewPostsLoading,
+  } = useQuery<WhatsNewPost[]>({
+    queryKey: ['whats-new'],
+    queryFn: async () => {
+      const res = await ky.get('whats-new');
+
+      if (!res.ok) {
+        throw new Error(`Not found news articles: ${whatsNewPostsError}`);
+      }
+
+      const json = await res.json<WhatsNewPost[]>();
+      return json.map((a) => ({ ...a, date: new Date(a.date) }));
     },
-  ];
+  });
 
   // Start timer for the NPS popup when chat starts and popup can be shown
   useEffect(() => {
-    // NPS popup
-    const trackNPS = trackDailyPopup('popupNPS');
-    const showNPS = trackNPS.lastShown === 0;
+    if (metadata) {
+      // NPS popup
+      const trackNPS = trackDailyPopup('popupNPS', metadata, updateMetadata);
+      const showNPS = trackNPS.lastShown === 0;
 
-    if (showNPS && chatStarted) {
-      const timer = setTimeout(
-        () => {
-          if (popupState.state === 'none') {
-            setPopupState({ state: 'nps', markShown: trackNPS.markShown });
-          }
-        },
-        10 * 60 * 1000,
-      );
+      if (showNPS && chatStarted) {
+        const timer = setTimeout(
+          () => {
+            if (popupState.state === 'none') {
+              setPopupState({ state: 'nps', markShown: trackNPS.markShown });
+            }
+          },
+          5000, // change time here to 10 minuts 10 * 60 * 1000
+        );
 
-      return () => {
-        clearTimeout(timer);
-      };
+        return () => {
+          clearTimeout(timer);
+        };
+      }
     }
-  }, [chatStarted, popupState]);
+  }, [chatStarted, metadata, popupState]);
 
   useEffect(() => {
-    if (!connected || !isAuthorized || popupState.state !== 'none') return;
+    if (!connected || !isAuthorized || !metadata || popupState.state !== 'none') return;
 
     const timer = setTimeout(() => {
-      // Re-check conditions after 5 seconds
-      if (!connected || !isAuthorized || popupState.state !== 'none') return;
+      // Re-check conditions after 1 second
+      if (!connected || !isAuthorized || !metadata || popupState.state !== 'none') return;
 
       // Intro popup
-      const trackIntro = trackDailyPopup('popupIntro');
+      const trackIntro = trackDailyPopup('popupIntro', metadata, updateMetadata);
       const showIntro = trackIntro.lastShown === 0;
 
       if (showIntro) {
@@ -137,7 +133,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
       }
 
       // NPS popup
-      const trackNPS = trackDailyPopup('popupNPS');
+      const trackNPS = trackDailyPopup('popupNPS', metadata, updateMetadata);
       const daysSinceLastNPS = (Date.now() - trackNPS.lastShown) / (10 * 24 * 60 * 60 * 1000);
       const showNPS = trackNPS.lastShown !== 0 && daysSinceLastNPS >= 14;
 
@@ -147,7 +143,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
       }
 
       // PMF popup
-      const trackPMF = trackDailyPopup('popupPMF');
+      const trackPMF = trackDailyPopup('popupPMF', metadata, updateMetadata);
       const daysSinceLastPMF = (Date.now() - trackPMF.lastShown) / (10 * 24 * 60 * 60 * 1000);
       const daysSinceIntro = (Date.now() - trackIntro.lastShown) / (10 * 24 * 60 * 60 * 1000);
       const showPMF = daysSinceIntro >= 3 && daysSinceLastPMF >= 28;
@@ -158,8 +154,9 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
       }
 
       // What's new popup
-      const trackWhatsNew = trackDailyPopup('popupWhatsNew');
-      const showWhatsNew = trackWhatsNew.lastShown < Math.max(...newsArticles.map(({ date }) => date.getTime()));
+      const trackWhatsNew = trackDailyPopup('popupWhatsNew', metadata, updateMetadata);
+      const showWhatsNew =
+        whatsNewPosts && trackWhatsNew.lastShown < Math.max(...whatsNewPosts.map(({ date }) => date.getTime()));
 
       if (showWhatsNew) {
         setPopupState({ state: 'whatsnew', markShown: trackWhatsNew.markShown });
@@ -168,7 +165,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [connected, isAuthorized, popupState, newsArticles]);
+  }, [connected, isAuthorized, metadata, popupState]);
 
   // Reinitialize Youform when a popup should be shown
   useEffect(() => {
@@ -212,7 +209,13 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
             }
             description="Check our latest updates"
           >
-            <WhatsNew newsArticles={newsArticles} />
+            {whatsNewPostsLoading || whatsNewPostsPending ? (
+              <div className="inline-block i-ph:spinner-gap animate-spin mr-1"></div>
+            ) : whatsNewPostsError ? (
+              <span>Couldn't load news. Try to reload the page.</span>
+            ) : (
+              <WhatsNew posts={whatsNewPosts} />
+            )}
           </Popup>
         )}
       </>

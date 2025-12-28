@@ -70,7 +70,7 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
           <b>Link</b>
         </a>
       </div>,
-      { autoClose: false },
+      { autoClose: 10000 },
     );
     toastIds.current.add(toastId);
   };
@@ -260,7 +260,7 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
       <DropdownMenuContent>
         <DropdownMenuItem>
           <HeaderActionButton
-            disabled={isDeploying || !activePreview || isStreaming}
+            disabled={isDeploying || isStreaming}
             onClick={() => onDeploy(DeployProviders.AWS)}
             className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
           >
@@ -270,7 +270,7 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
         </DropdownMenuItem>
         <DropdownMenuItem>
           <HeaderActionButton
-            disabled={isDeploying || !activePreview || isStreaming}
+            disabled={isDeploying || isStreaming}
             onClick={() => onDeploy(DeployProviders.AKASH)}
             className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
           >

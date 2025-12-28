@@ -64,7 +64,7 @@ export default function MobileMenu() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full">
         <div className="flex justify-between items-center py-4">
           <button onClick={() => handleNavigate('/')} className="flex items-center space-x-2" aria-label="Home">
-            <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-8 w-auto" />
+            <img src="/aimpact-logo-beta-xmas.png" alt="AImpact Logo" className="h-8 w-auto" />
           </button>
 
           <div>
