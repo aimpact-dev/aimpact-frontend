@@ -5,7 +5,7 @@ import { memo, useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { Popover, Transition } from '@headlessui/react';
 import { diffLines, type Change } from 'diff';
-import { ActionRunner, type ActionState } from '~/lib/runtime/action-runner';
+import { ActionRunner } from '~/lib/runtime/action-runner';
 import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import type { FileHistory } from '~/types/actions';
 import { DiffView } from './DiffView';
@@ -16,7 +16,7 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
-import { workbenchStore, type ArtifactState, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
@@ -29,14 +29,14 @@ import { Tooltip } from '../chat/Tooltip';
 import { RuntimeErrorListener } from '~/components/common/RuntimeErrorListener';
 import SmartContractView from '~/components/workbench/smartContracts/SmartContractView';
 import { lastChatIdx, lastChatSummary, useChatHistory } from '~/lib/persistence';
-import { currentParsingMessageState } from '~/lib/stores/parse';
-import { chatStore } from '~/lib/stores/chat';
 import { detectStartCommand } from '~/utils/projectCommands';
-import { LazySandbox } from '~/lib/daytona/lazySandbox';
-import { getSandbox } from '~/lib/daytona';
 import { streamingState } from '~/lib/stores/streaming';
 import type { AimpactShell } from '~/lib/aimpactshell/aimpactShell';
+import Popup from '../common/Popup';
+import { Checkbox } from '../ui';
+import ButtonWithTimer from '../ui/ButtonWithTimer';
 import ConvexView from './convex/ConvexView';
+import { someActionsFinishedTime } from '~/lib/stores/chat';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -310,6 +310,10 @@ const FileModifiedDropdown = memo(
   },
 );
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export const Workbench = memo(
   ({ chatStarted, isStreaming, actionRunner, metadata, updateChatMestaData, postMessage }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
@@ -321,41 +325,94 @@ export const Workbench = memo(
     const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
-    const chatSummary = useStore(lastChatSummary);
-    const lastSnapshotRef = useRef<number | null>(null);
-
-    const snapshotTakeCooldown = 5000;
-
-    function sleep(ms: number) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
-    }
+    const waitingForActionsRef = useRef(false);
+    const messagesMetadataState = useStore(workbenchStore.messagesMetadata);
+    const artifactsState = useStore(workbenchStore.artifacts);
 
     useEffect(() => {
-      // TODO: I should skip file saving on importing project. And maybe I just really should save only after finishing ai response and on user changes?
+      if (waitingForActionsRef.current) return;
 
-      const removeSubscribe = workbenchStore.files.listen((files) => {
-        const { initialMessagesIds } = chatStore.get();
-        const currentParsingMessage = currentParsingMessageState.get();
-        const chatIdx = lastChatIdx.get();
-        console.log('chat idx in workbench', chatIdx);
-        if (!chatIdx) return;
-        // if (streamingState.get()) return;
-        console.log('parsing message', currentParsingMessage, initialMessagesIds.includes(currentParsingMessage || ''));
+      const waitForActions = async () => {
+        const maxAttempts = 240; // it's 240 seconds timeout
+        const cooldown = 1000;
+        let attempt = 0;
+        while (attempt < maxAttempts) {
+          await sleep(cooldown);
+          const artifacts = workbenchStore.artifacts.get();
 
-        const snapshotHaveChanges = Object.keys(files).length > 0;
-        if ((!currentParsingMessage || !initialMessagesIds.includes(currentParsingMessage)) && snapshotHaveChanges) {
-          if (!lastSnapshotRef.current || Date.now() - lastSnapshotRef.current > snapshotTakeCooldown) {
-            takeSnapshot(chatIdx, files, undefined, chatSummary);
-            console.log('Snapshot was taken on file change');
-            lastSnapshotRef.current = Date.now();
+          // get only assistant or system messages metadata
+          const messagesMetadata = Object.values(workbenchStore.messagesMetadata.get()).filter(
+            (m) => m.role !== 'user',
+          );
+
+          const allActionsFinished = messagesMetadata.every((m) => m.meta?.artifactActionsFinished);
+          const someClosedArtifact = Object.values(artifacts).some((a) => a.closed);
+
+          // if all actions already finished and commited OR there is no closed artifact.
+          // we rerun this func every artifact state change, so we can just skip on 0 valid artifacts and just optimize memory
+          if (allActionsFinished || !someClosedArtifact) {
+            return;
           }
-        }
-      });
 
-      return () => {
-        removeSubscribe();
+          const messageToActions = Object.fromEntries(
+            Object.entries(artifacts).map(([key, artifact]) => [
+              key,
+              Object.values(artifact?.runner?.actions.get() ?? []),
+            ]),
+          );
+          let havePendingAction: null | string = null;
+          for (const [id, actions] of Object.entries(messageToActions)) {
+            if (actions.some((a) => a.status === 'pending' || a.status === 'running')) {
+              havePendingAction = id;
+              continue;
+            }
+          }
+          if (havePendingAction) {
+            attempt += 1;
+            continue;
+          }
+
+          const chatIdx = lastChatIdx.get();
+          if (!chatIdx) return;
+          const chatSummary = lastChatSummary.get();
+          const files = workbenchStore.files.get();
+
+          takeSnapshot(chatIdx, files, undefined, chatSummary)
+            .then(() => {
+              someActionsFinishedTime.set(Date.now());
+              console.log('Snapshot was taken on wait for actions');
+            })
+            .catch((e) => {
+              console.error('error in take snapshot!!!');
+              console.error(e);
+            });
+
+          return { artifacts, messageToActions };
+        }
+
+        return null;
       };
-    }, [chatSummary]);
+
+      // why just don't use [artifact] in deps and get message by artifact id? this should be better
+      waitingForActionsRef.current = true;
+      waitForActions()
+        .then((result) => {
+          if (!result) {
+            return;
+          }
+
+          // this code just got harder. so this loop need for checking already completed
+          // actions only AFTER already saved snapshot. this is necessary for correct import
+          const { artifacts, messageToActions } = result;
+          for (const [id, actions] of Object.entries(messageToActions)) {
+            if (!actions.length) continue;
+            workbenchStore.artifacts.setKey(id, { ...artifacts[id], allActionsFinished: true });
+          }
+        })
+        .finally(() => {
+          waitingForActionsRef.current = false;
+        });
+    }, [messagesMetadataState, artifactsState]);
 
     const hasPreview = useStore(computed(workbenchStore.previews, (previews) => previews.length > 0));
     const showWorkbench = useStore(workbenchStore.showWorkbench);
@@ -530,7 +587,13 @@ export const Workbench = memo(
     const onFileSave = useCallback(() => {
       workbenchStore
         .saveCurrentDocument()
-        .then(() => {})
+        .then(() => {
+          const chatIdx = lastChatIdx.get();
+          if (!chatIdx) return;
+          takeSnapshot(chatIdx, workbenchStore.files.get(), undefined, lastChatSummary.get()).then(() => {
+            console.log('Snapshot was taken on file save'); // this log is usefull
+          });
+        })
         .catch(() => {
           toast.error('Failed to update file content');
         });
@@ -542,7 +605,16 @@ export const Workbench = memo(
 
     const handleSelectFile = useCallback((filePath: string) => {
       workbenchStore.setSelectedFile(filePath);
-      workbenchStore.setCurrentView('diff');
+      workbenchStore.currentView.set('diff');
+    }, []);
+
+    const [showWarningPopup, setShowWarningPopup] = useState(false);
+
+    useEffect(() => {
+      const doNotShowPopup = localStorage.getItem('doNotShowWarningPopup');
+      if (!doNotShowPopup || doNotShowPopup === 'false') {
+        setShowWarningPopup(true);
+      }
     }, []);
 
     return (
@@ -698,12 +770,76 @@ export const Workbench = memo(
                           isTabOpen={selectedView === 'diff'}
                         />
                       </View>
+
+                      <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
+                        <>
+                          {selectedView === 'contracts' && (
+                            <Popup
+                              isShow={showWarningPopup}
+                              closeTopButton={false}
+                              childrenClasses="sm:py-4"
+                              handleToggle={() => {}}
+                            >
+                              <div className="mb-3">
+                                <h3 className="lg:text-2xl text-lg font-semibold">Before you test your the app</h3>
+                              </div>
+                              <p className="text-left mb-3 lg:text-base text-sm">
+                                This is a page where appears generated contracts by AI (ussualy only one). <br />
+                                Default workflow with contracts: <br />
+                                <div className="pl-4">
+                                  1. Ask AI to create a new contract <br />
+                                  2. Build newly created contract (takes from 5 minutes) <br />
+                                  3. Deploy builded contract <br />
+                                </div>
+                                <br />
+                                If you want to <span className="font-semibold">test your app</span> with contracts —
+                                there is some a few pitfalls. Check this guide to make it more clear: <br />
+                                We will need to use Phantom for testing. It will not be possible to test contracts in
+                                other wallets. <br />
+                                <div className="pl-4">
+                                  • It is recommended to use a new wallet or a wallet without money in the mainnet. Just
+                                  to be on the side of caution <br />• Go to the faucet, connect your GitHub account,
+                                  and receive test SOL to your address (any amount will do) <br />• Open{' '}
+                                  <span className="font-semibold">Phantom</span> → in the upper left corner, select{' '}
+                                  <span className="font-semibold">Accounts</span> → at the bottom left, select{' '}
+                                  <span className="font-semibold">Settings</span> → scroll down →{' '}
+                                  <span className="font-semibold">Developer settings</span> →{' '}
+                                  <span className="font-semibold">Testnet mode</span> and make sure Solana Devnet is
+                                  selected <br />• Now you can test contracts. During transactions in preview, Phantom
+                                  may warn you about a danger and this is normal. The application is running locally, so
+                                  the wallet considers this to be atypical behavior <br />
+                                </div>
+                              </p>
+
+                              <div className="space-x-1 mb-3">
+                                <Checkbox
+                                  onCheckedChange={(checked) => {
+                                    const key = 'doNotShowWarningPopup';
+                                    checked ? localStorage.setItem(key, 'true') : localStorage.removeItem(key);
+                                  }}
+                                  defaultChecked
+                                />
+                                <label>Do not show again</label>
+                              </div>
+
+                              <ButtonWithTimer
+                                onClick={() => {
+                                  setShowWarningPopup((val) => !val);
+                                }}
+                                className="max-w-36 w-full"
+                                startTimer={selectedView === 'contracts'}
+                                timeToWait={4}
+                                variant="secondary"
+                              >
+                                Close
+                              </ButtonWithTimer>
+                            </Popup>
+                          )}
+                          <SmartContractView postMessage={postMessage} />
+                        </>
+                      </View>
                     </>
                   )}
-
-                  <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
-                    <SmartContractView postMessage={postMessage} />
-                  </View>
                   <View initial={{ x: '100%' }} animate={animationForView('convex', selectedView)}>
                     <ConvexView isConvexProject={isConvexProject} />
                   </View>

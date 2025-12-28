@@ -2,7 +2,7 @@
  * @ts-nocheck
  * Preventing TS checks with files presented in the video for a better presentation.
  */
-import type { JSONValue, Message, UIMessage } from 'ai';
+import type { JSONValue, UIMessage } from 'ai';
 import React, { type RefCallback, useEffect, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { IconButton } from '~/components/ui/IconButton';
@@ -39,6 +39,8 @@ import Footer from '../footer/Footer';
 import { useParams } from '@remix-run/react';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import { HeaderActionButtons } from '../header/HeaderActionButtons.client';
+import type { MessageDataEvent } from '~/lib/message';
+import { twMerge } from 'tailwind-merge';
 
 const TEXTAREA_MIN_HEIGHT = 95;
 
@@ -60,7 +62,7 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
-  importChat?: (description: string, messages: Message[]) => Promise<void>;
+  importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
   exportChat?: () => void;
   uploadedFiles?: File[];
   setUploadedFiles?: (files: File[]) => void;
@@ -72,7 +74,7 @@ interface BaseChatProps {
   clearSupabaseAlert?: () => void;
   deployAlert?: DeployAlert;
   clearDeployAlert?: () => void;
-  data?: JSONValue[] | undefined;
+  data?: MessageDataEvent[] | undefined;
   actionRunner?: ActionRunner;
   showWorkbench?: boolean;
 }
@@ -85,7 +87,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       chatStarted = false,
       isStreaming = false,
       onStreamingChange,
-      providerList,
       input = '',
       enhancingPrompt,
       handleInputChange,
@@ -116,7 +117,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const [progressAnnotations, setProgressAnnotations] = useState<MessageDataEvent[]>([]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const params = useParams();
@@ -125,6 +126,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const { isAuthorized } = useAuth();
     const userInfoData = useStore(userInfo);
 
+    const [isDragging, setIsDragging] = useState(false);
     const isDisabled = !isAuthorized || !userInfoData?.messagesLeft;
 
     useEffect(() => {
@@ -141,9 +143,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     useEffect(() => {
       if (data) {
-        const progressList = data.filter(
-          (x) => typeof x === 'object' && (x as any).type === 'progress',
-        ) as ProgressAnnotation[];
+        const progressList = data.filter((x) => x.type === 'data-progress');
         setProgressAnnotations(progressList);
       }
     }, [data]);
@@ -292,7 +292,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             {!chatStarted && (
               <div id="intro" className="mt-[5vh] 2xl:mt-[8vh] max-w-chat mx-auto text-center px-4 lg:px-0">
                 <div className="flex justify-center mb-6">
-                  <img src="/aimpact-logo-beta.png" alt="AImpact Logo" className="h-[72px] w-auto" />
+                  <img src="/aimpact-logo-beta-xmas.png" alt="AImpact Logo" className="h-[72px] w-auto" />
                 </div>
                 <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
                   Your AI co-founder
@@ -415,84 +415,79 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         : []),
                     )}
                   >
-                    <textarea
-                      ref={textareaRef}
-                      disabled={isDisabled}
-                      className={classNames(
-                        'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-                        'transition-all duration-150',
-                        'hover:border-bolt-elements-focus',
+                    <div className="relative w-full">
+                      <textarea
+                        ref={textareaRef}
+                        disabled={isDisabled}
+                        className={twMerge(
+                          'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
+                          isDragging && 'blur-sm',
+                        )}
+                        placeholder="How can AImpact help you today?"
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+
+                          const files = Array.from(e.dataTransfer.files);
+                          files.forEach((file) => {
+                            if (file.type.startsWith('image/')) {
+                              const reader = new FileReader();
+                              reader.onload = (e) => {
+                                const base64Image = e.target?.result as string;
+                                setUploadedFiles?.([...uploadedFiles, file]);
+                                setImageDataList?.([...imageDataList, base64Image]);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          });
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            if (event.shiftKey || isStreaming) {
+                              return;
+                            }
+                            event.preventDefault();
+
+                            // ignore if using input method engine
+                            if (event.nativeEvent.isComposing) {
+                              return;
+                            }
+                            handleSendMessage?.(event);
+                          }
+                        }}
+                        value={input}
+                        onChange={handleInputChange}
+                        onPaste={handlePaste}
+                        style={{
+                          minHeight: TEXTAREA_MIN_HEIGHT,
+                          maxHeight: TEXTAREA_MAX_HEIGHT,
+                        }}
+                        maxLength={16000}
+                        translate="no"
+                      />
+
+                      {isDragging && (
+                        <div className="absolute inset-0 flex gap-2 items-center justify-center bg-black/20 rounded-lg border-1 border-accent-500 text-accent-500 gap-2 pointer-events-none text-center">
+                          <div className="i-ph:tray-arrow-down text-xl"></div>
+                          Drop your files here
+                        </div>
                       )}
-                      onDragEnter={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '2px solid #1488fc';
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '2px solid #1488fc';
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
+                    </div>
 
-                        const files = Array.from(e.dataTransfer.files);
-                        files.forEach((file) => {
-                          if (file.type.startsWith('image/')) {
-                            const reader = new FileReader();
-
-                            reader.onload = (e) => {
-                              const base64Image = e.target?.result as string;
-                              setUploadedFiles?.([...uploadedFiles, file]);
-                              setImageDataList?.([...imageDataList, base64Image]);
-                            };
-                            reader.readAsDataURL(file);
-                          }
-                        });
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          if (event.shiftKey) {
-                            return;
-                          }
-
-                          event.preventDefault();
-
-                          if (isStreaming) {
-                            handleStop?.();
-                            return;
-                          }
-
-                          // ignore if using input method engine
-                          if (event.nativeEvent.isComposing) {
-                            return;
-                          }
-
-                          handleSendMessage?.(event);
-                        }
-                      }}
-                      value={input}
-                      onChange={(event) => {
-                        handleInputChange?.(event);
-                      }}
-                      onPaste={handlePaste}
-                      style={{
-                        minHeight: TEXTAREA_MIN_HEIGHT,
-                        maxHeight: TEXTAREA_MAX_HEIGHT,
-                      }}
-                      maxLength={16000}
-                      placeholder="How can AImpact help you today?"
-                      translate="no"
-                    />
                     <ClientOnly>
                       {() => (
                         <SendButton
-                          show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
+                          show={(input.length > 0 || isStreaming || uploadedFiles.length > 0) && !isDragging}
                           isStreaming={isStreaming}
-                          disabled={!providerList || providerList.length === 0 || isDisabled}
+                          disabled={isDisabled}
                           onClick={(event) => {
                             if (isStreaming) {
                               handleStop?.();

@@ -33,10 +33,7 @@ import { DataTab } from '~/components/@settings/tabs/data/DataTab';
 import DebugTab from '~/components/@settings/tabs/debug/DebugTab';
 import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
 import UpdateTab from '~/components/@settings/tabs/update/UpdateTab';
-import ConnectionsTab from '~/components/@settings/tabs/connections/ConnectionsTab';
-import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
 import ServiceStatusTab from '~/components/@settings/tabs/providers/status/ServiceStatusTab';
-import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
 import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
 
 interface ControlPanelProps {
@@ -72,10 +69,7 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
   notifications: 'View and manage your notifications',
   features: 'Explore new and upcoming features',
   data: 'Manage your data and storage',
-  'cloud-providers': 'Configure cloud AI providers and models',
-  'local-providers': 'Configure local AI providers and models',
   'service-status': 'Monitor cloud LLM service status',
-  connection: 'Check connection status and settings',
   debug: 'Debug tools and system information',
   'event-logs': 'View system events and logs',
   update: 'Check for updates and release notes',
@@ -84,7 +78,7 @@ const TAB_DESCRIPTIONS: Record<TabType, string> = {
 };
 
 // Beta status for experimental features
-const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update', 'local-providers']);
+const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update']);
 
 const BetaLabel = () => (
   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
@@ -319,12 +313,6 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return <FeaturesTab />;
       case 'data':
         return <DataTab />;
-      case 'cloud-providers':
-        return <CloudProvidersTab />;
-      case 'local-providers':
-        return <LocalProvidersTab />;
-      case 'connection':
-        return <ConnectionsTab />;
       case 'debug':
         return <DebugTab />;
       case 'event-logs':
@@ -348,8 +336,6 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return hasNewFeatures;
       case 'notifications':
         return hasUnreadNotifications;
-      case 'connection':
-        return hasConnectionIssues;
       case 'debug':
         return hasActiveWarnings;
       default:
@@ -365,12 +351,6 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
       case 'notifications':
         return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
-      case 'connection':
-        return currentIssue === 'disconnected'
-          ? 'Connection lost'
-          : currentIssue === 'high-latency'
-            ? 'High latency detected'
-            : 'Connection issues detected';
       case 'debug': {
         const warnings = activeIssues.filter((i) => i.type === 'warning').length;
         const errors = activeIssues.filter((i) => i.type === 'error').length;
@@ -397,9 +377,6 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
         break;
       case 'notifications':
         markAllAsRead();
-        break;
-      case 'connection':
-        acknowledgeIssue();
         break;
       case 'debug':
         acknowledgeAllIssues();

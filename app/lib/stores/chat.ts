@@ -1,4 +1,4 @@
-import { map } from 'nanostores';
+import { atom, map } from 'nanostores';
 
 export const chatStore = map({
   started: false,
@@ -6,3 +6,5 @@ export const chatStore = map({
   showChat: true,
   initialMessagesIds: [] as string[],
 });
+
+export const someActionsFinishedTime = atom<null | number>(null);
