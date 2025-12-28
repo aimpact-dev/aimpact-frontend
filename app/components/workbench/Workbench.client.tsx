@@ -36,7 +36,7 @@ import Popup from '../common/Popup';
 import { Checkbox } from '../ui';
 import ButtonWithTimer from '../ui/ButtonWithTimer';
 import ConvexView from './convex/ConvexView';
-import { someActionsFinishedTime } from '~/lib/stores/chat';
+import { chatStore, someActionsFinishedTime } from '~/lib/stores/chat';
 
 interface PackageJson {
   content: Record<string, any>;
@@ -325,6 +325,10 @@ export const Workbench = memo(
     const previewStartInProgress = useRef(false);
 
     const { takeSnapshot } = useChatHistory();
+
+    const chatSummary = useStore(lastChatSummary);
+    const lastSnapshotRef = useRef<number | null>(null);
+    const chatState = useStore(chatStore);
     const waitingForActionsRef = useRef(false);
     const messagesMetadataState = useStore(workbenchStore.messagesMetadata);
     const artifactsState = useStore(workbenchStore.artifacts);
