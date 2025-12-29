@@ -10,6 +10,7 @@ import { classNames } from '~/utils/classNames';
 import waterStyles from '../ui/WaterButton.module.scss';
 import { Tooltip } from './Tooltip';
 import Cookies from 'js-cookie';
+import Popup from '../common/Popup';
 
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);
 
@@ -167,82 +168,65 @@ export default function DepositButton({ discountPercent, isMobile = false }: Dep
         </Button>
       </Tooltip>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex relative items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75" onClick={handleToggle}></div>
-            <div className="inline-block overflow-hidden text-left align-bottom transition-all transform border-2 border-bolt-elements-borderColor rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <button
-                onClick={handleToggle}
-                className="flex absolute right-0 items-center justify-center w-8 h-8 rounded-full bg-transparent hover:bg-gray-500/10 dark:hover:bg-gray-500/20 group transition-all duration-200"
-              >
-                <div className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-gray-500 transition-colors" />
-              </button>
+      <Popup isShow={isOpen} handleToggle={handleToggle} title="Purchase Messages">
+        <div className="text-center">
+          <p className="text-xl mb-6">
+            Get{' '}
+            {hasDiscount ? (
+              <>
+                <span className="font-semibold line-through text-gray-400">{baseMessageCount}</span>
+                <span className="mx-1" />
+                <span className="font-semibold text-white">{discountedMessageCount}</span>
+                {multiplier && <span className="text-green-400 font-semibold ml-1">(x{multiplier})</span>}
+              </>
+            ) : (
+              <span className="font-semibold">{baseMessageCount}</span>
+            )}{' '}
+            messages for <span className="font-semibold">{MESSAGE_PRICE_IN_SOL * baseMessageCount} SOL</span>
+          </p>
 
-              <div className="px-4 py-5 sm:p-6 bg-bolt-elements-background bg-bolt-elements-background-depth-3">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold mb-4">Purchase Messages</h3>
-                  <p className="text-xl mb-6">
-                    Get{' '}
-                    {hasDiscount ? (
-                      <>
-                        <span className="font-semibold line-through text-gray-400">{baseMessageCount}</span>
-                        <span className="mx-1" />
-                        <span className="font-semibold text-white">{discountedMessageCount}</span>
-                        {multiplier && <span className="text-green-400 font-semibold ml-1">(x{multiplier})</span>}
-                      </>
-                    ) : (
-                      <span className="font-semibold">{baseMessageCount}</span>
-                    )}{' '}
-                    messages for <span className="font-semibold">{MESSAGE_PRICE_IN_SOL * baseMessageCount} SOL</span>
-                  </p>
-
-                  <div className="flex flex-col gap-2">
-                    <div className="flex gap-2 items-center justify-center mb-2">
-                      <div className="border border-bolt-elements-borderColor rounded-md flex p-2 bg-white flex-1">
-                        <input
-                          className="border-none outline-none flex-1 text-base text-gray-900 placeholder-gray-500"
-                          required
-                          onInput={handlePromocodeInput}
-                          value={promocode}
-                          placeholder="Enter promocode"
-                        />
-                      </div>
-                      <Button
-                        variant="default"
-                        disabled={promocodeApplied || !promocode}
-                        onClick={handleApplyPromocode}
-                        className="px-4 py-2 text-sm"
-                      >
-                        {promocodeApplied ? 'Applied' : 'Apply'}
-                      </Button>
-                    </div>
-
-                    <button
-                      onClick={handlePurchase}
-                      disabled={isSubmitting || !publicKey}
-                      className={classNames(
-                        'relative overflow-hidden w-full px-6 py-3 text-lg font-medium text-white rounded-md',
-                        'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500',
-                        'disabled:opacity-50 disabled:cursor-not-allowed',
-                        'transition-all duration-300',
-                        waterStyles.waterButton,
-                        waterStyles.purple,
-                      )}
-                    >
-                      <div className={waterStyles.effectLayer}>
-                        <div className={waterStyles.waterDroplets}></div>
-                        <div className={waterStyles.waterSurface}></div>
-                      </div>
-                      <div className={waterStyles.buttonContent}>{isSubmitting ? 'Processing...' : 'Purchase Now'}</div>
-                    </button>
-                  </div>
-                </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2 items-center justify-center mb-2">
+              <div className="border border-bolt-elements-borderColor rounded-md flex p-2 bg-white flex-1">
+                <input
+                  className="border-none outline-none flex-1 text-base text-gray-900 placeholder-gray-500"
+                  required
+                  onInput={handlePromocodeInput}
+                  value={promocode}
+                  placeholder="Enter promocode"
+                />
               </div>
+              <Button
+                variant="default"
+                disabled={promocodeApplied || !promocode}
+                onClick={handleApplyPromocode}
+                className="px-4 py-2 text-sm"
+              >
+                {promocodeApplied ? 'Applied' : 'Apply'}
+              </Button>
             </div>
+
+            <button
+              onClick={handlePurchase}
+              disabled={isSubmitting || !publicKey}
+              className={classNames(
+                'relative overflow-hidden w-full px-6 py-3 text-lg font-medium text-white rounded-md',
+                'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+                'transition-all duration-300',
+                waterStyles.waterButton,
+                waterStyles.purple,
+              )}
+            >
+              <div className={waterStyles.effectLayer}>
+                <div className={waterStyles.waterDroplets}></div>
+                <div className={waterStyles.waterSurface}></div>
+              </div>
+              <div className={waterStyles.buttonContent}>{isSubmitting ? 'Processing...' : 'Purchase Now'}</div>
+            </button>
           </div>
         </div>
-      )}
+      </Popup>
     </div>
   );
 }

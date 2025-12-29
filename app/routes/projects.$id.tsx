@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from '@remix-run/react';
+import { useLocation, useParams } from '@remix-run/react';
 import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -46,6 +46,9 @@ export default function Project() {
   const { publicKey, connected } = useWallet();
   const projectQuery = useProjectQuery(params.id);
   const { isMobile } = useViewport();
+
+  const location = useLocation();
+  const from = location.state?.from as string | undefined;
 
   const isOwner = useMemo(() => {
     return !!(
@@ -124,9 +127,10 @@ export default function Project() {
               />
             )}
             <div className="flex flex-col md:flex-row justify-between gap-5">
-              <BackButton url="/projects" size="3xl" className="mb-unset">
+              <BackButton url={from ?? '/projects'} size="3xl" className="mb-unset">
                 {isMobile ? 'Back to projects' : project.name}
               </BackButton>
+
               {isMobile && <p className="text-2xl md:text-3xl font-bold">{project.name}</p>}
               {isOwner && (
                 <div className="flex gap-2 items-center self-end md:self-unset">

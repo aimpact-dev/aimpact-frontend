@@ -40,63 +40,64 @@ export type UpdateProjectInfoPayload = {
   featured?: string;
 };
 
-export type OwnershipFilter = 'all' | 'owned';
-export type DeploymentPlatform = 'S3' | 'Akash' | 'ICP';
-export type StatusFilter = 'deployed' | 'hackathonWinner' | 'featured';
-export type ProjectFilters = OwnershipFilter | DeploymentPlatform | StatusFilter;
-
-const deploymentPlatforms: DeploymentPlatform[] = ['S3', 'Akash', 'ICP'];
+export type ProjectFilters = {
+  owned?: true;
+  featured?: true;
+  deployedFilter?: 'all' | 'Akash' | 'S3' | 'ICP';
+  hackathonWinner?: true;
+};
 
 export const useProjectsQuery = (
   page: number,
   pageSize: number,
-  filters: ProjectFilters[],
+  filters: ProjectFilters,
   sortBy: 'createdAt' | 'updatedAt' | 'name',
-  sortDirection: 'ASC' | 'DESC',
+  sortOrder: 'ASC' | 'DESC',
   jwtToken?: string,
 ) => {
-  const ownership: OwnershipFilter = filters.includes('owned') ? 'owned' : 'all';
-
-  const provider = deploymentPlatforms.find((p) => filters.includes(p));
-
-  const statusFilters: Partial<Record<StatusFilter, boolean>> = {};
-
-  if (filters.includes('hackathonWinner')) {
-    statusFilters.hackathonWinner = true;
-  }
-  if (filters.includes('featured')) {
-    statusFilters.featured = true;
-  }
-  if (filters.includes('deployed')) {
-    statusFilters.deployed = true;
-  }
-
   return useQuery<ProjectsResponse>({
-    queryKey: ['projects', { page, pageSize, ownership, statusFilters, provider, sortBy, sortDirection }],
+    queryKey: [
+      'projects',
+      {
+        page,
+        pageSize,
+        filters,
+        sortBy,
+        sortOrder,
+      },
+    ],
     queryFn: async () => {
       const requestHeaders: Record<string, string> = {};
+
       if (jwtToken) {
         requestHeaders['Authorization'] = `Bearer ${jwtToken}`;
       }
+
+      const searchParams: Record<string, string | number | boolean> = {
+        page,
+        pageSize,
+        ownership: filters.owned ? 'owned' : 'all',
+        deployed: !!filters.deployedFilter,
+        featured: !!filters.featured,
+        hackathonWinner: !!filters.hackathonWinner,
+        sortBy,
+        sortOrder,
+      };
+
+      if (filters.deployedFilter && filters.deployedFilter !== 'all') {
+        searchParams.provider = filters.deployedFilter;
+      }
+
       const res = await ky.get('projects', {
-        searchParams: {
-          page,
-          pageSize,
-          ownership,
-          ...(provider ? { provider } : {}),
-          ...statusFilters,
-          sortBy,
-          sortOrder: sortDirection,
-        },
+        searchParams,
         headers: requestHeaders,
       });
-      const data = await res.json<ProjectsResponse>();
 
       if (!res.ok) {
         throw new Error('Not found projects');
       }
 
-      return data;
+      return res.json<ProjectsResponse>();
     },
   });
 };
