@@ -19,8 +19,12 @@ ENVIRONMENT = "production"
 DAYTONA_PROXY_URL = "https://proxy.aimpact.dev"
 PUBLIC_WALLETCONNECT_PROJECT_ID = "d442f1482fd79fec459b44d874b6e39b"
 
+# ------------------------------------------------------------
+
 [env.preview]
 name = "aimpact-preview"
+kv_namespaces = [{ binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }]
+
 [env.preview.vars]
 ENVIRONMENT = "preview"
 VITE_LOG_LEVEL = "debug"
