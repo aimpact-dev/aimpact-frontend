@@ -629,10 +629,10 @@ export const Preview = memo(({ customText }: { customText?: string }) => {
 
   const onFrameLoad = async () => {
     setIsPreviewLoading(false);
-    await sleep(2000);
-    if (!reloadedAfterLoad) {
-      reloadPreview();
-    }
+    // await sleep(2000);
+    // if (!reloadedAfterLoad) {
+    //   reloadPreview();
+    // }
   };
 
   return (

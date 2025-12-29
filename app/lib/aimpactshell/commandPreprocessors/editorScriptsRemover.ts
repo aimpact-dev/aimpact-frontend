@@ -1,9 +1,12 @@
-﻿import  { type CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
+﻿import { type CommandPreprocessor } from '~/lib/aimpactshell/commandPreprocessors/commandPreprocessor';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 import { path } from '~/utils/path';
 import {
-  EVENTS_PLUGIN_FILE_NAME, EVENTS_PLUGIN_NAME,
-  EVENTS_SCRIPT_FILE_NAME, VITE_CONFIG_FILE
+  EVENTS_PLUGIN_FILE_NAME,
+  EVENTS_PLUGIN_NAME,
+  EVENTS_SCRIPT_FILE_NAME,
+  NEXT_CONFIG_FILE,
+  VITE_CONFIG_FILE,
 } from '~/lib/aimpactshell/commandPreprocessors/constants';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
@@ -11,12 +14,6 @@ import generate from '@babel/generator';
 import * as t from '@babel/types';
 import { BUILD_COMMANDS } from './commandsLists';
 
-
-
-/**
- * This class checks for build commands and deletes scripts that are only needed for editor functions (like previews).
- * It also removes injection of those scripts from user's production code (like Vite config).
- */
 export class EditorScriptsRemover implements CommandPreprocessor {
   private aimpactFs: Promise<AimpactFs>;
 
@@ -25,103 +22,139 @@ export class EditorScriptsRemover implements CommandPreprocessor {
   }
 
   async process(command: string): Promise<string> {
-    if(!BUILD_COMMANDS.includes(command.trim())) return Promise.resolve(command);
+    if (!BUILD_COMMANDS.includes(command.trim())) return Promise.resolve(command);
 
     const fs = await this.aimpactFs;
     const workdir = await fs.workdir();
 
-    //Removing script and plugin files
     await this.removeFile(path.join(workdir, EVENTS_SCRIPT_FILE_NAME));
     await this.removeFile(path.join(workdir, EVENTS_PLUGIN_FILE_NAME));
 
-    const viteConfigFile = await fs.readFile(path.join(workdir, VITE_CONFIG_FILE), 'utf-8');
-    let modifiedViteConfig = viteConfigFile;
-    //Try to remove using Babel first, if it fails, try a simple string replacement
-    try{
-      modifiedViteConfig = this.removePluginFromViteConfig(viteConfigFile);
+    const vitePath = path.join(workdir, VITE_CONFIG_FILE);
+    if (await fs.fileExists(vitePath)) {
+      await this.cleanConfig(fs, vitePath, (c) => this.removePluginFromViteConfig(c));
     }
-    catch (e){
-      console.warn('Could not remove editor plugin from vite config, trying fallback method..', e);
-      try{
-        modifiedViteConfig = this.removePluginFromViteConfigFallback(viteConfigFile);
-      }
-      catch (e){
-        console.warn('Could not remove editor plugin from vite config using fallback method..');
-      }
+
+    const nextPath = path.join(workdir, NEXT_CONFIG_FILE);
+    if (await fs.fileExists(nextPath)) {
+      await this.cleanConfig(fs, nextPath, (c) => this.removePluginFromNextConfig(c));
     }
-    await fs.writeFile(VITE_CONFIG_FILE, modifiedViteConfig);
 
     return Promise.resolve(command);
   }
 
-  private removePluginFromViteConfigFallback(viteConfigContent: string): string{
-    const importRegex = new RegExp(
-      `import\\s+(?:\\{\\s*${EVENTS_PLUGIN_NAME}\\s*\\}|${EVENTS_PLUGIN_NAME})\\s+from\\s+['"]\\./${EVENTS_PLUGIN_FILE_NAME}(?:\\.js)?['"];?\\s*`,
-      'g'
-    );
-    const pluginUsage = `${EVENTS_PLUGIN_NAME}()`;
-    viteConfigContent = viteConfigContent.replace(pluginUsage, '');
-    viteConfigContent = viteConfigContent.replace(importRegex, '');
-    return viteConfigContent;
+  private async cleanConfig(fs: AimpactFs, filePath: string, cleaner: (content: string) => string) {
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const modified = cleaner(content);
+      await fs.writeFile(path.basename(filePath), modified);
+    } catch (e) {
+      console.warn(`Failed to clean config at ${filePath}`, e);
+    }
   }
 
-  private removePluginFromViteConfig(viteConfigContent: string): string{
-    const ast = parse(viteConfigContent, {
+  private removePluginFromViteConfig(content: string): string {
+    const ast = this.getAst(content);
+    traverse(ast, {
+      ImportDeclaration: (p) => this.removeImport(p),
+      CallExpression: (p) => {
+        if (
+          t.isIdentifier(p.node.callee, { name: 'defineConfig' }) &&
+          p.node.arguments.length > 0 &&
+          t.isObjectExpression(p.node.arguments[0])
+        ) {
+          const configObj = p.node.arguments[0] as t.ObjectExpression;
+          const pluginsProp = configObj.properties.find(
+            (prop) =>
+              t.isObjectProperty(prop) &&
+              t.isIdentifier(prop.key, { name: 'plugins' }) &&
+              t.isArrayExpression(prop.value),
+          ) as t.ObjectProperty | undefined;
+
+          if (pluginsProp && t.isArrayExpression(pluginsProp.value)) {
+            pluginsProp.value.elements = pluginsProp.value.elements.filter(
+              (el) => !(t.isCallExpression(el) && t.isIdentifier(el.callee, { name: EVENTS_PLUGIN_NAME })),
+            );
+          }
+        }
+      },
+    });
+    return generate(ast, { retainLines: true }).code;
+  }
+
+  private removePluginFromNextConfig(content: string): string {
+    const ast = parse(content, {
       sourceType: 'module',
       plugins: ['typescript'],
       strictMode: false,
     });
 
     traverse(ast, {
-      ImportDeclaration(path) {
-        // Remove plugin import
-        const hasPluginImport = path.node.specifiers.some(spec =>
-          (t.isImportDefaultSpecifier(spec) || t.isImportSpecifier(spec)) &&
-          spec.local.name === EVENTS_PLUGIN_NAME
-        );
-        if (hasPluginImport) {
-          path.remove();
+      VariableDeclaration: (p) => {
+        p.node.declarations.forEach((decl) => {
+          if (
+            t.isCallExpression(decl.init) &&
+            t.isIdentifier(decl.init.callee, { name: 'require' }) &&
+            t.isStringLiteral(decl.init.arguments[0]) &&
+            decl.init.arguments[0].value.includes(EVENTS_PLUGIN_FILE_NAME)
+          ) {
+            p.remove();
+          }
+        });
+      },
+
+      ExportDefaultDeclaration(p) {
+        while (
+          t.isCallExpression(p.node.declaration) &&
+          t.isIdentifier(p.node.declaration.callee, { name: EVENTS_PLUGIN_NAME })
+        ) {
+          p.node.declaration = p.node.declaration.arguments[0] as t.Expression;
         }
       },
-      // Remove plugin usage in defineConfig
-      CallExpression(path) {
-        if (
-          t.isIdentifier(path.node.callee, { name: 'defineConfig' }) &&
-          path.node.arguments.length > 0 &&
-          t.isObjectExpression(path.node.arguments[0])
-        ) {
-          const configObj = path.node.arguments[0] as t.ObjectExpression;
-          const pluginsProp = configObj.properties.find(
-            prop =>
-              t.isObjectProperty(prop) &&
-              t.isIdentifier(prop.key, { name: 'plugins' }) &&
-              t.isArrayExpression(prop.value)
-          ) as t.ObjectProperty | undefined;
 
-          if (pluginsProp && t.isArrayExpression(pluginsProp.value)) {
-            const pluginsArray = pluginsProp.value;
-            pluginsArray.elements = pluginsArray.elements.filter(
-              el =>
-                !(
-                  t.isCallExpression(el) &&
-                  t.isIdentifier(el.callee, { name: EVENTS_PLUGIN_NAME })
-                )
-            );
+      AssignmentExpression(p) {
+        if (
+          t.isMemberExpression(p.node.left) &&
+          t.isIdentifier(p.node.left.object, { name: 'module' }) &&
+          t.isIdentifier(p.node.left.property, { name: 'exports' })
+        ) {
+          while (
+            t.isCallExpression(p.node.right) &&
+            t.isIdentifier(p.node.right.callee, { name: EVENTS_PLUGIN_NAME })
+          ) {
+            p.node.right = p.node.right.arguments[0] as t.Expression;
           }
         }
-      }
+      },
     });
 
-    const output = generate(ast, { retainLines: true }).code;
-    return output;
+    return generate(ast, { retainLines: true }).code;
+  }
+
+  private removeImport(path: any) {
+    const hasPluginImport = path.node.specifiers.some(
+      (spec: any) =>
+        (t.isImportDefaultSpecifier(spec) || t.isImportSpecifier(spec)) && spec.local.name === EVENTS_PLUGIN_NAME,
+    );
+    if (hasPluginImport) path.remove();
+  }
+
+  private getAst(content: string) {
+    return parse(content, {
+      sourceType: 'module',
+      plugins: ['typescript'],
+      strictMode: false,
+    });
   }
 
   private async removeFile(filePath: string): Promise<void> {
     const fs = await this.aimpactFs;
     try {
-      await fs.rm(filePath);
+      if (await fs.fileExists(filePath)) {
+        await fs.rm(filePath);
+      }
     } catch (e) {
-      console.error(`Could not remove file ${filePath} while processing build command:`, e);
+      console.error(`Error removing ${filePath}:`, e);
     }
   }
 }
