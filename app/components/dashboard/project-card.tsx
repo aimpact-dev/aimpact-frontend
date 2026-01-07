@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useLocation, useNavigate } from '@remix-run/react';
 import { Tooltip } from '../chat/Tooltip';
 import { formatUrl } from '~/utils/urlUtils';
+import { Card } from '../ui';
 
 interface ProjectCardProps {
   project: Project;
@@ -36,7 +37,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
   };
 
   return (
-    <div className="group relative bg-black/25 hover:bg-black/35 border-1 border-white/15 hover:border-bolt-elements-borderColorActive hover:scale-[1.02] rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+    <Card variant="accented" withHoverEffect>
       <div
         className="flex flex-col justify-between h-full  p-6 relative z-10 cursor-pointer"
         onClick={() =>
@@ -95,7 +96,7 @@ const ProjectCard = ({ project }: ProjectCardProps) => {
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 

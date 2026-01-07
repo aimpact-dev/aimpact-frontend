@@ -4,10 +4,9 @@ import { classNames } from '~/utils/classNames';
 
 interface Props {
   className?: string;
-  children: React.ReactNode;
 }
 
-export function EventBanner({ className, children }: Props) {
+export function EventBanner({ className }: Props) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
