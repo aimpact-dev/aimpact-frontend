@@ -20,6 +20,7 @@ import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import TokenInfoNavButton from '../chat/TokenInfoButton';
 import MobileMenu from './MobileMenu';
 import { useViewport } from '~/lib/hooks';
+import MessagesPanel from './MessagesPanel';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -96,18 +97,7 @@ export function Header() {
             <div className="flex justify-center items-center gap-2.5">
               {connected && user && (
                 <>
-                  <div className="whitespace-nowrap text-sm font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
-                    {user.messagesLeft - user.pendingMessages} message
-                    {user.messagesLeft - user.pendingMessages === 1 ? '' : 's'} left
-                  </div>
-
-                  <ClientOnly>
-                    {() => {
-                      return connected && <DepositButton discountPercent={user.discountPercent || 0} />;
-                    }}
-                  </ClientOnly>
-
-                  <GetMessagesButton />
+                  <MessagesPanel />
                 </>
               )}
 

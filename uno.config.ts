@@ -286,6 +286,22 @@ export default defineConfig({
     boxShadow: {
       glow: '0 0 10px rgba(147, 51, 234, 0.5)',
     },
+
+    animation: {
+      glow: 'glowPulse 2.5s ease-in-out infinite',
+    },
+    keyframes: {
+      glowPulse: {
+        '0%, 100%': {
+          opacity: '0.5',
+          transform: 'scale(1)',
+        },
+        '50%': {
+          opacity: '1',
+          transform: 'scale(1.5)',
+        },
+      },
+    },
   },
   transformers: [transformerDirectives()],
   presets: [

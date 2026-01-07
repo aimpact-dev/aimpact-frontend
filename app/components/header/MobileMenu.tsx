@@ -13,6 +13,7 @@ import { useStore } from '@nanostores/react';
 import DepositButton from '../chat/DepositButton';
 import GetMessagesButton from '../chat/GetMessagesButton';
 import { useGlobalPopups } from '../chat/GlobalPopups';
+import MessagesPanel from './MessagesPanel';
 
 export default function MobileMenu() {
   const user = useStore(userInfo);
@@ -86,22 +87,7 @@ export default function MobileMenu() {
             <div className="flex justify-between gap-2 pb-5">
               {connected && user && (
                 <>
-                  <div className="whitespace-nowrap text-sm font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
-                    <b>{user.messagesLeft - user.pendingMessages}</b>{' '}
-                    <span className="text-xs">
-                      message{user.messagesLeft - user.pendingMessages === 1 ? '' : 's'} left
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <ClientOnly>
-                      {() => {
-                        return connected && <DepositButton discountPercent={user.discountPercent || 0} isMobile />;
-                      }}
-                    </ClientOnly>
-
-                    <GetMessagesButton isMobile />
-                  </div>
+                  <MessagesPanel />
                 </>
               )}
             </div>

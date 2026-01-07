@@ -20,7 +20,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     const hoverClasses = {
       default: '',
       accented:
-        'hover:bg-black/35 hover:border-bolt-elements-borderColorActive hover:scale-[1.02] hover:shadow-xl transition-all duration-300',
+        'hover:bg-black/35 hover:border-bolt-elements-borderColorActive hover:scale-[1.02] hover:shadow-xl transition-all duration-200',
     };
 
     return (
