@@ -205,12 +205,15 @@ const actionVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-function openArtifactInWorkbench(filePath: any) {
+function openArtifactInWorkbench(filePath: string) {
   if (workbenchStore.currentView.get() !== 'code') {
     workbenchStore.setCurrentView('code');
   }
+  if (!filePath.startsWith(WORK_DIR)) {
+    filePath = `${WORK_DIR}/${filePath}`;
+  }
 
-  workbenchStore.setSelectedFile(`${WORK_DIR}/${filePath}`);
+  workbenchStore.setSelectedFile(filePath);
 }
 
 const ActionList = memo(({ actions }: ActionListProps) => {

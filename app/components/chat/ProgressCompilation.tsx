@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { streamingState } from '~/lib/stores/streaming';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
@@ -15,9 +15,10 @@ interface Props {
 export default function ProgressCompilation({ data, className }: Props) {
   const isStreaming = useStore(streamingState);
 
-  const [progressList, setProgressList] = React.useState<MessageDataEvent[]>([]);
+  const [progressList, setProgressList] = useState<MessageDataEvent[]>([]);
   const [expanded, setExpanded] = useState(false);
-  React.useEffect(() => {
+
+  useEffect(() => {
     if (!data || data.length == 0) {
       setProgressList([]);
       return;
@@ -81,16 +82,18 @@ export default function ProgressCompilation({ data, className }: Props) {
             </AnimatePresence>
           </div>
 
-          <motion.button
-            initial={{ width: 0 }}
-            animate={{ width: 'auto' }}
-            exit={{ width: 0 }}
-            transition={{ duration: 0.15, ease: cubicEasingFn }}
-            className="p-1 rounded-lg bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-artifacts-backgroundHover"
-            onClick={() => setExpanded((v) => !v)}
-          >
-            <div className={expanded ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'}></div>
-          </motion.button>
+          {progressList.length >= 1 && (
+            <motion.button
+              initial={{ width: 0 }}
+              animate={{ width: 'auto' }}
+              exit={{ width: 0 }}
+              transition={{ duration: 0.15, ease: cubicEasingFn }}
+              className="p-1 rounded-lg bg-bolt-elements-item-backgroundAccent hover:bg-bolt-elements-artifacts-backgroundHover"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              <div className={expanded ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'}></div>
+            </motion.button>
+          )}
         </div>
       </div>
     </AnimatePresence>
