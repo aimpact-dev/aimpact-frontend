@@ -62,18 +62,18 @@ export default function QuestsList() {
                   href={`https://zealy.io/cw/aimpact/questboard/${import.meta.env.VITE_ZEALY_FREE_MESSAGES_CATEGORY_ID}/${quest.zealyQuestId}`}
                   target="_blank"
                 >
-                  <Card className="flex gap-3 items-center text-left px-4 py-3 bg-input hover:border-bolt-elements-borderColorActive transition-100 hover:scale-[0.99]">
+                  <Card className="flex flex-row-reverse md:flex-row gap-3 items-center justify-between text-left px-4 py-3 bg-input hover:border-bolt-elements-borderColorActive transition-100 hover:scale-[0.99]">
                     <div
                       className={twMerge(
-                        'text-accent-500/80 size-6',
-                        quest.isCompleted ? 'i-ph:check-circle-fill' : 'i-ph:check-circle-light',
+                        'text-accent-500/80 size-12 sm:size-6',
+                        quest.isCompleted ? 'i-ph:check-circle-fill' : 'i-ph:arrow-circle-right',
                       )}
                     ></div>
 
-                    <div className="flex flex-col gap-1 text-sm">
-                      <div className="flex gap-2 items-center ">
+                    <div className="flex flex-col flex-grow-1 gap-1 text-sm">
+                      <div className="flex flex-col-reverse md:flex-row gap-1 md:gap-2 md:items-center ">
                         <h1 className={twMerge(quest.isCompleted ? 'line-through' : '')}>{quest.name}</h1>
-                        <Badge variant="accent">
+                        <Badge variant="accent" className="self-start">
                           +{quest.messageReward} message{quest.messageReward > 1 ? 's' : ''}
                         </Badge>
                       </div>

@@ -97,7 +97,7 @@ export default function BuyMessagesTab() {
   };
 
   return (
-    <div className="flex gap-3 p-2">
+    <div className="flex flex-col md:flex-row gap-3 p-2">
       <Card
         key="buy-messages"
         variant="accented"
@@ -110,7 +110,7 @@ export default function BuyMessagesTab() {
             Instant access
           </Badge>
           <h3 className="text-xl font-semibold text-white mb-2">Purchase messages</h3>
-          <p className="text-gray-300 mb-4">
+          <p className="text-gray-300 text-sm md:text-base mb-4">
             Get{' '}
             {hasDiscount ? (
               <>
@@ -125,7 +125,7 @@ export default function BuyMessagesTab() {
             )}{' '}
             messages instantly to start using the app
           </p>
-          <p className="text-center text-4xl text-white m-10">
+          <p className="text-center text-3xl md:text-4xl text-white m-5 md:m-10">
             <b>{MESSAGE_PRICE_IN_SOL * BASE_MESSAGE_COUNT}</b>
             <span className="text-sm align-text-baseline">SOL</span>
           </p>
@@ -151,7 +151,7 @@ export default function BuyMessagesTab() {
             Unlimited
           </Badge>
           <h3 className="text-xl font-semibold text-white mb-2">Get subscription</h3>
-          <p className="text-gray-300 mb-4">Unlock access to unlimited use of AImpact</p>
+          <p className="text-gray-300 mb-4 text-sm md:text-base">Unlock access to unlimited use of AImpact</p>
           <p className="text-center text-xl text-white mt-10 font-bold">Coming soon...</p>
           <p className="text-gray-500 text-sm mb-4">We're working on it</p>
         </div>
