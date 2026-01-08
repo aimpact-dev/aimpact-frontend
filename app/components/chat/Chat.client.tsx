@@ -77,12 +77,19 @@ const processSampledMessages = createSampler(
       if (message.role === 'user') return true;
       return message.parts?.find((p) => p.type === 'text');
     });
+
+    let someMetadataChanged = false;
     messages = messages.map((message) => {
+      const parts = message.parts.filter((p) => {
+        if (p.type === 'step-start' || p.type === 'reasoning' || p.type === 'data-progress') {
+          return false;
+        }
+        return true;
+      });
+
       return {
         ...message,
-        parts: message.parts.filter(
-          (p) => p.type != 'step-start' && p.type != 'reasoning' && !p.type.startsWith('data-'),
-        ),
+        parts,
       };
     });
 
@@ -93,7 +100,6 @@ const processSampledMessages = createSampler(
 
     // i think i should check is all actions done in artifact + artifact closed
     // i need to check actions for specific messages
-    let someMetadataChanged = false;
     messages = messages.map((m) => {
       if (!m.metadata) {
         m.metadata = {};
@@ -187,7 +193,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const streamEndpoint = import.meta.env.GLOBAL_DEBUG_MODE === 'true' ? '/chat/test-stream' : '/chat/stream';
 
-  const { messages, status, stop, sendMessage, setMessages, regenerate, error } = useChat<UIMessage>({
+  const {
+    messages: unfilteredMessages,
+    status,
+    stop,
+    sendMessage,
+    setMessages,
+    regenerate,
+    error,
+  } = useChat<UIMessage>({
     onError: (e) => {
       logger.error('Request failed\n\n', e, error);
       console.error('error on stream llm response', e, e?.message, typeof e);
@@ -234,7 +248,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         });
     },
     onData: (dataPart) => {
-      logger.debug('new data event', dataPart);
       if (dataPart.type === 'data-template') {
         const templateUIMessage: UIMessage = {
           id: generateId(),
@@ -247,10 +260,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           role: 'system',
         };
         setMessages((messages) => [...messages, templateUIMessage]);
-      }
-
-      if (dataPart.type.startsWith('data-')) {
-        setStreamDataEvents([...streamDataEvents, dataPart]);
+      } else if (dataPart.type.startsWith('data-')) {
+        setStreamDataEvents((events) => [...events, dataPart]);
       }
     },
 
@@ -268,6 +279,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       },
     }),
   });
+
+  const messages = unfilteredMessages.filter((m) => m.parts.find((p) => p.type === 'text'));
 
   useEffect(() => {
     const prompt = searchParams.get('prompt');
@@ -304,7 +317,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       storeMessageHistory,
       setMessages,
     });
-  }, [messages, status, parseMessages, lastActionsFinsihedTime]);
+  }, [unfilteredMessages, status, parseMessages, lastActionsFinsihedTime]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;

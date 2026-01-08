@@ -3,7 +3,7 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import type { JSONValue, UIMessage } from 'ai';
-import React, { type RefCallback, useEffect, useState } from 'react';
+import React, { type RefCallback, useEffect, useMemo, useState } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
@@ -117,7 +117,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [progressAnnotations, setProgressAnnotations] = useState<MessageDataEvent[]>([]);
+    const progressAnnotations = useMemo(() => data?.filter((x) => x.type === 'data-progress'), [data]);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const params = useParams();
@@ -140,13 +140,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         toast.success('Prompt enhanced!');
       }
     }, [promptEnhanced]);
-
-    useEffect(() => {
-      if (data) {
-        const progressList = data.filter((x) => x.type === 'data-progress');
-        setProgressAnnotations(progressList);
-      }
-    }, [data]);
 
     useEffect(() => {
       onStreamingChange?.(isStreaming);
