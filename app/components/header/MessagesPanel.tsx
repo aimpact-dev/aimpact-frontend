@@ -6,6 +6,7 @@ import { Tooltip } from '../chat/Tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui';
 import BuyMessagesTab from './BuyMessagesTab';
 import GetFreeMessagesTab from './GetFreeMessagesTab';
+import { motion } from 'framer-motion';
 
 export default function MessagesPanel() {
   const user = useStore(userInfo);
@@ -34,15 +35,29 @@ export default function MessagesPanel() {
           description="You can receive messages either by buying them with SOL or by completing special tasks"
         >
           <Tabs defaultValue="buy" className="items-center">
-            <TabsList className="bg-input h-9 w-[50%] box-border mb-5">
+            <TabsList className="bg-input h-9 w-[50%] box-border mb-2 md:mb-5">
               <TabsTrigger value="buy">Buy</TabsTrigger>
               <TabsTrigger value="free">Get free</TabsTrigger>
             </TabsList>
             <TabsContent value="buy">
-              <BuyMessagesTab />
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 30 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <BuyMessagesTab />
+              </motion.div>
             </TabsContent>
             <TabsContent value="free">
-              <GetFreeMessagesTab />
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <GetFreeMessagesTab />
+              </motion.div>
             </TabsContent>
           </Tabs>
         </Popup>
