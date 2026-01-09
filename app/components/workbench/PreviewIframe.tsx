@@ -25,6 +25,7 @@ export const PreviewIframe = ({
       clearTimeout(loadCheckRef.current);
     }
     loadCheckRef.current = setTimeout(() => {
+      console.log('load check', loadedSuccessfullyRef.current);
       if (!loadedSuccessfullyRef.current) {
         if (iframeRef.current && iframeUrl) {
           iframeRef.current.src = iframeUrl;
@@ -48,6 +49,8 @@ export const PreviewIframe = ({
         loadedSuccessfullyRef.current = true;
       }
     }
+
+    console.log('set event')
     window.addEventListener('message', handleMessage);
     return () => {
       window.removeEventListener('message', handleMessage);
