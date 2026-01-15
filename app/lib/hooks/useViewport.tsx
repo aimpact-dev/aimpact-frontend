@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { debounce } from '~/utils/debounce';
+import { chatStore } from '../stores/chat';
+import { workbenchStore } from '../stores/workbench';
 
 type ViewportContextType = {
   width: number;
@@ -26,6 +28,11 @@ export const ViewportProvider = ({ children }: { children: ReactNode }) => {
 
   const isSmallViewport = width < 1024;
   const isMobile = width < 768;
+
+  if (isMobile || !isSmallViewport) {
+    chatStore.setKey('showChat', true);
+    workbenchStore.setShowWorkbench(isMobile ? false : true);
+  }
 
   return <ViewportContext.Provider value={{ width, isSmallViewport, isMobile }}>{children}</ViewportContext.Provider>;
 };

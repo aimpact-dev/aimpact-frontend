@@ -10,8 +10,6 @@ import HowItWorksButton from '../chat/HowItWorksButton';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { userInfo } from '~/lib/hooks/useAuth';
 import { useStore } from '@nanostores/react';
-import DepositButton from '../chat/DepositButton';
-import GetMessagesButton from '../chat/GetMessagesButton';
 import { useGlobalPopups } from '../chat/GlobalPopups';
 import MessagesPanel from './MessagesPanel';
 
@@ -68,13 +66,15 @@ export default function MobileMenu() {
             <img src="/aimpact-logo-beta-xmas.png" alt="AImpact Logo" className="h-8 w-auto" />
           </button>
 
-          <div>
-            <ClientOnly>{() => <CustomWalletButton />}</ClientOnly>
-          </div>
+          <div className="flex gap-2">
+            <div>
+              <ClientOnly>{() => <CustomWalletButton />}</ClientOnly>
+            </div>
 
-          <button className="p-2 text-gray-200" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
-            {menuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+            <button className="p-2 text-gray-200" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
+              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
 
         {menuOpen && (
@@ -82,7 +82,7 @@ export default function MobileMenu() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className={`h-full text-lg`}
+            className={`h-[calc(100vh-72px)] text-lg overflow-y-auto`}
           >
             <div className="flex justify-between gap-2 pb-5">
               {connected && user && (

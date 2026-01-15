@@ -46,7 +46,7 @@ export const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: P
           </Button>
 
           {/* My Projects Button */}
-          <Tooltip content={!isAuthorized ? 'Sign in to view your projects' : ''}>
+          <Tooltip content={!isAuthorized ? 'Sign in to view your projects' : ''} disabled={isAuthorized}>
             <div className="inline-block">
               <Button
                 variant={activeFilters.owned ? 'outline' : 'ghost'}
@@ -67,7 +67,7 @@ export const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: P
         </div>
 
         {/* Filters Dropdown */}
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <div className="bg-bolt-elements-button-primary-background p-1 rounded-3xl">
               <button className="inline-flex items-center justify-center text-sm font-medium h-9 px-3 md:px-6 box-content gap-2 rounded-3xl bg-purple-900 border-1 border-bolt-elements-borderColorActive text-white !hover:bg-purple-800/50 transition-all">
@@ -82,7 +82,7 @@ export const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: P
               </button>
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="bg-purple-900/50 border-white/10 backdrop-blur-sm w-64" align="end">
+          <DropdownMenuContent className=" bg-purple-900 border-white/10 backdrop-blur-lg w-64" align="end">
             <div className="p-2 space-y-3">
               {/* Featured Filter */}
               <div className="flex items-center space-x-2">

@@ -3,7 +3,7 @@ import { userInfo } from '~/lib/hooks/useAuth';
 import Popup from '../common/Popup';
 import { useState } from 'react';
 import { Tooltip } from '../chat/Tooltip';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui';
+import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from '../ui';
 import BuyMessagesTab from './BuyMessagesTab';
 import GetFreeMessagesTab from './GetFreeMessagesTab';
 import { motion } from 'framer-motion';
@@ -15,18 +15,16 @@ export default function MessagesPanel() {
   return (
     user && (
       <>
-        <div className="flex items-center gap-2 whitespace-nowrap text-sm font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-3 py-2">
+        <Button onClick={() => setMessagesPopupOpen(true)} className="group border border-bolt-elements-borderColor">
           <div>
             <b>{user.messagesLeft - user.pendingMessages}</b>{' '}
             <span className="text-xs">message{user.messagesLeft - user.pendingMessages === 1 ? '' : 's'} left</span>
           </div>
 
           <Tooltip content="Get more messages" side="bottom">
-            <button onClick={() => setMessagesPopupOpen(true)}>
-              <div className="i-ph:plus-circle-bold h-5 w-5 hover:color-accent-500 transition-150"></div>
-            </button>
+            <div className="i-ph:plus-circle-bold size-5 group-hover:i-ph:plus-circle-fill group-hover:size-5"></div>
           </Tooltip>
-        </div>
+        </Button>
         <Popup
           isShow={messagesPopupOpen}
           handleToggle={setMessagesPopupOpen}

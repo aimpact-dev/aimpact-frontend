@@ -40,7 +40,7 @@ type Artifacts = MapStore<Record<string, ArtifactState>>;
 type MessageRole = 'user' | 'assistant' | 'system';
 type MessagesMetadata = Record<string, { role: MessageRole; meta: Record<string, any> }>;
 
-export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'contracts' | 'convex';
+export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'contracts' | 'integrations' | 'publish' | 'token';
 
 export class WorkbenchStore {
   #previewsStore = new AimpactPreviewStore(getSandbox(), getPortCatcher());

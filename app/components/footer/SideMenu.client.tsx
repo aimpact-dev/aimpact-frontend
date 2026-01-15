@@ -27,7 +27,7 @@ const POPUP_CONFIGS: Record<Exclude<PopupType, null>, PopupConfig> = {
     tooltip: 'Bug bounty form',
     title: 'Found a bug? Fill the form for a reward!',
     subtitle: 'Help us improve by reporting issues. Submit detailed bug reports and earn rewards for valid findings.',
-    link: 'https://forms.gle/RQs67LKavBFiP1JL8',
+    link: 'https://forms.gle/JqXoJuQiu4LbTy8PA',
     linkText: 'Bug bounty form',
   },
   custDev: {

@@ -13,7 +13,6 @@ import { SendButton } from './SendButton.client';
 import * as Tooltip from '@radix-ui/react-tooltip';
 
 import styles from './BaseChat.module.scss';
-import { ExportChatButton } from '~/components/chat/chatExportAndImport/ExportChatButton';
 import { ExamplePrompts } from '~/components/chat/ExamplePrompts';
 
 import FilePreview from './FilePreview';
@@ -63,7 +62,6 @@ interface BaseChatProps {
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
   importChat?: (description: string, messages: UIMessage[]) => Promise<void>;
-  exportChat?: () => void;
   uploadedFiles?: File[];
   setUploadedFiles?: (files: File[]) => void;
   imageDataList?: string[];
@@ -95,7 +93,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       sendMessage,
       handleStop,
-      exportChat,
       uploadedFiles = [],
       setUploadedFiles,
       imageDataList = [],
@@ -279,7 +276,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       >
         {isMobile && chatStarted && <ClientOnly>{() => <HeaderActionButtons isMobile />}</ClientOnly>}
 
-        {/* <ClientOnly>{() => <Menu />}</ClientOnly> */}
         <div className="flex flex-col lg:flex-row overflow-x-hidden w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
@@ -520,7 +516,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           onStop={stopListening}
                           disabled={isStreaming || isDisabled}
                         />
-                        {chatStarted && <ClientOnly>{() => <ExportChatButton exportChat={exportChat} />}</ClientOnly>}
                       </div>
                       {input.length > 3 ? (
                         <div className="text-xs text-bolt-elements-textTertiary">

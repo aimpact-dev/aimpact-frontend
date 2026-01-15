@@ -3,7 +3,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { classNames } from '~/utils/classNames';
 import { useParams } from '@remix-run/react';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
-import DeployTokenNavButton from '../chat/DeployTokenNavButton';
+import DeployTokenButton from '../chat/DeployTokenButton';
 import TokenInfoNavButton from '../chat/TokenInfoButton';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 
@@ -23,7 +23,7 @@ export default function MobileActionDropdown() {
         <div className="flex gap-2 text-sm h-full">
           <div
             className={classNames(
-              'flex items-center p-1.5  bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent border border-bolt-elements-borderColor rounded-md m-0',
+              'flex items-center p-1.5 bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent border border-bolt-elements-borderColor rounded-md m-0',
               isDropdownOpen ? 'border-bolt-elements-borderColorActive' : '',
             )}
           >
@@ -32,11 +32,20 @@ export default function MobileActionDropdown() {
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
+        <DropdownMenuItem>
+          <button onClick={() => openView('contracts')}>Smart contracts</button>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <button onClick={() => openView('integrations')}>Integrations</button>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <button onClick={() => openView('publish')}>Publish</button>
+        </DropdownMenuItem>
         {params.id && (
           <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
             {!tokenInfoQuery?.data && (
               <div className="h-full">
-                <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} isMobile />
+                <DeployTokenButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} isMobile />
               </div>
             )}
             {tokenInfoQuery?.data && (
@@ -46,12 +55,6 @@ export default function MobileActionDropdown() {
             )}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem>
-          <button onClick={() => openView('contracts')}>Smart contracts</button>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <button onClick={() => openView('convex')}>Convex</button>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

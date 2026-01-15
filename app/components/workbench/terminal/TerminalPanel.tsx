@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import React, { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { Panel, type ImperativePanelHandle } from 'react-resizable-panels';
 import { IconButton } from '~/components/ui/IconButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
@@ -7,6 +7,7 @@ import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { Terminal, type TerminalRef } from './Terminal';
 import { createScopedLogger } from '~/utils/logger';
+import { twMerge } from 'tailwind-merge';
 
 const logger = createScopedLogger('Terminal');
 
@@ -15,7 +16,6 @@ export const DEFAULT_TERMINAL_SIZE = 25;
 export const TerminalPanel = memo(() => {
   const showTerminal = useStore(workbenchStore.showTerminal);
   const theme = useStore(themeStore);
-
   const terminalRef = useRef<TerminalRef | null>(null);
   const terminalPanelRef = useRef<ImperativePanelHandle>(null);
   const terminalToggledByShortcut = useRef(false);
@@ -51,51 +51,57 @@ export const TerminalPanel = memo(() => {
   }, []);
 
   return (
-    <Panel
-      ref={terminalPanelRef}
-      defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
-      minSize={10}
-      collapsible
-      onExpand={() => {
-        if (!terminalToggledByShortcut.current) {
-          workbenchStore.toggleTerminal(true);
-        }
-      }}
-      onCollapse={() => {
-        if (!terminalToggledByShortcut.current) {
-          workbenchStore.toggleTerminal(false);
-        }
-      }}
-    >
-      <div className="h-full">
-        <div className="bg-bolt-elements-terminals-background h-full flex flex-col">
-          <div className="flex items-center bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor min-h-[34px] p-2">
-            <div className="flex items-center text-sm gap-1.5 px-3 py-1 text-bolt-elements-textSecondary">
-              <div className="i-ph:terminal-window-duotone text-lg" />
-              Terminal
-            </div>
-
-            <IconButton
-              className="ml-auto"
-              icon="i-ph:caret-down"
-              title="Close"
-              size="md"
-              onClick={() => workbenchStore.toggleTerminal(false)}
-            />
-          </div>
-
-          <Terminal
-            id="terminal_main"
-            className="modern-scrollbar-invert h-full overflow-hidden"
-            ref={(ref) => {
-              terminalRef.current = ref;
-            }}
-            onTerminalReady={(terminal) => workbenchStore.attachMainTerminal(terminal)}
-            onTerminalResize={() => {}}
-            theme={theme}
-          />
+    <>
+      <div
+        className={twMerge(
+          'flex items-center bg-bolt-elements-background-depth-2 border-bolt-elements-borderColor p-2 h-[35px]',
+          showTerminal ? 'border-y' : 'border-t',
+        )}
+      >
+        <div className="flex items-center text-sm gap-1.5 px-3 py-1 text-bolt-elements-textSecondary">
+          <div className="i-ph:terminal-window-duotone text-lg" />
+          Terminal
         </div>
+        <IconButton
+          className="ml-auto"
+          icon={showTerminal ? 'i-ph:caret-down' : 'i-ph:caret-up'}
+          title={showTerminal ? 'Close' : 'Open'}
+          size="md"
+          onClick={() => workbenchStore.toggleTerminal(!showTerminal)}
+        />
       </div>
-    </Panel>
+
+      <Panel
+        ref={terminalPanelRef}
+        defaultSize={showTerminal ? DEFAULT_TERMINAL_SIZE : 0}
+        minSize={5}
+        collapsible
+        onExpand={() => {
+          if (!terminalToggledByShortcut.current) {
+            workbenchStore.toggleTerminal(true);
+          }
+        }}
+        onCollapse={() => {
+          if (!terminalToggledByShortcut.current) {
+            workbenchStore.toggleTerminal(false);
+          }
+        }}
+      >
+        <div className="h-full bg-bolt-elements-terminals-background">
+          {showTerminal && (
+            <Terminal
+              id="terminal_main"
+              className="modern-scrollbar-invert h-full overflow-hidden"
+              ref={(ref) => {
+                terminalRef.current = ref;
+              }}
+              onTerminalReady={(terminal) => workbenchStore.attachMainTerminal(terminal)}
+              onTerminalResize={() => {}}
+              theme={theme}
+            />
+          )}
+        </div>
+      </Panel>
+    </>
   );
 });
