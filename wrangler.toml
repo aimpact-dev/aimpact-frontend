@@ -5,23 +5,36 @@ compatibility_date = "2025-03-28"
 pages_build_output_dir = "./build/client"
 send_metrics = false
 
-kv_namespaces = [
-  { binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }
-]
+kv_namespaces = [{ binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }]
 
 [vars]
 VITE_LOG_LEVEL = "debug"
 VITE_GITHUB_TOKEN_TYPE = "classic"
-PUBLIC_BACKEND_URL = "https://eblo7vdluldh7a74tp8o30v31g.ingress.d3akash.cloud"
-VITE_DEPOSIT_ADDRESS = "GorN1wMsaWp75QJYtU8NrCu9GCgTtPiUeDRX3ccLZ5jj"
+PUBLIC_BACKEND_URL = "https://api.aimpact.dev"
+VITE_DEPOSIT_ADDRESS = "B53gsmqJN5yVLJ46u2XxwPSLSJEsGsYBqyww6KFvnHz5"
 VITE_REWARDS_SHARING_PERCENT = "10"
 VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
 DYNAMIC_ENVIROMENT_ID = "ef8d5320-bb51-49c8-9932-5926b6646175"
 ENVIRONMENT = "production"
 DAYTONA_PROXY_URL = "https://proxy.aimpact.dev"
+PUBLIC_WALLETCONNECT_PROJECT_ID = "d442f1482fd79fec459b44d874b6e39b"
+VITE_ZEALY_FREE_MESSAGES_CATEGORY_ID = "551be840-5038-46d7-94b9-c2f687244510"
+
+# ------------------------------------------------------------
 
 [env.preview]
 name = "aimpact-preview"
+kv_namespaces = [{ binding = "KV", id = "1d863ed9dea64351a67221c05ce67d33" }]
+
 [env.preview.vars]
 ENVIRONMENT = "preview"
-PUBLIC_BACKEND_URL = "https://eblo7vdluldh7a74tp8o30v31g.ingress.d3akash.cloud"
+VITE_LOG_LEVEL = "debug"
+VITE_GITHUB_TOKEN_TYPE = "classic"
+PUBLIC_BACKEND_URL = "https://api.aimpact.dev"
+VITE_DEPOSIT_ADDRESS = "B53gsmqJN5yVLJ46u2XxwPSLSJEsGsYBqyww6KFvnHz5"
+VITE_REWARDS_SHARING_PERCENT = "10"
+VITE_PRICE_PER_MESSAGE_IN_SOL = "0.003"
+DYNAMIC_ENVIROMENT_ID = "ef8d5320-bb51-49c8-9932-5926b6646175"
+DAYTONA_PROXY_URL = "https://proxy.aimpact.dev"
+PUBLIC_WALLETCONNECT_PROJECT_ID = "d442f1482fd79fec459b44d874b6e39b"
+VITE_ZEALY_FREE_MESSAGES_CATEGORY_ID = "551be840-5038-46d7-94b9-c2f687244510"
