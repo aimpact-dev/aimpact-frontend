@@ -7,17 +7,15 @@ import { Menu, X } from 'lucide-react';
 import { ClientOnly } from 'remix-utils/client-only';
 import CustomWalletButton from '../common/CustomWalletButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { userInfo } from '~/lib/hooks/useAuth';
 import { useStore } from '@nanostores/react';
-import DepositButton from '../chat/DepositButton';
-import GetMessagesButton from '../chat/GetMessagesButton';
 import { useGlobalPopups } from '../chat/GlobalPopups';
 import MessagesPanel from './MessagesPanel';
+import { useAppKitAccount } from '@reown/appkit/react';
 
 export default function MobileMenu() {
   const user = useStore(userInfo);
-  const { connected } = useWallet();
+  const { isConnected } = useAppKitAccount();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -85,7 +83,7 @@ export default function MobileMenu() {
             className={`h-full text-lg`}
           >
             <div className="flex justify-between gap-2 pb-5">
-              {connected && user && (
+              {isConnected && user && (
                 <>
                   <MessagesPanel />
                 </>
