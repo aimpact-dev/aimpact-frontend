@@ -1,70 +1,39 @@
-import React, { useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
-import '@solana/wallet-adapter-react-ui/styles.css';
-import { 
-  PhantomWalletAdapter, 
-  SolflareWalletAdapter,
-  WalletConnectWalletAdapter 
-} from '@solana/wallet-adapter-wallets';
-import { 
-  SolanaMobileWalletAdapter,
-  createDefaultAddressSelector,
-  createDefaultAuthorizationResultCache,
-  createDefaultWalletNotFoundHandler
-} from '@solana-mobile/wallet-adapter-mobile';
-import { ClientOnly } from 'remix-utils/client-only';
+import { createAppKit } from '@reown/appkit/react';
+import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
+import { solana, solanaTestnet, solanaDevnet } from '@reown/appkit/networks';
 
-export interface SolanaProviderProps {
-  children: React.ReactNode;
-}
+const solanaWeb3JsAdapter = new SolanaAdapter();
 
-export default function SolanaProvider({ children }: SolanaProviderProps) {
-  const network = WalletAdapterNetwork.Mainnet;
+const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aimpact.dev';
 
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-  const wallets = useMemo(
-    () => [
-      /**
-       * Mobile Wallet Adapter should be first for proper mobile detection
-       * This enables authorization for mobile wallets (e.g., Phantom, Solflare on mobile)
-       */
-      new SolanaMobileWalletAdapter({
-        addressSelector: createDefaultAddressSelector(),
-        appIdentity: {
-          name: 'AImpact',
-          uri: 'https://aimpact.dev',
-          icon: '/favicon.svg',
-        },
-        authorizationResultCache: createDefaultAuthorizationResultCache(),
-        cluster: network,
-        onWalletNotFound: createDefaultWalletNotFoundHandler(),
-      }),
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new WalletConnectWalletAdapter({
-        network,
-        options: {
-          projectId: import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID,
-        },
-      }),
-    ],
-    [network]
-  );
+const metadata = {
+  name: 'AImpact',
+  description: 'AImpact Application',
+  url: origin,
+  icons: [`${origin}/favicon.svg`],
+};
 
-  return (
-    <ClientOnly>
-      {() => {
-        return (
-          <ConnectionProvider endpoint={endpoint}>
-            <WalletProvider wallets={wallets} autoConnect>
-              <WalletModalProvider>{children}</WalletModalProvider>
-            </WalletProvider>
-          </ConnectionProvider>
-        );
-      }}
-    </ClientOnly>
-  );
+createAppKit({
+  adapters: [solanaWeb3JsAdapter],
+  networks: [solana, solanaTestnet, solanaDevnet],
+  metadata,
+  projectId: import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID,
+  features: {
+    analytics: true,
+    socials: ['google', 'discord', 'x'],
+    connectMethodsOrder: ['social', 'email', 'wallet'],
+    // legalCheckbox: true,
+  },
+  themeMode: 'dark',
+  // privacyPolicyUrl: `${origin}/privacy-policy`,
+  // termsConditionsUrl: `${origin}/terms-of-service`,
+  themeVariables: {
+    '--apkt-accent': '#9987ef',
+    '--apkt-color-mix': '#9987ef',
+    '--apkt-color-mix-strength': 5,
+  },
+});
+
+export default function SolanaProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

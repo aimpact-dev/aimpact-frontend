@@ -7,16 +7,15 @@ import { Menu, X } from 'lucide-react';
 import { ClientOnly } from 'remix-utils/client-only';
 import CustomWalletButton from '../common/CustomWalletButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { userInfo } from '~/lib/hooks/useAuth';
 import { useStore } from '@nanostores/react';
-import DepositButton from '../chat/DepositButton';
-import GetMessagesButton from '../chat/GetMessagesButton';
 import { useGlobalPopups } from '../chat/GlobalPopups';
+import MessagesPanel from './MessagesPanel';
+import { useAppKitAccount } from '@reown/appkit/react';
 
 export default function MobileMenu() {
   const user = useStore(userInfo);
-  const { connected } = useWallet();
+  const { isConnected } = useAppKitAccount();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,24 +83,9 @@ export default function MobileMenu() {
             className={`h-full text-lg`}
           >
             <div className="flex justify-between gap-2 pb-5">
-              {connected && user && (
+              {isConnected && user && (
                 <>
-                  <div className="whitespace-nowrap text-sm font-medium text-bolt-elements-textPrimary bg-bolt-elements-background rounded-md border border-bolt-elements-borderColor px-4 py-2">
-                    <b>{user.messagesLeft - user.pendingMessages}</b>{' '}
-                    <span className="text-xs">
-                      message{user.messagesLeft - user.pendingMessages === 1 ? '' : 's'} left
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <ClientOnly>
-                      {() => {
-                        return connected && <DepositButton discountPercent={user.discountPercent || 0} isMobile />;
-                      }}
-                    </ClientOnly>
-
-                    <GetMessagesButton isMobile />
-                  </div>
+                  <MessagesPanel />
                 </>
               )}
             </div>
