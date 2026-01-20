@@ -177,7 +177,7 @@
   },
   "devDependencies": {
     "@blitz/eslint-plugin": "0.1.0",
-    "@cloudflare/workers-types": "@reown/appkit/networks",
+    "@cloudflare/workers-types": "^4.20260120.0",
     "@iconify-json/ph": "^1.2.2",
     "@iconify/types": "^1.0.0",
     "@iconify/utils": "^2.3.0",

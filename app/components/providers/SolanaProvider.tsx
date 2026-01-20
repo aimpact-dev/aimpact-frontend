@@ -4,11 +4,13 @@ import { solana, solanaTestnet, solanaDevnet } from '@reown/appkit/networks';
 
 const solanaWeb3JsAdapter = new SolanaAdapter();
 
+const origin = typeof window !== 'undefined' ? window.location.origin : 'https://aimpact.dev';
+
 const metadata = {
   name: 'AImpact',
   description: 'AImpact Application',
-  url: import.meta.env.PUBLIC_BACKEND_URL,
-  icons: [`${import.meta.env.PUBLIC_BACKEND_URL}/favicon.svg`],
+  url: origin,
+  icons: [`${origin}/favicon.svg`],
 };
 
 createAppKit({
