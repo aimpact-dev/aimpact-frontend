@@ -21,10 +21,16 @@ createAppKit({
   features: {
     analytics: true,
     socials: ['google', 'discord', 'x'],
+    connectMethodsOrder: ['social', 'email', 'wallet'],
+    // legalCheckbox: true,
   },
   themeMode: 'dark',
+  // privacyPolicyUrl: `${origin}/privacy-policy`,
+  // termsConditionsUrl: `${origin}/terms-of-service`,
   themeVariables: {
     '--apkt-accent': '#9987ef',
+    '--apkt-color-mix': '#9987ef',
+    '--apkt-color-mix-strength': 5,
   },
 });
 
