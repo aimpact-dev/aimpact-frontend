@@ -23,7 +23,7 @@ import ErrorPage from '../common/ErrorPage';
 import { DaytonaCleanup } from '~/components/common/DaytonaCleanup';
 import { useAuth } from '~/lib/hooks/useAuth';
 import { convexTeamNameStore } from '~/lib/stores/convex';
-import type { MessageDataEvent, UIMessage } from '~/lib/message';
+import type { MessageDataEvent, UIMessage, UITool } from '~/lib/message';
 import { DefaultChatTransport, generateId } from 'ai';
 
 const logger = createScopedLogger('Chat');
@@ -67,7 +67,7 @@ const processSampledMessages = createSampler(
     setMessages: (messages: UIMessage[]) => void;
     initialMessages: UIMessage[];
     isLoading: boolean;
-    parseMessages: (messages: UIMessage[], isLoading: boolean) => Record<string, MessageState>;
+    parseMessages: (messages: UIMessage[]) => void;
     storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
   }) => {
     let { messages } = options;
@@ -93,7 +93,7 @@ const processSampledMessages = createSampler(
       };
     });
 
-    const messagesState = parseMessages(messages, isLoading);
+    parseMessages(messages);
 
     // after parse we can filter for noStore
     messages = messages.filter((m) => !m.metadata?.noStore);
@@ -214,6 +214,13 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
 
     onFinish: ({ message, isError, finishReason }) => {
+      const artifact = workbenchStore.getArtifact(message.id);
+      if (artifact) {
+        workbenchStore.updateArtifact(
+          { id: message.id, messageId: message.id, title: artifact.title },
+          { closed: true },
+        );
+      }
       if (isError) {
         const msg = `Error on stream request: ${finishReason || 'Unknown error'}`;
         console.error(msg);
@@ -221,6 +228,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
       const usage = message.metadata?.totalUsage;
       logger.debug('ON FINISH');
+      console.log('messages', messages, unfilteredMessages);
 
       if (usage) {
         logger.debug('Token usage:', usage);
@@ -247,19 +255,62 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           logger.error(e);
         });
     },
+
+    onToolCall: ({ toolCall }) => {
+      console.log('Tool call received', toolCall, toolCall);
+      if (toolCall.dynamic) {
+        return;
+      }
+
+      const uiTool: UITool = {
+        type: 'tool-call',
+        ...toolCall,
+      };
+
+      // const message = unfilteredMessages.find((message) =>
+      //   message.parts.some(
+      //     (part) =>
+      //       (part.type === 'tool-createFile' ||
+      //         part.type === 'tool-executeShellCommand' ||
+      //         part.type === 'tool-updateFile') &&
+      //       part.toolCallId === toolCall.toolCallId,
+      //   ),
+      // );
+      // console.log('messages in tool call', unfilteredMessages)
+      // const message = unfilteredMessages.at(-1);
+      // console.log('finded message', message);
+      // if (!message) {
+      //   throw new Error('Failed to find message during call execution');
+      // }
+
+      // addToolToWorkbench(uiTool, message);
+    },
+
     onData: (dataPart) => {
       if (dataPart.type === 'data-template') {
+        const data = dataPart.data as { message: string; templateName: string };
         const templateUIMessage: UIMessage = {
           id: generateId(),
           parts: [
             {
               type: 'text',
-              text: dataPart.data as string,
+              text: data.message,
             },
           ],
+          metadata: { isTemplate: true },
           role: 'system',
         };
-        setMessages((messages) => [...messages, templateUIMessage]);
+
+        const hasTemplateMsg = messages.some((m) => m.metadata?.isTemplate);
+        console.log(messages, hasTemplateMsg);
+        if (data.templateName !== 'blank' && !hasTemplateMsg) {
+          setMessages((messages) => {
+            const newMessages = [...messages];
+            const firstUserMessage = messages.findIndex((m) => m.role === 'system');
+            newMessages.splice(firstUserMessage, 0, templateUIMessage);
+            return newMessages;
+          });
+        }
       } else if (dataPart.type.startsWith('data-')) {
         setStreamDataEvents((events) => [...events, dataPart]);
       }
@@ -280,7 +331,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     }),
   });
 
-  const messages = unfilteredMessages.filter((m) => m.parts.find((p) => p.type === 'text'));
+  const messages = unfilteredMessages.filter((m) =>
+    m.parts.find((p) => p.type === 'text' || p.type === 'dynamic-tool'),
+  );
 
   useEffect(() => {
     const prompt = searchParams.get('prompt');
@@ -292,7 +345,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, [searchParams]);
 
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
-  const { parsedMessages, parseMessages } = useMessageParser();
+  const { parsedMessages, parseMessages, addToolToWorkbench } = useMessageParser();
 
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
@@ -309,6 +362,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, []);
 
   useEffect(() => {
+    console.log('unfiltered messages', unfilteredMessages);
     processSampledMessages({
       messages: messages as UIMessage[],
       initialMessages,

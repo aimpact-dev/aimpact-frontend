@@ -22,6 +22,7 @@ import { BuildService } from '~/lib/services/buildService';
 import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
 import { getPortCatcher } from '~/utils/previewPortCatcher';
 import { detectPackageManager, detectStartCommand } from '~/utils/projectCommands';
+import { tool, type UITool } from 'ai';
 
 const { saveAs } = fileSaver;
 
@@ -55,8 +56,8 @@ export class WorkbenchStore {
   #reloadedMessages = new Set<string>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
+  toolCalls: MapStore<Record<string, UITool>> = map({});
   messagesMetadata: MapStore<MessagesMetadata> = map({});
-  totalActionsCount: WritableAtom<number> = atom(0);
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
@@ -487,6 +488,10 @@ export class WorkbenchStore {
     this.#reloadedMessages = new Set(messages);
   }
 
+  addToolCall({ id, toolCall }: { id: string; toolCall: UITool }) {
+    this.toolCalls.setKey(id, toolCall);
+  }
+
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
     const artifact = this.getArtifact(messageId);
 
@@ -625,7 +630,14 @@ export class WorkbenchStore {
     } else if (data.action.type === 'update') {
       const aimpactFs = await getAimpactFs();
       const fullPath = path.join(await aimpactFs.workdir(), data.action.filePath);
-      const oldNewPair = parseOldNewPairs(data.action.content);
+      let oldNewPair: { old: string; new: string };
+      if (data.action.content) {
+        oldNewPair = parseOldNewPairs(data.action.content);
+      } else if (data.action.oldContent && data.action.newContent) {
+        oldNewPair = { old: data.action.oldContent, new: data.action.newContent };
+      } else {
+        return;
+      }
 
       if (this.selectedFile.value !== fullPath) {
         this.setSelectedFile(fullPath);
@@ -669,6 +681,11 @@ export class WorkbenchStore {
   getArtifact(id: string) {
     const artifacts = this.artifacts.get();
     return artifacts[id];
+  }
+
+  async getToolCall(id: string) {
+    const toolCalls = this.toolCalls.get();
+    return toolCalls[id];
   }
 
   async downloadZip() {

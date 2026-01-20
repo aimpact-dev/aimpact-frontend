@@ -11,6 +11,9 @@ import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 import { chatStore } from '../stores/chat';
+import type { UIMessage } from 'ai';
+import type { UITools } from '../message';
+import { extractContentFromUI } from '~/utils/message';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
 const ARTIFACT_TAG_CLOSE = '</boltArtifact>';
@@ -121,6 +124,24 @@ export class StreamingMessageParser {
 
   constructor(private _options: StreamingMessageParserOptions = {}) {}
 
+  parseWithTools(message: UIMessage) {
+    const artifactFactory = createArtifactElement({ messageId: message.id });
+    const hasToolCall = message.parts.some((p) => p.type.startsWith('tool-'));
+
+    const textParts = message.parts.filter((p) => p.type === 'text');
+    const parsedContent = textParts.map((part, i) => {
+      if (part.type !== 'text') return '';
+
+      if (i === 0 && hasToolCall && !part.text.includes(artifactFactory)) {
+        part.text += artifactFactory;
+      }
+
+      return part.text;
+    });
+
+    return parsedContent.join('\n');
+  }
+
   parse(messageId: string, input: string, skipMessage: boolean) {
     let state = this.#messages.get(messageId);
 
@@ -156,7 +177,7 @@ export class StreamingMessageParser {
           if (closeIndex !== -1) {
             currentAction.content += input.slice(i, closeIndex);
 
-            let content = currentAction.content.trim();
+            let content = (currentAction?.content || '').trim();
 
             if ('type' in currentAction && currentAction.type === 'file') {
               // Remove markdown code block syntax if present and file is not markdown
@@ -229,8 +250,6 @@ export class StreamingMessageParser {
 
               state.currentAction = this.#parseActionTag(input, actionOpenIndex, actionEndIndex);
 
-              if (skipMessage) {
-              }
               this._options.callbacks?.onActionOpen?.(
                 {
                   artifactId: currentArtifact.id,

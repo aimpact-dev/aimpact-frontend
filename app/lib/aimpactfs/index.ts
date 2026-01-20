@@ -5,7 +5,7 @@ import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
 let aimpactFsPromise: Promise<AimpactFs> | null = null;
 
-export function getAimpactFs(){
+export function getAimpactFs() {
   if (!aimpactFsPromise) {
     const zenfs = new ZenfsImpl();
     const sandbox = getSandbox();

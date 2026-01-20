@@ -256,10 +256,20 @@ export class ActionRunner {
       return;
     }
 
+    // TODO: fix flow when we have action.newContent and action.oldContent
     try {
       const isBinary = isBinaryPath(action.filePath);
       const encoding = isBinary ? 'base64' : 'utf-8';
-      const oldNewPair = parseOldNewPairs(action.content);
+      let oldNewPair: { old: string; new: string };
+      if (action.content) {
+        oldNewPair = parseOldNewPairs(action.content);
+      } else if (action.oldContent && action.newContent) {
+        oldNewPair = { old: action.oldContent, new: action.newContent };
+      } else {
+        logger.error('Reverted: Update action is invalid');
+        return;
+      }
+
       if (!oldNewPair.old) {
         logger.error(`Reverted: Update actino have empt old string`);
         return;
