@@ -33,7 +33,7 @@ export interface ActionCallbackData {
   action: BoltAction;
 }
 
-export type ArtifactCallback = (data: ArtifactCallbackData, skipArtifactSave?: boolean) => void;
+export type ArtifactCallback = (data: ArtifactCallbackData) => void;
 export type ActionCallback = (data: ActionCallbackData, skipAction?: boolean) => void;
 
 export interface ParserCallbacks {
@@ -267,7 +267,7 @@ export class StreamingMessageParser {
           } else if (artifactCloseIndex !== -1) {
             const chatState = chatStore.get();
             const skipMessage = chatState.initialMessagesIds.includes(messageId);
-            this._options.callbacks?.onArtifactClose?.({ messageId, ...currentArtifact }, skipMessage);
+            this._options.callbacks?.onArtifactClose?.({ messageId, ...currentArtifact });
 
             state.insideArtifact = false;
             state.currentArtifact = undefined;

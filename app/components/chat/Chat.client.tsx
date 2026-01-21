@@ -108,7 +108,7 @@ const processSampledMessages = createSampler(
       if (artifact) {
         if (!m.metadata.artifactActionsFinished && artifact.allActionsFinished) {
           someMetadataChanged = true;
-          m.metadata.artifactActionsFinished = artifact.allActionsFinished;
+          m.metadata.artifactActionsFinished = true;
         }
       }
       return m;
@@ -119,6 +119,7 @@ const processSampledMessages = createSampler(
 
     // we need this to prevent infinite useEffect loop
     if (someMetadataChanged) {
+      console.log('set new messages!!!!!!!!!!');
       setMessages(messages);
     }
     if (messages.length > initialMessages.length || someMetadataChanged) {
@@ -193,6 +194,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const streamEndpoint = import.meta.env.GLOBAL_DEBUG_MODE === 'true' ? '/chat/test-stream' : '/chat/stream';
 
+  const [templateMessage, setTemplateMessage] = useState<UIMessage>();
+
   const {
     messages: unfilteredMessages,
     status,
@@ -215,6 +218,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     onFinish: ({ message, isError, finishReason }) => {
       const artifact = workbenchStore.getArtifact(message.id);
+      console.log('finishing artifact', artifact);
       if (artifact) {
         workbenchStore.updateArtifact(
           { id: message.id, messageId: message.id, title: artifact.title },
@@ -228,7 +232,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       }
       const usage = message.metadata?.totalUsage;
       logger.debug('ON FINISH');
-      console.log('messages', messages, unfilteredMessages);
 
       if (usage) {
         logger.debug('Token usage:', usage);
@@ -289,6 +292,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     onData: (dataPart) => {
       if (dataPart.type === 'data-template') {
         const data = dataPart.data as { message: string; templateName: string };
+        console.log('template data', data);
         const templateUIMessage: UIMessage = {
           id: generateId(),
           parts: [
@@ -301,15 +305,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           role: 'system',
         };
 
-        const hasTemplateMsg = messages.some((m) => m.metadata?.isTemplate);
-        console.log(messages, hasTemplateMsg);
-        if (data.templateName !== 'blank' && !hasTemplateMsg) {
-          setMessages((messages) => {
-            const newMessages = [...messages];
-            const firstUserMessage = messages.findIndex((m) => m.role === 'system');
-            newMessages.splice(firstUserMessage, 0, templateUIMessage);
-            return newMessages;
-          });
+        if (data.templateName !== 'blank') {
+          setTemplateMessage(templateUIMessage);
         }
       } else if (dataPart.type.startsWith('data-')) {
         setStreamDataEvents((events) => [...events, dataPart]);
@@ -331,9 +328,19 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     }),
   });
 
-  const messages = unfilteredMessages.filter((m) =>
-    m.parts.find((p) => p.type === 'text' || p.type === 'dynamic-tool'),
-  );
+  const messages = useMemo(() => {
+    const firstUserMessage = unfilteredMessages.findIndex((m) => m.role === 'user');
+    const hasTemplateMessage = unfilteredMessages.some((m) => m.metadata?.isTemplate);
+    const result = unfilteredMessages.filter((m) =>
+      m.parts.some((p) => p.type === 'text' || p.type.startsWith('tool-')),
+    );
+    if (templateMessage && !hasTemplateMessage) {
+      result.splice(firstUserMessage + 1, 0, templateMessage);
+    }
+    console.log('rerender messages', result);
+
+    return result;
+  }, [templateMessage, unfilteredMessages]);
 
   useEffect(() => {
     const prompt = searchParams.get('prompt');
@@ -362,16 +369,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   }, []);
 
   useEffect(() => {
-    console.log('unfiltered messages', unfilteredMessages);
     processSampledMessages({
-      messages: messages as UIMessage[],
+      messages: messages,
       initialMessages,
       isLoading: status == 'streaming',
       parseMessages,
       storeMessageHistory,
       setMessages,
     });
-  }, [unfilteredMessages, status, parseMessages, lastActionsFinsihedTime]);
+  }, [messages, status, parseMessages, lastActionsFinsihedTime]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;

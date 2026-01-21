@@ -19,20 +19,20 @@ export type MessageState = { artifactClosed: boolean };
 
 const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolean }) => ({
   onArtifactOpen: (data: ArtifactCallbackData) => {
-    logger.trace('onArtifactOpen', data);
+    console.log('onArtifactOpen', data);
 
     if (isDesktop) {
       workbenchStore.setShowWorkbench(true);
     }
     workbenchStore.addArtifact(data);
   },
-  onArtifactClose: (data: ArtifactCallbackData, skipArtifactSave?: boolean) => {
-    logger.trace('onArtifactClose');
+  onArtifactClose: (data: ArtifactCallbackData) => {
+    console.log('onArtifactClose');
 
     workbenchStore.updateArtifact(data, { closed: true });
   },
   onActionOpen: (data: ActionCallbackData, skipAction?: boolean) => {
-    logger.trace('onActionOpen', data.action);
+    console.log('onActionOpen', data.action);
 
     // we only add shell actions when when the close tag got parsed because only then we have the content
     if (data.action.type === 'file' || data.action.type === 'update') {
@@ -45,7 +45,7 @@ const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolea
     }
   },
   onActionClose: (data: ActionCallbackData, skipAction?: boolean) => {
-    logger.trace('onActionClose', data.action);
+    console.log('onActionClose', data.action);
     if (data.action.type !== 'file' && data.action.type !== 'update') {
       workbenchStore.addAction(data, skipAction);
     }
@@ -57,7 +57,7 @@ const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolea
     }
   },
   onActionStream: (data: ActionCallbackData, skipAction?: boolean) => {
-    logger.trace('onActionStream', data.action);
+    console.log('onActionStream', data.action);
     if (!skipAction) {
       workbenchStore.runAction(data, true);
     }
@@ -139,15 +139,13 @@ export function useMessageParser() {
       }
 
       const existingToolsCalls = Object.keys(workbenchStore.toolCalls.get());
-      const toolCalls = message.parts.filter(
-        (p) => isToolUIPart(p)
-      );
+      const toolCalls = message.parts.filter((p) => isToolUIPart(p));
 
       for (const toolCall of toolCalls) {
         if (existingToolsCalls.includes(toolCall.toolCallId)) continue;
         addToolToWorkbench(toolCall, message);
       }
-      
+
       const parsed = messageParser.parseWithTools(message);
       setParsedMessages((prevParsed) => ({
         ...prevParsed,
@@ -185,11 +183,17 @@ export function useMessageParser() {
 
   const parseMessages = useCallback((messages: UIMessage[]) => {
     const hasToolCall = messages.some((m) => m.parts.some((m) => m.type.startsWith('tool-')));
-    if (hasToolCall) {
-      return parseToolMessages(messages);
-    } else {
-      return parseOldXmlMessages(messages);
-    }
+    // if (hasToolCall) {
+    //   return parseToolMessages(messages);
+    // } else {
+    //   return parseOldXmlMessages(messages);
+    // }
+    const messagesWithTools = messages.filter((m) => m.parts.some((m) => m.type.startsWith('tool-')));
+    const defaultMessages = messages.filter((m) => !m.parts.some((m) => m.type.startsWith('tool-')));
+
+    console.log('run parse messages', defaultMessages, messagesWithTools);
+    parseOldXmlMessages(defaultMessages);
+    parseToolMessages(messagesWithTools);
   }, []);
 
   return { parsedMessages, parseMessages, addToolToWorkbench };

@@ -334,7 +334,7 @@ export const Workbench = memo(
 
       const waitForActions = async () => {
         const maxAttempts = 240; // it's 240 seconds timeout
-        const cooldown = 1000;
+        const cooldown = 3000;
         let attempt = 0;
         while (attempt < maxAttempts) {
           await sleep(cooldown);
@@ -350,6 +350,7 @@ export const Workbench = memo(
 
           // if all actions already finished and commited OR there is no closed artifact.
           // we rerun this func every artifact state change, so we can just skip on 0 valid artifacts and just optimize memory
+          console.log('in waitForActions', allActionsFinished, someClosedArtifact);
           if (allActionsFinished || !someClosedArtifact) {
             return;
           }
