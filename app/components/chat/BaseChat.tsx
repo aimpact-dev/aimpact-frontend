@@ -40,6 +40,7 @@ import { useParams } from '@remix-run/react';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
 import { HeaderActionButtons } from '../header/HeaderActionButtons.client';
 import type { MessageDataEvent } from '~/lib/message';
+import ProgressImport from './ProgressImport';
 import { twMerge } from 'tailwind-merge';
 
 const TEXTAREA_MIN_HEIGHT = 95;
@@ -77,6 +78,8 @@ interface BaseChatProps {
   data?: MessageDataEvent[] | undefined;
   actionRunner?: ActionRunner;
   showWorkbench?: boolean;
+  totalActions: number | null;
+  completedActions: number | null;
 }
 
 export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
@@ -110,6 +113,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       data,
       actionRunner,
       showWorkbench,
+      totalActions,
+      completedActions,
     },
     ref,
   ) => {
@@ -344,7 +349,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   )}
                 </div>
                 <ScrollToBottom />
+
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} className="my-1" />}
+                {(totalActions && completedActions) ? <ProgressImport totalSegments={totalActions} segments={completedActions} /> : <></>}
+
                 <div
                   className={classNames(
                     'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor w-full max-w-chat mx-auto z-prompt',
