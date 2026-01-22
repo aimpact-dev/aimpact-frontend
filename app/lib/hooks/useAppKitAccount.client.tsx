@@ -1,4 +1,3 @@
-// hooks/useAppKitAccount.client.ts
 'use client';
 import { useAppKitAccount as useOriginalAppKitAccount } from '@reown/appkit/react';
 
