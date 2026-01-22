@@ -11,7 +11,7 @@ import { userInfo } from '~/lib/hooks/useAuth';
 import { useStore } from '@nanostores/react';
 import { useGlobalPopups } from '../chat/GlobalPopups';
 import MessagesPanel from './MessagesPanel';
-import { useAppKitAccount } from '@reown/appkit/react';
+import { useAppKitAccount } from '~/lib/hooks/useAppKitAccout.client';
 
 export default function MobileMenu() {
   const user = useStore(userInfo);

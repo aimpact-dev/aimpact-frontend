@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useQuery } from '@tanstack/react-query';
-import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
+import { useAppKitProvider } from '@reown/appkit/react';
 import type { Provider } from '@reown/appkit-adapter-solana/react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { fromLamports } from '~/utils/solana';
@@ -33,6 +33,7 @@ import {
   useSetTokenForProject,
   type QuoteInitalBuyResponse,
 } from '~/lib/hooks/tanstack/useHeaven';
+import { useAppKitAccount } from '~/lib/hooks/useAppKitAccout.client';
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it

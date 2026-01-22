@@ -1,7 +1,8 @@
 import { classNames } from '~/utils/classNames';
 import waterStyles from '../ui/WaterButton.module.scss';
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { useAppKit } from '@reown/appkit/react';
 import { shortenString } from '~/utils/shortenString';
+import { useAppKitAccount } from '~/lib/hooks/useAppKitAccout.client';
 
 export default function CustomWalletButton() {
   const { open } = useAppKit();

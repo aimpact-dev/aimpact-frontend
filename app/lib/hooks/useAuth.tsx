@@ -2,9 +2,10 @@ import Cookies from 'js-cookie';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { atom } from 'nanostores';
-import { useAppKitAccount, useDisconnect, useAppKitProvider } from '@reown/appkit/react';
+import { useDisconnect, useAppKitProvider } from '@reown/appkit/react';
 import type { Provider } from '@reown/appkit-adapter-solana/react';
 import bs58 from 'bs58';
+import { useAppKitAccount } from './useAppKitAccout.client';
 
 interface UserInfo {
   id: string;
