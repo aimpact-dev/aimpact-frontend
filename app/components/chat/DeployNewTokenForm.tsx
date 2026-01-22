@@ -31,7 +31,7 @@ import {
   useSetTokenForProject,
   type QuoteInitalBuyResponse,
 } from '~/lib/hooks/tanstack/useHeaven';
-import { useAppKitAccount, useAppKitProvider } from '~/lib/hooks/appkit.client';
+import { Provider, useAppKitAccount, useAppKitProvider } from '~/lib/hooks/appkit.client';
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
@@ -76,7 +76,7 @@ interface DeployNewTokenFormProps {
 
 export default function DeployNewTokenForm({ projectId, projectUrl, setShowTokenWindow }: DeployNewTokenFormProps) {
   const { isConnected } = useAppKitAccount();
-  const { walletProvider } = useAppKitProvider();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
 
   if (!walletProvider) {
     return;

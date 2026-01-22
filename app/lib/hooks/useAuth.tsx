@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { atom } from 'nanostores';
 import bs58 from 'bs58';
-import { useAppKitAccount, useAppKitProvider, useDisconnect } from './appkit.client';
+import { useAppKitAccount, useAppKitProvider, useDisconnect, type Provider } from './appkit.client';
 
 interface UserInfo {
   id: string;
@@ -39,7 +39,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { isConnected } = useAppKitAccount();
   const { disconnect } = useDisconnect();
-  const { walletProvider } = useAppKitProvider();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [jwtToken, setJwtToken] = useState('');
