@@ -19,7 +19,7 @@ import TokenInfoNavButton from '../chat/TokenInfoButton';
 import MobileMenu from './MobileMenu';
 import { useViewport } from '~/lib/hooks';
 import MessagesPanel from './MessagesPanel';
-import { useAppKitAccount } from '@reown/appkit/react';
+import { useAppKitAccount } from '~/lib/hooks/appkit.client';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;

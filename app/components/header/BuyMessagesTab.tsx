@@ -1,14 +1,13 @@
 import { useNavigation } from '@remix-run/react';
 import { Badge, Button, Card } from '../ui';
 import { twMerge } from 'tailwind-merge';
-import { useAppKitAccount, useAppKitProvider } from '@reown/appkit/react';
-import type { Provider } from '@reown/appkit-adapter-solana/react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { useStore } from '@nanostores/react';
 import { userInfo } from '~/lib/hooks/useAuth';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { useAppKitAccount, useAppKitProvider, type Provider } from '~/lib/hooks/appkit.client';
 
 const BASE_MESSAGE_COUNT = 10;
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);
@@ -31,6 +30,10 @@ export default function BuyMessagesTab() {
   const { isConnected } = useAppKitAccount();
   const { walletProvider } = useAppKitProvider<Provider>('solana');
   const { getRecentBlockhash, sendTransaction } = useSolanaProxy();
+
+  if (!walletProvider) {
+    return;
+  }
 
   const publicKey = walletProvider.publicKey;
 
