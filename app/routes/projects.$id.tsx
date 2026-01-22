@@ -21,7 +21,7 @@ import DeployButton from '~/components/deploy/DeployButton.client';
 import BackButton from '~/components/ui/BackButton';
 import { useViewport } from '~/lib/hooks';
 import { shortenString } from '~/utils/shortenString';
-import { useAppKitAccount } from '~/lib/hooks/useAppKitAccount.client';
+import { useAppKitAccount } from '~/lib/hooks/appkit.client';
 
 const InfoRow = ({ label, children, hidden }: { label: string; children: React.ReactNode; hidden?: boolean }) => {
   if (hidden) return null;

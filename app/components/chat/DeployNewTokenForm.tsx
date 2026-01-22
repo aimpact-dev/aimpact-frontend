@@ -8,8 +8,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useQuery } from '@tanstack/react-query';
-import { useAppKitProvider } from '@reown/appkit/react';
-import type { Provider } from '@reown/appkit-adapter-solana/react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { fromLamports } from '~/utils/solana';
 import { VersionedTransaction } from '@solana/web3.js';
@@ -33,7 +31,7 @@ import {
   useSetTokenForProject,
   type QuoteInitalBuyResponse,
 } from '~/lib/hooks/tanstack/useHeaven';
-import { useAppKitAccount } from '~/lib/hooks/useAppKitAccount.client';
+import { useAppKitAccount, useAppKitProvider } from '~/lib/hooks/appkit.client';
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
@@ -78,7 +76,12 @@ interface DeployNewTokenFormProps {
 
 export default function DeployNewTokenForm({ projectId, projectUrl, setShowTokenWindow }: DeployNewTokenFormProps) {
   const { isConnected } = useAppKitAccount();
-  const { walletProvider } = useAppKitProvider<Provider>('solana');
+  const { walletProvider } = useAppKitProvider();
+
+  if (!walletProvider) {
+    return;
+  }
+
   const publicKey = walletProvider.publicKey;
 
   const { fetchBalance, sendTransaction: sendTransactionProxy } = useSolanaProxy();

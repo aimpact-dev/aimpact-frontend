@@ -2,10 +2,8 @@ import Cookies from 'js-cookie';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { atom } from 'nanostores';
-import { useDisconnect, useAppKitProvider } from '@reown/appkit/react';
-import type { Provider } from '@reown/appkit-adapter-solana/react';
 import bs58 from 'bs58';
-import { useAppKitAccount } from './useAppKitAccount.client';
+import { useAppKitAccount, useAppKitProvider, useDisconnect } from './appkit.client';
 
 interface UserInfo {
   id: string;
@@ -41,7 +39,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { isConnected } = useAppKitAccount();
   const { disconnect } = useDisconnect();
-  const { walletProvider } = useAppKitProvider<Provider>('solana');
+  const { walletProvider } = useAppKitProvider();
 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [jwtToken, setJwtToken] = useState('');
