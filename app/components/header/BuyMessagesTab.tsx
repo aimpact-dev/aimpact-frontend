@@ -9,7 +9,7 @@ import { userInfo } from '~/lib/hooks/useAuth';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
-import { useAppKitAccount } from '~/lib/hooks/useAppKitAccout.client';
+import { useAppKitAccount } from '~/lib/hooks/useAppKitAccount.client';
 
 const BASE_MESSAGE_COUNT = 10;
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);

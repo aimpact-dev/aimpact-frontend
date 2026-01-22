@@ -7,7 +7,7 @@ import WhatsNew, { type WhatsNewPost } from '../info/WhatsNew';
 import { useQuery } from '@tanstack/react-query';
 import { ky } from 'query';
 import { useUserMetadata, useUpdateUserMetadata } from '~/lib/hooks/tanstack/useUserMetadata';
-import { useAppKitAccount } from '~/lib/hooks/useAppKitAccout.client';
+import { useAppKitAccount } from '~/lib/hooks/useAppKitAccount.client';
 
 function trackDailyPopup(
   key: string,

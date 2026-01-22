@@ -33,7 +33,7 @@ import {
   useSetTokenForProject,
   type QuoteInitalBuyResponse,
 } from '~/lib/hooks/tanstack/useHeaven';
-import { useAppKitAccount } from '~/lib/hooks/useAppKitAccout.client';
+import { useAppKitAccount } from '~/lib/hooks/useAppKitAccount.client';
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
