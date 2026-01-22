@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import LoadingScreen from '../common/LoadingScreen';
 
 export default function SolanaProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -52,11 +53,7 @@ export default function SolanaProvider({ children }: { children: React.ReactNode
   }, []);
 
   if (!isInitialized) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        Loading...
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return <>{children}</>;

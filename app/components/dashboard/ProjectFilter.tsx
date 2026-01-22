@@ -12,14 +12,12 @@ interface ProjectFiltersProps {
   isAuthorized: boolean;
 }
 
-function normalizeFilters(filters: ProjectFilters): ProjectFilters {
-  return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== undefined)) as ProjectFilters;
-}
-
 export const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: ProjectFiltersProps) => {
   const { isMobile } = useViewport();
 
-  const activeFiltersCount = Object.values(activeFilters).filter((val) => val !== undefined).length;
+  const activeFiltersCount = Object.entries(activeFilters).filter(
+    ([key, value]) => key !== 'owned' && value !== undefined,
+  ).length;
 
   function normalizeFilters(filters: ProjectFilters): ProjectFilters {
     return Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== undefined)) as ProjectFilters;
@@ -32,7 +30,6 @@ export const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: P
           {/* All Projects Button */}
           <Button
             variant={!activeFilters.owned ? 'outline' : 'ghost'}
-            disabled={activeFilters.owned}
             onClick={() => onFilterChange((prev) => ({ ...prev, owned: undefined }))}
             className={cn(
               'outline-none !rounded-3xl transition-all border',
@@ -50,7 +47,7 @@ export const ProjectFilter = ({ activeFilters, onFilterChange, isAuthorized }: P
             <div className="inline-block">
               <Button
                 variant={activeFilters.owned ? 'outline' : 'ghost'}
-                disabled={!isAuthorized || !activeFilters.owned}
+                disabled={!isAuthorized}
                 onClick={() => onFilterChange((prev) => normalizeFilters({ ...prev, owned: true }))}
                 className={cn(
                   'outline-none !rounded-3xl transition-all border',
