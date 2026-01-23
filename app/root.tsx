@@ -26,7 +26,7 @@ import LoadingScreen from './components/common/LoadingScreen';
 import { cssTransition, ToastContainer } from 'react-toastify';
 import GlobalPopupsProvider from './components/chat/GlobalPopups';
 import { ViewportProvider } from './lib/hooks/useViewport';
-import { AppKitProvider } from './components/providers/AppKitProvider';
+import AppKitProvider from './components/providers/AppKitProvider';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
