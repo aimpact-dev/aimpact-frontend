@@ -350,7 +350,6 @@ export const Workbench = memo(
 
           // if all actions already finished and commited OR there is no closed artifact.
           // we rerun this func every artifact state change, so we can just skip on 0 valid artifacts and just optimize memory
-          console.log('in waitForActions', allActionsFinished, someClosedArtifact);
           if (allActionsFinished || !someClosedArtifact) {
             return;
           }

@@ -22,7 +22,8 @@ import { BuildService } from '~/lib/services/buildService';
 import { AimpactPreviewStore } from '~/lib/stores/aimpactPreview';
 import { getPortCatcher } from '~/utils/previewPortCatcher';
 import { detectPackageManager, detectStartCommand } from '~/utils/projectCommands';
-import { tool, type UITool } from 'ai';
+import type { UITool, UITools } from '../message';
+import type { ToolUIPart } from 'ai';
 
 const { saveAs } = fileSaver;
 
@@ -56,7 +57,7 @@ export class WorkbenchStore {
   #reloadedMessages = new Set<string>();
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
-  toolCalls: MapStore<Record<string, UITool>> = map({});
+  toolCalls: MapStore<Record<string, ToolUIPart<UITools>>> = map({});
   messagesMetadata: MapStore<MessagesMetadata> = map({});
 
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);

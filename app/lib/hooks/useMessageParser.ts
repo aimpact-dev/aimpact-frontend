@@ -6,12 +6,10 @@ import {
 } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
-import { currentParsingMessageState } from '../stores/parse';
-import { chatStore } from '../stores/chat';
 import { extractContentFromUI } from '~/utils/message';
-import type { UIMessage, UITool, UITools } from '../message';
+import type { UIMessage, UITools } from '../message';
 import { useViewport } from './useViewport';
-import { getToolName, isToolUIPart, type ToolUIPart, type UIMessagePart } from 'ai';
+import { isToolUIPart, type ToolUIPart } from 'ai';
 
 const logger = createScopedLogger('useMessageParser');
 
@@ -19,7 +17,7 @@ export type MessageState = { artifactClosed: boolean };
 
 const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolean }) => ({
   onArtifactOpen: (data: ArtifactCallbackData) => {
-    console.log('onArtifactOpen', data);
+    console.debug('onArtifactOpen', data);
 
     if (isDesktop) {
       workbenchStore.setShowWorkbench(true);
@@ -27,12 +25,12 @@ const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolea
     workbenchStore.addArtifact(data);
   },
   onArtifactClose: (data: ArtifactCallbackData) => {
-    console.log('onArtifactClose');
+    console.debug('onArtifactClose');
 
     workbenchStore.updateArtifact(data, { closed: true });
   },
   onActionOpen: (data: ActionCallbackData, skipAction?: boolean) => {
-    console.log('onActionOpen', data.action);
+    console.debug('onActionOpen', data.action);
 
     // we only add shell actions when when the close tag got parsed because only then we have the content
     if (data.action.type === 'file' || data.action.type === 'update') {
@@ -45,7 +43,7 @@ const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolea
     }
   },
   onActionClose: (data: ActionCallbackData, skipAction?: boolean) => {
-    console.log('onActionClose', data.action);
+    console.debug('onActionClose', data.action);
     if (data.action.type !== 'file' && data.action.type !== 'update') {
       workbenchStore.addAction(data, skipAction);
     }
@@ -57,7 +55,7 @@ const createMessageParserCallbacks = ({ isDesktop = true }: { isDesktop?: boolea
     }
   },
   onActionStream: (data: ActionCallbackData, skipAction?: boolean) => {
-    console.log('onActionStream', data.action);
+    console.debug('onActionStream', data.action);
     if (!skipAction) {
       workbenchStore.runAction(data, true);
     }
@@ -82,10 +80,14 @@ export function useMessageParser() {
       messageId: message.id,
     };
 
-    if (toolCall.state !== 'input-available') return;
+    const args = (toolCall as any).args || (toolCall as any).input;
+    if (!args) {
+      console.log('No args or input found in toolCall', toolCall);
+      return;
+    }
 
     if (toolCall.type === 'tool-createFile') {
-      const { content, filePath } = toolCall.input;
+      const { content, filePath } = args;
       const payload: ActionCallbackData = {
         action: {
           type: 'file',
@@ -97,7 +99,7 @@ export function useMessageParser() {
       messageCallbacks.onActionOpen(payload);
       messageCallbacks.onActionClose(payload);
     } else if (toolCall.type === 'tool-updateFile') {
-      const { filePath, newContent, occurrences, oldContent, n } = toolCall.input;
+      const { filePath, newContent, occurrences, oldContent, n } = args;
       const payload: ActionCallbackData = {
         action: {
           type: 'update',
@@ -112,7 +114,7 @@ export function useMessageParser() {
       messageCallbacks.onActionOpen(payload);
       messageCallbacks.onActionClose(payload);
     } else if (toolCall.type === 'tool-executeShellCommand') {
-      const { command } = toolCall.input;
+      const { command } = args;
       const payload: ActionCallbackData = {
         action: {
           type: 'shell',
@@ -123,26 +125,34 @@ export function useMessageParser() {
       messageCallbacks.onActionOpen(payload);
       messageCallbacks.onActionClose(payload);
     }
+
+    workbenchStore.toolCalls.setKey(toolCall.toolCallId, toolCall);
   };
 
   const parseToolMessages = (messages: UIMessage[]) => {
     for (const [index, message] of messages.entries()) {
       const artifact = workbenchStore.getArtifact(message.id);
-      console.log('is artifact exists', artifact);
       if (!artifact) {
         messageCallbacks.onArtifactOpen({
           id: message.id,
           messageId: message.id,
           title: 'AI response',
         });
-        console.log('artifact created', workbenchStore.getArtifact(message.id));
       }
 
       const existingToolsCalls = Object.keys(workbenchStore.toolCalls.get());
       const toolCalls = message.parts.filter((p) => isToolUIPart(p));
+      const existingArtifact = workbenchStore.artifacts.get()[message.id];
+      // do we need this???
+      const existingActionIds = Object.keys(existingArtifact?.runner?.actions?.get() || {});
 
-      for (const toolCall of toolCalls) {
-        if (existingToolsCalls.includes(toolCall.toolCallId)) continue;
+      const onlyNewToolCalls = toolCalls.filter(
+        (tc) =>
+          tc.state !== 'input-streaming' &&
+          !existingToolsCalls.includes(tc.toolCallId) &&
+          !existingActionIds.includes(tc.toolCallId),
+      );
+      for (const toolCall of onlyNewToolCalls) {
         addToolToWorkbench(toolCall, message);
       }
 
@@ -182,6 +192,7 @@ export function useMessageParser() {
   };
 
   const parseMessages = useCallback((messages: UIMessage[]) => {
+    messages = messages.filter((m) => m.role !== 'user');
     const hasToolCall = messages.some((m) => m.parts.some((m) => m.type.startsWith('tool-')));
     // if (hasToolCall) {
     //   return parseToolMessages(messages);
@@ -191,7 +202,6 @@ export function useMessageParser() {
     const messagesWithTools = messages.filter((m) => m.parts.some((m) => m.type.startsWith('tool-')));
     const defaultMessages = messages.filter((m) => !m.parts.some((m) => m.type.startsWith('tool-')));
 
-    console.log('run parse messages', defaultMessages, messagesWithTools);
     parseOldXmlMessages(defaultMessages);
     parseToolMessages(messagesWithTools);
   }, []);

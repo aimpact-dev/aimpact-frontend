@@ -119,7 +119,6 @@ const processSampledMessages = createSampler(
 
     // we need this to prevent infinite useEffect loop
     if (someMetadataChanged) {
-      console.log('set new messages!!!!!!!!!!');
       setMessages(messages);
     }
     if (messages.length > initialMessages.length || someMetadataChanged) {
@@ -218,7 +217,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     onFinish: ({ message, isError, finishReason }) => {
       const artifact = workbenchStore.getArtifact(message.id);
-      console.log('finishing artifact', artifact);
       if (artifact) {
         workbenchStore.updateArtifact(
           { id: message.id, messageId: message.id, title: artifact.title },
@@ -260,7 +258,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     },
 
     onToolCall: ({ toolCall }) => {
-      console.log('Tool call received', toolCall, toolCall);
       if (toolCall.dynamic) {
         return;
       }
@@ -337,7 +334,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     if (templateMessage && !hasTemplateMessage) {
       result.splice(firstUserMessage + 1, 0, templateMessage);
     }
-    console.log('rerender messages', result);
 
     return result;
   }, [templateMessage, unfilteredMessages]);
@@ -377,7 +373,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       storeMessageHistory,
       setMessages,
     });
-  }, [messages, status, parseMessages, lastActionsFinsihedTime]);
+  }, [unfilteredMessages, status, parseMessages, lastActionsFinsihedTime]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
