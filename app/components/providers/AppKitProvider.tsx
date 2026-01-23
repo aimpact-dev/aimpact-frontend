@@ -1,23 +1,57 @@
 // app/components/providers/AppKitProvider.tsx
-import { AppKitProvider as ReownAppKitProvider } from '@reown/appkit/react';
-import { SolanaAdapter } from '@reown/appkit-adapter-solana/react';
-import { solana, solanaDevnet, solanaTestnet } from '@reown/appkit/networks';
-import React from 'react';
+'use client';
+import { useEffect, useState } from 'react';
+import LoadingScreen from '../common/LoadingScreen';
+import type { ReactNode } from 'react';
 
-const solanaWeb3JsAdapter = new SolanaAdapter();
+export default function AppKitProviderWrapper({ children }: { children: ReactNode }) {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [AppKitComponents, setAppKitComponents] = useState<{
+    Provider: any;
+    adapter: any;
+    networks: any;
+  } | null>(null);
 
-const metadata = {
-  name: 'AImpact',
-  description: 'AImpact Application',
-  url: typeof window !== 'undefined' ? window.location.origin : '',
-  icons: [`${typeof window !== 'undefined' ? window.location.origin : ''}/favicon.svg`],
-};
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-export function AppKitProvider({ children }: { children: React.ReactNode }) {
+    Promise.all([
+      import('@reown/appkit/react'),
+      import('@reown/appkit-adapter-solana/react'),
+      import('@reown/appkit/networks'),
+    ])
+      .then(([{ AppKitProvider }, { SolanaAdapter }, { solana, solanaTestnet, solanaDevnet }]) => {
+        setAppKitComponents({
+          Provider: AppKitProvider,
+          adapter: new SolanaAdapter(),
+          networks: { solana, solanaTestnet, solanaDevnet },
+        });
+        setIsInitialized(true);
+      })
+      .catch((error) => {
+        console.error('Failed to initialize AppKit:', error);
+        setIsInitialized(true);
+      });
+  }, []);
+
+  if (!isInitialized || !AppKitComponents) {
+    return <LoadingScreen />;
+  }
+
+  const { Provider, adapter, networks } = AppKitComponents;
+  const origin = window.location.origin;
+
+  const metadata = {
+    name: 'AImpact',
+    description: 'AImpact Application',
+    url: origin,
+    icons: [`${origin}/favicon.svg`],
+  };
+
   return (
-    <ReownAppKitProvider
-      adapters={[solanaWeb3JsAdapter]}
-      networks={[solana, solanaTestnet, solanaDevnet]}
+    <Provider
+      adapters={[adapter]}
+      networks={[networks.solana, networks.solanaTestnet, networks.solanaDevnet]}
       metadata={metadata}
       projectId={import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID}
       features={{
@@ -27,8 +61,8 @@ export function AppKitProvider({ children }: { children: React.ReactNode }) {
         legalCheckbox: true,
       }}
       themeMode="dark"
-      privacyPolicyUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/privacy-policy`}
-      termsConditionsUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/terms-of-service`}
+      privacyPolicyUrl={`${origin}/privacy-policy`}
+      termsConditionsUrl={`${origin}/terms-of-service`}
       themeVariables={{
         '--w3m-accent': '#9987ef',
         '--w3m-color-mix': '#9987ef',
@@ -36,6 +70,6 @@ export function AppKitProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </ReownAppKitProvider>
+    </Provider>
   );
 }
