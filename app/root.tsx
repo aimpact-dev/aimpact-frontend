@@ -26,12 +26,7 @@ import LoadingScreen from './components/common/LoadingScreen';
 import { cssTransition, ToastContainer } from 'react-toastify';
 import GlobalPopupsProvider from './components/chat/GlobalPopups';
 import { ViewportProvider } from './lib/hooks/useViewport';
-
-const SolanaProvider = React.lazy(() =>
-  import('./components/providers/SolanaProvider').then((mod) => ({
-    default: mod.default,
-  })),
-);
+import { AppKitProvider } from './components/providers/AppKitProvider';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -94,7 +89,7 @@ function Providers({ children }: { children: React.ReactNode }) {
     <ClientOnly>
       {() => (
         <Suspense fallback={<LoadingScreen />}>
-          <SolanaProvider>
+          <AppKitProvider>
             {/*<CivicAuthProvider*/}
             {/*  autoCreateWallet*/}
             {/*  autoConnectEmbeddedWallet*/}
@@ -110,7 +105,7 @@ function Providers({ children }: { children: React.ReactNode }) {
               </RefCodeProvider>
             </ViewportProvider>
             {/*</CivicAuthProvider>*/}
-          </SolanaProvider>
+          </AppKitProvider>
         </Suspense>
       )}
     </ClientOnly>
@@ -155,7 +150,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           pauseOnFocusLoss
           transition={toastAnimation}
           autoClose={3000}
-          theme='dark'
+          theme="dark"
         />
       </Providers>
       <ScrollRestoration />
