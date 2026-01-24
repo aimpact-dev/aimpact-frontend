@@ -16,11 +16,14 @@ export interface ShellAction extends BaseAction {
 }
 
 export type UpdateActionOccurrences = "first" | "all" | "nth";
-export interface UpdateAction extends BaseAction {
+export interface UpdateAction {
   type: 'update';
   filePath: string;
   occurrences?: UpdateActionOccurrences;
   n?: number;
+  content?: string; // deprecated
+  oldContent?: string;
+  newContent?: string;
 }
 
 export interface BuildAction extends BaseAction {

@@ -334,7 +334,7 @@ export const Workbench = memo(
 
       const waitForActions = async () => {
         const maxAttempts = 240; // it's 240 seconds timeout
-        const cooldown = 1000;
+        const cooldown = 3000;
         let attempt = 0;
         while (attempt < maxAttempts) {
           await sleep(cooldown);
