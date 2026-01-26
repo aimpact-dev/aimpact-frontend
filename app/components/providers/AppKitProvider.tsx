@@ -1,4 +1,3 @@
-// app/components/providers/AppKitProvider.tsx
 'use client';
 import { useEffect, useState } from 'react';
 import LoadingScreen from '../common/LoadingScreen';
