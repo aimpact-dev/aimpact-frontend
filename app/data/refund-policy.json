@@ -1,161 +1,161 @@
 {
-    "title": "Refund Policy",
-    "lastUpdated": "October 13th, 2025",
-    "intro": "This Refund Policy explains when and how refunds may be issued for purchases made on or through AImpact.dev \"AImpact,\" \"we,\" \"our,\" or \"us\"). This policy applies in addition to our Terms of Service and Privacy Policy.",
-    "sections": [
-      {
-        "content": [
-          {
+  "title": "Refund Policy",
+  "lastUpdated": "October 13th, 2025",
+  "intro": "This Refund Policy explains when and how refunds may be issued for purchases made on or through AImpact.dev \"AImpact,\" \"we,\" \"our,\" or \"us\"). This policy applies in addition to our Terms of Service and Privacy Policy.",
+  "sections": [
+    {
+      "content": [
+        {
           "type": "paragraph",
-          "value": "Until the official legal entity for AImpact is established, all payments, billing, and operational activities are temporarily handled by Sole Proprietor Oleksii Pitenko (FOP Pitenko Oleksii Yevheniyovych), registered in Ukraine, acting on behalf of the AImpact project."
+          "value": "Until the official legal entity for AImpact is established, all payments, billing, and operational activities are temporarily handled by Sole Proprietor Vladyslav Foroshcha (FOP Foroshcha Vladyslav Oleksandrovych), registered in Ukraine, acting on behalf of the AImpact project."
+        }
+      ]
+    },
+    {
+      "heading": "1) Overview",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "AImpact provides AI-powered developer tools, blockchain integrations, deployment pipelines, and related services (\"Service\"). Because many features provide immediate, automated value (e.g., AI generations, builds, deployments, and on-chain actions), most charges are non-refundable once consumed or initiated."
+        }
+      ]
+    },
+    {
+      "heading": "2) What's Typically Refundable",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "Refunds may be granted in limited circumstances:"
+        },
+        {
+          "type": "list",
+          "value": [
+            "Duplicate charges / billing errors: If you were mistakenly charged more than once for the same item or period.",
+            "Failed service activation: If you paid but could not access the Service due to an issue on our side and we were unable to resolve it within a reasonable time.",
+            "Unauthorized transactions: If a charge was made without your authorization (subject to investigation and account security review)."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "3) What's Not Refundable",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "The following are non-refundable:"
+        },
+        {
+          "type": "list",
+          "value": [
+            "Usage-based fees: AI tokens/credits, compute minutes, build minutes, storage, bandwidth, or other metered usage once consumed.",
+            "Deploys and builds: Automated jobs, code generations, or deployments that have started or completed.",
+            "Third-party/network fees: Blockchain gas/transaction fees, validator fees, token launchpad fees, or any charges levied by third-party providers.",
+            "On-chain actions: Smart contract deployments or token launches; blockchain transactions are irreversible.",
+            "Promotions/discounts: Price differences due to sales, coupons, or later price changes."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "4) Subscriptions, Trials & Cancellations",
+      "content": [
+        {
+          "type": "list",
+          "value": [
+            "Subscriptions: You may cancel at any time to stop future renewals. Fees already paid for the current billing period are non-refundable, unless required by law or covered under Section 2.",
+            "Free trials: If you do not cancel before the trial ends, the subscription renews automatically and the first billing cycle is non-refundable.",
+            "Downgrades: Take effect at the next billing cycle; no proration refunds unless stated otherwise in your specific plan terms."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "5) EU/EEA Consumer Right of Withdrawal",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "If you are a consumer in the EU/EEA, you may have a 14-day right to withdraw from distance contracts. However, for digital content/services not supplied on a tangible medium, where you explicitly request immediate performance and acknowledge that you lose your right of withdrawal once performance begins, the withdrawal right no longer applies."
+        },
+        {
+          "type": "paragraph",
+          "value": "Because AImpact typically provides immediate access, automated AI generations, and deployments upon sign-up/purchase, you will be asked to consent to immediate performance and acknowledge loss of the withdrawal right when applicable."
+        }
+      ]
+    },
+    {
+      "heading": "6) Chargebacks",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "If you initiate a chargeback, we may suspend or terminate your account during investigation. We encourage contacting us first so we can resolve billing issues quickly."
+        }
+      ]
+    },
+    {
+      "heading": "7) How to Request a Refund",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "Please email our billing team with the following information:"
+        },
+        {
+          "type": "list",
+          "value": [
+            "Subject: \"Refund Request — [Your Wallet Address]\"",
+            "Receipt, invoice number, or blockchain transaction hash, and charge date",
+            "Detailed reason for the request and any supporting screenshots/logs"
+          ]
+        },
+        {
+          "type": "contact",
+          "value": {
+            "email": "support@aimpact.dev"
           }
-        ]
-      },
-      {
-        "heading": "1) Overview",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "AImpact provides AI-powered developer tools, blockchain integrations, deployment pipelines, and related services (\"Service\"). Because many features provide immediate, automated value (e.g., AI generations, builds, deployments, and on-chain actions), most charges are non-refundable once consumed or initiated."
+        }
+      ]
+    },
+    {
+      "heading": "8) Evaluation & Timeline",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "We evaluate refund requests within a reasonable timeframe. If approved, refunds are issued to the original payment method. Your bank or provider may take additional time to post funds. We'll notify you via email of the outcome."
+        }
+      ]
+    },
+    {
+      "heading": "9) Plan-Specific or Enterprise Terms",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "If you have a custom or enterprise agreement, that agreement may include specific refund, credit, or service-level terms that prevail over this policy where they differ."
+        }
+      ]
+    },
+    {
+      "heading": "10) Changes to This Policy",
+      "content": [
+        {
+          "type": "paragraph",
+          "value": "We may update this Refund Policy from time to time. The \"Last updated\" date indicates the latest revision. Continued use of the Service after changes means you accept the updated policy."
+        }
+      ]
+    },
+    {
+      "heading": "11) Contact",
+      "content": [
+        {
+          "type": "contact",
+          "value": {
+            "email": "support@aimpact.dev",
+            "website": "https://aimpact.dev"
           }
-        ]
-      },
-      {
-        "heading": "2) What's Typically Refundable",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "Refunds may be granted in limited circumstances:"
-          },
-          {
-            "type": "list",
-            "value": [
-              "Duplicate charges / billing errors: If you were mistakenly charged more than once for the same item or period.",
-              "Failed service activation: If you paid but could not access the Service due to an issue on our side and we were unable to resolve it within a reasonable time.",
-              "Unauthorized transactions: If a charge was made without your authorization (subject to investigation and account security review)."
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "3) What's Not Refundable",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "The following are non-refundable:"
-          },
-          {
-            "type": "list",
-            "value": [
-              "Usage-based fees: AI tokens/credits, compute minutes, build minutes, storage, bandwidth, or other metered usage once consumed.",
-              "Deploys and builds: Automated jobs, code generations, or deployments that have started or completed.",
-              "Third-party/network fees: Blockchain gas/transaction fees, validator fees, token launchpad fees, or any charges levied by third-party providers.",
-              "On-chain actions: Smart contract deployments or token launches; blockchain transactions are irreversible.",
-              "Promotions/discounts: Price differences due to sales, coupons, or later price changes."
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "4) Subscriptions, Trials & Cancellations",
-        "content": [
-          {
-            "type": "list",
-            "value": [
-              "Subscriptions: You may cancel at any time to stop future renewals. Fees already paid for the current billing period are non-refundable, unless required by law or covered under Section 2.",
-              "Free trials: If you do not cancel before the trial ends, the subscription renews automatically and the first billing cycle is non-refundable.",
-              "Downgrades: Take effect at the next billing cycle; no proration refunds unless stated otherwise in your specific plan terms."
-            ]
-          }
-        ]
-      },
-      {
-        "heading": "5) EU/EEA Consumer Right of Withdrawal",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "If you are a consumer in the EU/EEA, you may have a 14-day right to withdraw from distance contracts. However, for digital content/services not supplied on a tangible medium, where you explicitly request immediate performance and acknowledge that you lose your right of withdrawal once performance begins, the withdrawal right no longer applies."
-          },
-          {
-            "type": "paragraph",
-            "value": "Because AImpact typically provides immediate access, automated AI generations, and deployments upon sign-up/purchase, you will be asked to consent to immediate performance and acknowledge loss of the withdrawal right when applicable."
-          }
-        ]
-      },
-      {
-        "heading": "6) Chargebacks",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "If you initiate a chargeback, we may suspend or terminate your account during investigation. We encourage contacting us first so we can resolve billing issues quickly."
-          }
-        ]
-      },
-      {
-        "heading": "7) How to Request a Refund",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "Please email our billing team with the following information:"
-          },
-          {
-            "type": "list",
-            "value": [
-              "Subject: \"Refund Request — [Your Wallet Address]\"",
-              "Receipt, invoice number, or blockchain transaction hash, and charge date",
-              "Detailed reason for the request and any supporting screenshots/logs"
-            ]
-          },
-          {
-            "type": "contact",
-            "value": {
-              "email": "support@aimpact.dev"
-            }
-          }
-        ]
-      },
-      {
-        "heading": "8) Evaluation & Timeline",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "We evaluate refund requests within a reasonable timeframe. If approved, refunds are issued to the original payment method. Your bank or provider may take additional time to post funds. We'll notify you via email of the outcome."
-          }
-        ]
-      },
-      {
-        "heading": "9) Plan-Specific or Enterprise Terms",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "If you have a custom or enterprise agreement, that agreement may include specific refund, credit, or service-level terms that prevail over this policy where they differ."
-          }
-        ]
-      },
-      {
-        "heading": "10) Changes to This Policy",
-        "content": [
-          {
-            "type": "paragraph",
-            "value": "We may update this Refund Policy from time to time. The \"Last updated\" date indicates the latest revision. Continued use of the Service after changes means you accept the updated policy."
-          }
-        ]
-      },
-      {
-        "heading": "11) Contact",
-        "content": [
-          {
-            "type": "contact",
-            "value": {
-              "email": "support@aimpact.dev",
-              "website": "https://aimpact.dev"
-            }
-          },
-          {
-            "type": "paragraph",
-            "value": "Governing law: Estonia (see Terms of Service for details)."
-          }
-        ]
-      }
-    ]
-  }
+        },
+        {
+          "type": "paragraph",
+          "value": "Governing law: Estonia (see Terms of Service for details)."
+        }
+      ]
+    }
+  ]
+}
