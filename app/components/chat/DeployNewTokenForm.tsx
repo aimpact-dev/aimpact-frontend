@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { useQuery } from '@tanstack/react-query';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { fromLamports } from '~/utils/solana';
 import { VersionedTransaction } from '@solana/web3.js';
@@ -32,6 +31,7 @@ import {
   useSetTokenForProject,
   type QuoteInitalBuyResponse,
 } from '~/lib/hooks/tanstack/useHeaven';
+import { Provider, useAppKitAccount, useAppKitProvider } from '~/lib/hooks/appkit.client';
 
 const acceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif'];
 const estimatedDeployCost = 0.0392; // in sol. there's no need to complicate it
@@ -75,7 +75,15 @@ interface DeployNewTokenFormProps {
 }
 
 export default function DeployNewTokenForm({ projectId, projectUrl, setShowTokenWindow }: DeployNewTokenFormProps) {
-  const { publicKey, signTransaction } = useWallet();
+  const { isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
+
+  if (!walletProvider) {
+    return;
+  }
+
+  const publicKey = walletProvider.publicKey;
+
   const { fetchBalance, sendTransaction: sendTransactionProxy } = useSolanaProxy();
   const { mutateAsync: createHeavenTokenAsync } = useCreateHeavenToken();
   const { mutateAsync: quoteInitalBuy } = useQuoteInitialBuy();
@@ -121,7 +129,10 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const onSubmit = async (values: z.infer<typeof schema>) => {
-    if (!publicKey || !signTransaction) return;
+    if (!publicKey || !isConnected) {
+      toast.error('Please connect your wallet');
+      return;
+    }
 
     try {
       if (walletBalance && estimatedDeployCost > walletBalance) {
@@ -129,7 +140,9 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
           message: `You should have at least ${estimatedDeployCost.toFixed(3)} SOL to create token`,
           type: 'disabled',
         });
+        return;
       }
+
       let initialBuy: QuoteInitalBuyResponse;
       if (prebuy && walletBalance) {
         initialBuy = await quoteInitalBuy(prebuy);
@@ -157,8 +170,10 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
 
       const txObj = VersionedTransaction.deserialize(base64ToUint8Array(tx));
       let signedTx: VersionedTransaction;
+
       try {
-        signedTx = await signTransaction(txObj);
+        const signedTxResult = await walletProvider.signTransaction(txObj);
+        signedTx = signedTxResult as VersionedTransaction;
       } catch (err) {
         console.error(err);
         toast.error('Transaction failed. Please try again.');
@@ -174,13 +189,13 @@ export default function DeployNewTokenForm({ projectId, projectUrl, setShowToken
       });
       const refetchResponse = await refetchTokenData();
       if (!refetchResponse.isSuccess) {
-        toast.error('Successfuly launched token, but failed to load token info. Try to reaload page');
+        toast.error('Successfully launched token, but failed to load token info. Try to reload page');
       } else {
-        toast.success('Sucessfully launched token');
+        toast.success('Successfully launched token');
       }
       setShowTokenWindow(false);
     } catch (err: any) {
-      if (err.message?.includes('User rejected')) return;
+      if (err.message?.includes('User rejected') || err.message?.includes('rejected')) return;
       console.error(err);
       toast.error('Transaction failed. Please try again.');
     }

@@ -1,70 +1,60 @@
-import React, { useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
-import '@solana/wallet-adapter-react-ui/styles.css';
-import { 
-  PhantomWalletAdapter, 
-  SolflareWalletAdapter,
-  WalletConnectWalletAdapter 
-} from '@solana/wallet-adapter-wallets';
-import { 
-  SolanaMobileWalletAdapter,
-  createDefaultAddressSelector,
-  createDefaultAuthorizationResultCache,
-  createDefaultWalletNotFoundHandler
-} from '@solana-mobile/wallet-adapter-mobile';
-import { ClientOnly } from 'remix-utils/client-only';
+'use client';
+import { useEffect, useState } from 'react';
+import LoadingScreen from '../common/LoadingScreen';
 
-export interface SolanaProviderProps {
-  children: React.ReactNode;
-}
+export default function SolanaProvider({ children }: { children: React.ReactNode }) {
+  const [isInitialized, setIsInitialized] = useState(false);
 
-export default function SolanaProvider({ children }: SolanaProviderProps) {
-  const network = WalletAdapterNetwork.Mainnet;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-  const wallets = useMemo(
-    () => [
-      /**
-       * Mobile Wallet Adapter should be first for proper mobile detection
-       * This enables authorization for mobile wallets (e.g., Phantom, Solflare on mobile)
-       */
-      new SolanaMobileWalletAdapter({
-        addressSelector: createDefaultAddressSelector(),
-        appIdentity: {
+    Promise.all([
+      import('@reown/appkit/react'),
+      import('@reown/appkit-adapter-solana/react'),
+      import('@reown/appkit/networks'),
+    ])
+      .then(([{ createAppKit }, { SolanaAdapter }, { solana, solanaTestnet, solanaDevnet }]) => {
+        const origin = window.location.origin;
+        const metadata = {
           name: 'AImpact',
-          uri: 'https://aimpact.dev',
-          icon: '/favicon.svg',
-        },
-        authorizationResultCache: createDefaultAuthorizationResultCache(),
-        cluster: network,
-        onWalletNotFound: createDefaultWalletNotFoundHandler(),
-      }),
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-      new WalletConnectWalletAdapter({
-        network,
-        options: {
-          projectId: import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID,
-        },
-      }),
-    ],
-    [network]
-  );
+          description: 'AImpact Application',
+          url: origin,
+          icons: [`${origin}/favicon.svg`],
+        };
 
-  return (
-    <ClientOnly>
-      {() => {
-        return (
-          <ConnectionProvider endpoint={endpoint}>
-            <WalletProvider wallets={wallets} autoConnect>
-              <WalletModalProvider>{children}</WalletModalProvider>
-            </WalletProvider>
-          </ConnectionProvider>
-        );
-      }}
-    </ClientOnly>
-  );
+        const solanaWeb3JsAdapter = new SolanaAdapter();
+
+        createAppKit({
+          adapters: [solanaWeb3JsAdapter],
+          networks: [solana, solanaTestnet, solanaDevnet],
+          metadata,
+          projectId: import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID,
+          features: {
+            analytics: true,
+            socials: ['google', 'discord', 'x'],
+            connectMethodsOrder: ['social', 'email', 'wallet'],
+            legalCheckbox: true,
+          },
+          themeMode: 'dark',
+          privacyPolicyUrl: `${origin}/privacy-policy`,
+          termsConditionsUrl: `${origin}/terms-of-service`,
+          themeVariables: {
+            '--w3m-accent': '#9987ef',
+            '--w3m-color-mix': '#9987ef',
+            '--w3m-color-mix-strength': 5,
+          },
+        });
+
+        setIsInitialized(true);
+      })
+      .catch((error) => {
+        console.error('Failed to initialize AppKit:', error);
+      });
+  }, []);
+
+  if (!isInitialized) {
+    return <LoadingScreen />;
+  }
+
+  return <>{children}</>;
 }

@@ -1,13 +1,13 @@
 import { useNavigation } from '@remix-run/react';
 import { Badge, Button, Card } from '../ui';
 import { twMerge } from 'tailwind-merge';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { useSolanaProxy } from '~/lib/hooks/api-hooks/useSolanaProxyApi';
 import { useStore } from '@nanostores/react';
 import { userInfo } from '~/lib/hooks/useAuth';
 import Cookies from 'js-cookie';
 import { toast } from 'react-toastify';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { useAppKitAccount, useAppKitProvider, type Provider } from '~/lib/hooks/appkit.client';
 
 const BASE_MESSAGE_COUNT = 10;
 const MESSAGE_PRICE_IN_SOL = Number(import.meta.env.VITE_PRICE_PER_MESSAGE_IN_SOL);
@@ -27,51 +27,59 @@ export default function BuyMessagesTab() {
     ? parseFloat((discountedMessageCount / BASE_MESSAGE_COUNT).toFixed(2)).toString()
     : null;
 
-  const { publicKey, signTransaction } = useWallet();
+  const { isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
   const { getRecentBlockhash, sendTransaction } = useSolanaProxy();
 
+  if (!walletProvider) {
+    return;
+  }
+
+  const publicKey = walletProvider.publicKey;
+
   const handlePurchase = async () => {
-    if (!publicKey || !sendTransaction || !signTransaction) {
+    if (!isConnected || !publicKey) {
+      toast.error('Please connect your wallet to purchase messages.');
       return;
     }
 
-    // 1. Fetch recent blockhash and lastValidBlockHeight from backend
-    let blockhash, lastValidBlockHeight;
     const authToken = Cookies.get('authToken');
     if (!authToken) {
       toast.error('You need to be logged in to purchase messages.');
       return;
     }
 
+    let blockhash, lastValidBlockHeight;
+
     try {
       const data = await getRecentBlockhash();
       blockhash = data.blockhash;
       lastValidBlockHeight = data.lastValidBlockHeight;
     } catch (err) {
+      toast.error('Failed to prepare transaction. Please try again.');
       return;
     }
 
-    // 2. Build transaction using new TransactionBlockhashCtor
-    let transaction = new Transaction({
-      blockhash,
-      lastValidBlockHeight,
-      feePayer: publicKey,
-    }).add(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: new PublicKey(import.meta.env.VITE_DEPOSIT_ADDRESS),
-        lamports: MESSAGE_PRICE_IN_SOL * BASE_MESSAGE_COUNT * LAMPORTS_PER_SOL,
-      }),
-    );
-
-    const signedTransaction = await signTransaction(transaction);
-    const serializedTransaction = signedTransaction.serialize();
-    const base64 = Buffer.from(serializedTransaction).toString('base64');
-
-    // 3. Send transaction with wallet
     try {
+      const transaction = new Transaction({
+        blockhash,
+        lastValidBlockHeight,
+        feePayer: publicKey,
+      }).add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: new PublicKey(import.meta.env.VITE_DEPOSIT_ADDRESS),
+          lamports: MESSAGE_PRICE_IN_SOL * BASE_MESSAGE_COUNT * LAMPORTS_PER_SOL,
+        }),
+      );
+
+      const signedTransaction = await walletProvider.signTransaction(transaction);
+      const serializedTransaction = (signedTransaction as Transaction).serialize();
+      const base64 = Buffer.from(serializedTransaction).toString('base64');
+
       await sendTransaction(base64);
-      (window as any).plausible('purchase_messages', {
+
+      (window as any).plausible?.('purchase_messages', {
         props: {
           message_count: BASE_MESSAGE_COUNT,
           purchase_messages_success: true,
@@ -81,8 +89,13 @@ export default function BuyMessagesTab() {
 
       toast.success('Purchase completed!');
     } catch (err) {
-      if (err instanceof Error && err.message.includes('User rejected the request')) {
-        (window as any).plausible('purchase_messages', {
+      console.error('Transaction error:', err);
+
+      if (
+        err instanceof Error &&
+        (err.message.includes('User rejected') || err.message.includes('rejected') || err.message.includes('cancelled'))
+      ) {
+        (window as any).plausible?.('purchase_messages', {
           props: {
             message_count: BASE_MESSAGE_COUNT,
             purchase_messages_success: false,
@@ -91,6 +104,14 @@ export default function BuyMessagesTab() {
         });
         return;
       }
+
+      (window as any).plausible?.('purchase_messages', {
+        props: {
+          message_count: BASE_MESSAGE_COUNT,
+          purchase_messages_success: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        },
+      });
 
       toast.error('Transaction failed. Please try again.');
     }
@@ -129,7 +150,7 @@ export default function BuyMessagesTab() {
             <b>{MESSAGE_PRICE_IN_SOL * BASE_MESSAGE_COUNT}</b>
             <span className="text-sm align-text-baseline">SOL</span>
           </p>
-          <Button className="w-full" onClick={handlePurchase} disabled={isSubmitting || !publicKey}>
+          <Button className="w-full" onClick={handlePurchase} disabled={isSubmitting || !isConnected}>
             <div
               className={twMerge(
                 'color-accent-500 size-5',

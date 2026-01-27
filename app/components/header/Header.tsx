@@ -2,7 +2,6 @@ import { useStore } from '@nanostores/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
-import { useWallet } from '@solana/wallet-adapter-react';
 import CustomWalletButton from '../common/CustomWalletButton';
 import { type CSSProperties, type PropsWithChildren, type ReactElement, type MouseEvent } from 'react';
 import { Button } from '~/components/ui/Button';
@@ -19,6 +18,7 @@ import { useViewport } from '~/lib/hooks';
 import MessagesPanel from './MessagesPanel';
 import { cn } from '~/lib/utils';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { useAppKitAccount } from '~/lib/hooks/appkit.client';
 
 export type ButtonProps = PropsWithChildren<{
   className?: string;
@@ -33,7 +33,8 @@ export type ButtonProps = PropsWithChildren<{
 type EditorMode = 'chat' | 'code';
 
 export function Header() {
-  const { connected } = useWallet();
+  const chat = useStore(chatStore);
+  const { isConnected } = useAppKitAccount();
   const user = useStore(userInfo);
   const navigate = useNavigate();
   const { isMobile, isSmallViewport } = useViewport();
@@ -118,7 +119,7 @@ export function Header() {
             )}
 
             <div className="flex justify-center items-center gap-2.5">
-              {connected && user && (
+              {isConnected && user && (
                 <>
                   <MessagesPanel />
                 </>

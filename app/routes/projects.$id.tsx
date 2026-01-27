@@ -3,7 +3,6 @@
 import { useLocation, useParams } from '@remix-run/react';
 import { useDeploymentQuery, useProjectQuery } from 'query/use-project-query';
 import { useAuth } from '~/lib/hooks/useAuth';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { useMemo, useState } from 'react';
 import { formatUrl } from '~/utils/urlUtils';
 import LoadingScreen from '~/components/common/LoadingScreen';
@@ -22,6 +21,7 @@ import DeployButton from '~/components/deploy/DeployButton.client';
 import BackButton from '~/components/ui/BackButton';
 import { useViewport } from '~/lib/hooks';
 import { shortenString } from '~/utils/shortenString';
+import { useAppKitAccount } from '~/lib/hooks/appkit.client';
 
 const InfoRow = ({ label, children, hidden }: { label: string; children: React.ReactNode; hidden?: boolean }) => {
   if (hidden) return null;
@@ -43,7 +43,7 @@ export default function Project() {
     );
   }
   const auth = useAuth();
-  const { publicKey, connected } = useWallet();
+  const { address, isConnected } = useAppKitAccount();
   const projectQuery = useProjectQuery(params.id);
   const { isMobile } = useViewport();
 
@@ -51,13 +51,8 @@ export default function Project() {
   const from = location.state?.from as string | undefined;
 
   const isOwner = useMemo(() => {
-    return !!(
-      auth &&
-      auth.isAuthorized &&
-      connected &&
-      publicKey?.toBase58() === projectQuery.data?.projectOwnerAddress
-    );
-  }, [auth, connected, publicKey, projectQuery.data?.projectOwnerAddress]);
+    return !!(auth && auth.isAuthorized && isConnected && address === projectQuery.data?.projectOwnerAddress);
+  }, [auth, isConnected, address, projectQuery.data?.projectOwnerAddress]);
 
   const [showInfoUpdateWindow, setShowInfoUpdateWindow] = useState(false);
 

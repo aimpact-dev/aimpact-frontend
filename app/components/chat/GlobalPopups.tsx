@@ -1,4 +1,3 @@
-import { useWallet } from '@solana/wallet-adapter-react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '~/lib/hooks/useAuth';
 import Popup from '../common/Popup';
@@ -8,6 +7,7 @@ import WhatsNew, { type WhatsNewPost } from '../info/WhatsNew';
 import { useQuery } from '@tanstack/react-query';
 import { ky } from 'query';
 import { useUserMetadata, useUpdateUserMetadata } from '~/lib/hooks/tanstack/useUserMetadata';
+import { useAppKitAccount } from '~/lib/hooks/appkit.client';
 
 function trackDailyPopup(
   key: string,
@@ -64,7 +64,7 @@ type PopupState =
   | { state: 'none' };
 
 export default function GlobalPopupsProvider({ children }: { children: React.ReactNode }) {
-  const { connected } = useWallet();
+  const { isConnected } = useAppKitAccount();
   const { isAuthorized } = useAuth();
   const { started: chatStarted } = useStore(chatStore);
 
@@ -117,11 +117,11 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
   }, [chatStarted, metadata, popupState]);
 
   useEffect(() => {
-    if (!connected || !isAuthorized || !metadata || popupState.state !== 'none') return;
+    if (!isConnected || !isAuthorized || !metadata || popupState.state !== 'none') return;
 
     const timer = setTimeout(() => {
       // Re-check conditions after 1 second
-      if (!connected || !isAuthorized || !metadata || popupState.state !== 'none') return;
+      if (!isConnected || !isAuthorized || !metadata || popupState.state !== 'none') return;
 
       // Intro popup
       const trackIntro = trackDailyPopup('popupIntro', metadata, updateMetadata);
@@ -165,7 +165,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [connected, isAuthorized, metadata, popupState]);
+  }, [isConnected, isAuthorized, metadata, popupState]);
 
   // Reinitialize Youform when a popup should be shown
   useEffect(() => {
@@ -223,7 +223,7 @@ export default function GlobalPopupsProvider({ children }: { children: React.Rea
   };
 
   const UserPollingPopups = () => {
-    if (!connected || !isAuthorized) return null;
+    if (!isConnected || !isAuthorized) return null;
 
     return (
       <>

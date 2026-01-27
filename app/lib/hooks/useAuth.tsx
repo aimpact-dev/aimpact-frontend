@@ -1,10 +1,9 @@
-import { useWallet } from '@solana/wallet-adapter-react';
 import Cookies from 'js-cookie';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { WalletSignMessageError } from '@solana/wallet-adapter-base';
-import bs58 from 'bs58';
 import { toast } from 'react-toastify';
 import { atom } from 'nanostores';
+import bs58 from 'bs58';
+import { useAppKitAccount, useAppKitProvider, useDisconnect, type Provider } from './appkit.client';
 
 interface UserInfo {
   id: string;
@@ -38,20 +37,25 @@ export const userInfo = atom<UserInfo | undefined>(undefined);
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { publicKey, connected, signMessage, disconnect } = useWallet();
+  const { isConnected } = useAppKitAccount();
+  const { disconnect } = useDisconnect();
+  const { walletProvider } = useAppKitProvider<Provider>('solana');
+
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [jwtToken, setJwtToken] = useState('');
 
   useEffect(() => {
     const checkCreds = async () => {
-      if (connected && isAuthorized) {
-        return;
-      }
-
-      if (!connected || !signMessage || !publicKey) {
+      if (!isConnected) {
         setIsAuthorized(false);
         return;
       }
+
+      if (!walletProvider || !walletProvider.publicKey) {
+        return;
+      }
+
+      const publicKey = walletProvider.publicKey;
 
       const authToken = Cookies.get('authToken');
 
@@ -81,8 +85,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { message, nonce } = (await requestMessage.json()) as RequestMessageResponseType;
 
         try {
-          const rawSignature = await signMessage(new TextEncoder().encode(message));
-          const signature = bs58.encode(rawSignature);
+          const encodedMessage = new TextEncoder().encode(message);
+          const signedMessage = await walletProvider.signMessage(encodedMessage);
+
+          const signature = bs58.encode(signedMessage);
 
           // backend /api/login logic
           const response = await fetch(`${import.meta.env.PUBLIC_BACKEND_URL}/auth/loginWithWallet`, {
@@ -112,10 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           console.error(error);
           toast.error((error as Error)?.message || 'Failed to sign message and authorize');
-
-          if (error instanceof WalletSignMessageError) {
-            await handleDisconnect();
-          }
+          await handleDisconnect();
         }
       } else {
         setIsAuthorized(true);
@@ -124,20 +127,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkCreds();
-  }, [publicKey, connected, signMessage, disconnect]);
+  }, [isConnected, walletProvider]);
 
   useEffect(() => {
-    if (!connected && isAuthorized) {
+    if (!isConnected && isAuthorized) {
       Cookies.remove('authToken');
       setIsAuthorized(false);
       setJwtToken('');
       userInfo.set(undefined);
     }
-  }, [connected, isAuthorized]);
+  }, [isConnected, isAuthorized]);
 
   useEffect(() => {
-    if (!connected || !isAuthorized) {
-        return;
+    if (!isConnected || !isAuthorized) {
+      return;
     }
 
     const req = async () => {
@@ -168,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const interval = setInterval(req, 10000);
 
     return () => clearInterval(interval);
-  }, [connected, isAuthorized]);
+  }, [isConnected, isAuthorized]);
 
   const handleDisconnect = async () => {
     Cookies.remove('authToken');
