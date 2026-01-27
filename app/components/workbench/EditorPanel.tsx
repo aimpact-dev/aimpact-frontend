@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import { memo, useMemo, useEffect, useRef } from 'react';
+import { memo, useMemo, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
@@ -25,6 +25,8 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { Search } from './Search'; // <-- Ensure Search is imported
 import { classNames } from '~/utils/classNames'; // <-- Import classNames if not already present
 import { LockManager } from './LockManager'; // <-- Import LockManager
+import { Tooltip } from '../chat/Tooltip';
+import { twMerge } from 'tailwind-merge';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -38,7 +40,6 @@ interface EditorPanelProps {
   onFileSelect?: (value?: string) => void;
   onFileSave?: OnEditorSave;
   onFileReset?: () => void;
-  isAutoSaveEnabled?: boolean;
 }
 
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
@@ -58,13 +59,14 @@ export const EditorPanel = memo(
     onEditorScroll,
     onFileSave,
     onFileReset,
-    isAutoSaveEnabled,
   }: EditorPanelProps) => {
     renderLogger.trace('EditorPanel');
 
     const theme = useStore(themeStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
     const previousFileRef = useRef<string | undefined>(selectedFile);
+
+    const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(true);
 
     // Auto-save when switching files
     useEffect(() => {
@@ -167,21 +169,59 @@ export const EditorPanel = memo(
             <Panel className="flex flex-col" defaultSize={80} minSize={20}>
               <PanelHeader className="overflow-x-auto">
                 {activeFileSegments?.length && (
-                  <div className="flex items-center flex-1 text-sm">
-                    <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
-                    {activeFileUnsaved && (
-                      <div className="flex gap-1 ml-auto -mr-1.5">
-                        <PanelHeaderButton onClick={onFileSave}>
-                          <div className="i-ph:floppy-disk-duotone" />
-                          Save
-                        </PanelHeaderButton>
-                        <PanelHeaderButton onClick={onFileReset}>
-                          <div className="i-ph:clock-counter-clockwise-duotone" />
-                          Reset
-                        </PanelHeaderButton>
-                      </div>
-                    )}
-                  </div>
+                  <>
+                    <div className="flex items-center flex-1 text-sm">
+                      <FileBreadcrumb pathSegments={activeFileSegments} files={files} onFileSelect={onFileSelect} />
+                      {activeFileUnsaved && (
+                        <div className="flex gap-1 ml-auto -mr-1.5">
+                          <PanelHeaderButton onClick={onFileSave}>
+                            <div className="i-ph:floppy-disk-duotone" />
+                            Save
+                          </PanelHeaderButton>
+                          <PanelHeaderButton onClick={onFileReset}>
+                            <div className="i-ph:clock-counter-clockwise-duotone" />
+                            Reset
+                          </PanelHeaderButton>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center overflow-y-auto gap-2">
+                      <PanelHeaderButton
+                        onClick={() => setIsAutoSaveEnabled((v) => !v)}
+                        aria-pressed={isAutoSaveEnabled}
+                        className="group "
+                      >
+                        <>
+                          <div
+                            className={twMerge(
+                              'size-4',
+                              isAutoSaveEnabled
+                                ? 'color-accent-500 i-ph:floppy-disk-fill group-hover:color-accent-400'
+                                : 'i-ph:floppy-disk',
+                            )}
+                          ></div>
+                          <span
+                            className={twMerge(
+                              '',
+                              isAutoSaveEnabled ? 'color-accent-500/90 group-hover:color-accent-400' : '',
+                            )}
+                          >
+                            Auto-save
+                          </span>
+                        </>
+                      </PanelHeaderButton>
+                      <PanelHeaderButton
+                        onClick={() => {
+                          workbenchStore.downloadZip();
+                        }}
+                      >
+                        <>
+                          <div className="i-ph:box-arrow-up size-4"></div>
+                          Export
+                        </>
+                      </PanelHeaderButton>
+                    </div>
+                  </>
                 )}
               </PanelHeader>
               <div className="h-full flex-1 overflow-hidden modern-scrollbar">

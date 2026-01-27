@@ -2,16 +2,13 @@ import { useStore } from '@nanostores/react';
 import { ClientOnly } from 'remix-utils/client-only';
 import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
-import { HeaderActionButtons } from './HeaderActionButtons.client';
 import CustomWalletButton from '../common/CustomWalletButton';
 import { type CSSProperties, type PropsWithChildren, type ReactElement, type MouseEvent } from 'react';
 import { Button } from '~/components/ui/Button';
 import { userInfo } from '~/lib/hooks/useAuth';
-import GetMessagesButton from '../chat/GetMessagesButton';
 import HowItWorksButton from '../chat/HowItWorksButton';
 import RewardsNavButton from '../chat/RewardsNavButton';
 import LeaderboardNavButton from '../chat/LeaderboardNavButton';
-import DeployTokenNavButton from '../chat/DeployTokenNavButton';
 import { useNavigate, useParams } from '@remix-run/react';
 import { EventBanner } from '../ui/EventBanner';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
@@ -19,6 +16,8 @@ import TokenInfoNavButton from '../chat/TokenInfoButton';
 import MobileMenu from './MobileMenu';
 import { useViewport } from '~/lib/hooks';
 import MessagesPanel from './MessagesPanel';
+import { cn } from '~/lib/utils';
+import { workbenchStore } from '~/lib/stores/workbench';
 import { useAppKitAccount } from '~/lib/hooks/appkit.client';
 
 export type ButtonProps = PropsWithChildren<{
@@ -31,14 +30,26 @@ export type ButtonProps = PropsWithChildren<{
   tabIndex?: number;
 }>;
 
+type EditorMode = 'chat' | 'code';
+
 export function Header() {
   const chat = useStore(chatStore);
   const { isConnected } = useAppKitAccount();
   const user = useStore(userInfo);
-  const params = useParams();
   const navigate = useNavigate();
-  const tokenInfoQuery = params.id ? useGetHeavenToken(params.id) : null;
-  const { isMobile } = useViewport();
+  const { isMobile, isSmallViewport } = useViewport();
+  const isModeUsed = !isMobile && isSmallViewport;
+
+  const { started: chatStarted, showChat } = useStore(chatStore);
+  const showWorkbench = useStore(workbenchStore.showWorkbench);
+
+  // for devices larger than mobile and smaller than 1024px
+  const mode: EditorMode = showWorkbench ? 'code' : 'chat';
+
+  const setMode = (nextMode: EditorMode) => {
+    chatStore.setKey('showChat', nextMode === 'chat');
+    workbenchStore.setShowWorkbench(nextMode === 'code');
+  };
 
   return (
     <>
@@ -47,14 +58,14 @@ export function Header() {
         <>
           <header
             className={classNames('flex items-center px-2 py-2 border-b h-[var(--header-height)] justify-between', {
-              'border-transparent': !chat.started,
-              'border-bolt-elements-borderColor': chat.started,
+              'border-transparent': !chatStarted,
+              'border-bolt-elements-borderColor': chatStarted,
             })}
           >
             <div className="flex gap-2.5">
               <Button
                 onClick={() => {
-                  if (chat.started) {
+                  if (chatStarted) {
                     window.location.href = '/projects';
                   } else {
                     navigate('/projects');
@@ -66,32 +77,47 @@ export function Header() {
                 View all projects
               </Button>
 
-              {!chat.started && (
+              {!chatStarted && (
                 <>
                   <HowItWorksButton />
                   <RewardsNavButton />
                   <LeaderboardNavButton />
                 </>
               )}
-              {chat.started && params.id && !tokenInfoQuery?.data && (
-                <div className="h-full">
-                  <DeployTokenNavButton projectId={params.id} disabled={tokenInfoQuery?.isLoading ?? true} />
-                </div>
-              )}
-              {chat.started && params.id && tokenInfoQuery?.data && (
-                <div className="h-full">
-                  <TokenInfoNavButton tokenData={tokenInfoQuery.data} />
-                </div>
-              )}
             </div>
 
-            {chat.started ? ( // Display ChatDescription and HeaderActionButtons only when the chat has started.
-              <>
-                <ClientOnly>{() => <HeaderActionButtons />}</ClientOnly>
-              </>
-            ) : (
-              <div className="flex items-center justify-center"></div>
+            {isModeUsed && (
+              <div className="flex bg-bolt-elements-button-primary-background p-1 rounded-3xl">
+                <button
+                  type="button"
+                  onClick={() => setMode('chat')}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-3xl text-sm transition-colors duration-200',
+                    mode === 'chat'
+                      ? 'bg-bolt-elements-background-depth-4 text-bolt-elements-textPrimary shadow-sm'
+                      : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                  )}
+                >
+                  <div className="i-bolt:chat w-4 h-4" />
+                  Chat
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode('code')}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-3xl text-sm transition-colors duration-200',
+                    mode === 'code'
+                      ? 'bg-bolt-elements-background-depth-4 text-bolt-elements-textPrimary shadow-sm'
+                      : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                  )}
+                >
+                  <div className="i-ph:code-bold w-4 h-4" />
+                  Code
+                </button>
+              </div>
             )}
+
             <div className="flex justify-center items-center gap-2.5">
               {isConnected && user && (
                 <>

@@ -5,11 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/Tabs';
 import DeployNewTokenForm from './DeployNewTokenForm';
 import DeployLinkedTokenForm from './LinkTokenForm';
 import { Tooltip } from './Tooltip';
+import { classNames } from '~/utils/classNames';
 
-interface DeployTokenNavButtonProps {
+interface DeployTokenButtonProps {
   projectId: string;
   disabled: boolean;
   isMobile?: boolean;
+  className?: string;
 }
 
 function getCurrentProjectUrl() {
@@ -18,11 +20,12 @@ function getCurrentProjectUrl() {
   return currentUrl.toString();
 }
 
-export default function DeployTokenNavButton({
+export default function DeployTokenButton({
   projectId,
   disabled = false,
   isMobile = false,
-}: DeployTokenNavButtonProps) {
+  className,
+}: DeployTokenButtonProps) {
   const [showTokenWindow, setShowTokenWindow] = useState(false);
 
   const projectUrl = getCurrentProjectUrl();
@@ -34,14 +37,14 @@ export default function DeployTokenNavButton({
           Launch token
         </button>
       ) : (
-        <Tooltip content={disabled ? 'Token is loading' : 'Create new or link existing Solana token'} side="bottom">
-          <Button
+        <Tooltip content={disabled ? 'Token is loading' : 'Create new or link existing Solana token'} side="top">
+          <button
             onClick={() => setShowTokenWindow(true)}
             disabled={disabled}
-            className="border border-[#5c5c5c40] space-x-0"
+            className={classNames('border border-[#5c5c5c40] space-x-0', className)}
           >
-            Launch Token <span className="color-green-300 -ml-0.5 text-xs">new!</span>
-          </Button>
+            Launch token
+          </button>
         </Tooltip>
       )}
 
@@ -53,7 +56,7 @@ export default function DeployTokenNavButton({
         title="Connect your token to an app"
       >
         <Tabs defaultValue="new" className="items-center">
-          <TabsList className="bg-input h-7 w-full box-content mb-5">
+          <TabsList className="bg-input h-8 w-full box-border mb-5">
             <TabsTrigger value="new">New</TabsTrigger>
             <TabsTrigger value="link">By existing token</TabsTrigger>
           </TabsList>

@@ -35,7 +35,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
   const artifacts = useStore(workbenchStore.artifacts);
   const artifact = artifacts[messageId];
 
-  const { isMobile } = useViewport();
+  const { isMobile, isSmallViewport } = useViewport();
 
   const actions = useStore(
     computed(artifact.runner.actions, (actions) => {
@@ -87,7 +87,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
     <>
       <div className="artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
         <div className="flex">
-          {isMobile ? (
+          {isMobile || !isSmallViewport ? (
             <>
               <div className="flex items-stretch bg-bolt-elements-artifacts-background w-full overflow-hidden">
                 <div className="px-5 p-3.5 w-full text-left">

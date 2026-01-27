@@ -17,7 +17,6 @@ import { getSandbox } from '~/lib/daytona';
 import { getAimpactFs } from '~/lib/aimpactfs';
 import { chatId } from '~/lib/persistence';
 import { Button, buttonVariants, type ButtonProps } from '~/components/ui/Button';
-import { HeaderActionButton } from '../header/HeaderActionButton';
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
@@ -26,17 +25,18 @@ export enum DeployProviders {
   AKASH = 'Akash',
 }
 
-const providerToIconSlug: Record<DeployProviders, string> = {
+export const providerToIconSlug: Record<DeployProviders, string> = {
   [DeployProviders.AWS]: 'i-ph:rocket',
   [DeployProviders.AKASH]: 'i-bolt:akash',
 };
 
 interface Props {
-  isHeaderActionButton?: boolean;
   customVariant?: ButtonProps['variant'];
+  customText?: string;
+  className?: string;
 }
 
-export default function DeployButton({ isHeaderActionButton = false, customVariant }: Props) {
+export default function DeployButton({ customVariant, customText, className }: Props) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [activePreviewIndex] = useState(0);
@@ -220,7 +220,7 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
         throw new Error('Invalid provider');
       }
 
-      setFinalDeployLink(url);
+      toast.success(`Your app has been successfully published!`);
     } catch (error) {
       toast.error(`Failed to publish app. Maybe you have some errors in your app's code.`);
       setIsDeploying(false);
@@ -231,12 +231,6 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
     }
   };
 
-  const handleClickFinalLink = () => {
-    if (finalDeployLink) {
-      window.open(finalDeployLink, '_blank');
-    }
-  };
-
   return (
     <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger>
@@ -244,13 +238,11 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
           <div
             className={classNames(
               'px-4 hover:bg-bolt-elements-item-backgroundActive flex items-center gap-2 border border-bolt-elements-borderColor rounded-md m-0',
-              isHeaderActionButton
-                ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent py-1.5'
-                : '',
+              className,
               customVariant ? buttonVariants({ variant: customVariant }) : '',
             )}
           >
-            {isDeploying ? `Publishing...` : 'Publish'}
+            {isDeploying ? `Publishing...` : (customText ?? 'Publish')}
             <div
               className={classNames('i-ph:caret-down w-4 h-4 transition-transform', isDropdownOpen ? 'rotate-180' : '')}
             />
@@ -259,34 +251,24 @@ export default function DeployButton({ isHeaderActionButton = false, customVaria
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem>
-          <HeaderActionButton
+          <button
             disabled={isDeploying || isStreaming}
             onClick={() => onDeploy(DeployProviders.AWS)}
             className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
           >
             <div className={`${providerToIconSlug[DeployProviders.AWS]} h-6 w-6`}></div>
             <span className="mx-auto">Publish to AWS</span>
-          </HeaderActionButton>
+          </button>
         </DropdownMenuItem>
         <DropdownMenuItem>
-          <HeaderActionButton
+          <button
             disabled={isDeploying || isStreaming}
             onClick={() => onDeploy(DeployProviders.AKASH)}
             className="flex items-center w-full rounded-md px-4 py-2 text-sm text-gray-200 gap-2"
           >
             <div className={`${providerToIconSlug[DeployProviders.AKASH]} h-6 w-6`}></div>
             <span className="mx-auto">Publish to Akash</span>
-          </HeaderActionButton>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <HeaderActionButton
-            disabled={!finalDeployLink}
-            onClick={handleClickFinalLink}
-            className="flex items-center w-full px-4 py-2 text-sm text-gray-200 gap-2 rounded-md"
-          >
-            <div className="i-ph:arrow-square-out w-6 h-6"></div>
-            <span className="mx-auto">Project link</span>
-          </HeaderActionButton>
+          </button>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
