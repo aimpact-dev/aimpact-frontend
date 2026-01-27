@@ -705,55 +705,57 @@ export const Workbench = memo(
                   )}
                   <View initial={{ x: '100%' }} animate={animationForView('contracts', selectedView)}>
                     <>
-                      {/*{selectedView === 'contracts' && (
+                      {selectedView === 'contracts' && (
                         <Popup
                           isShow={showWarningPopup}
                           closeTopButton={false}
                           childrenClasses="sm:py-4"
                           handleToggle={() => {}}
+                          title="Before You Test Your App"
                         >
-                          <div className="mb-3">
-                            <h3 className="lg:text-2xl text-lg font-semibold">Before you test your the app</h3>
-                          </div>
                           <p className="text-left mb-3 lg:text-base text-sm">
-                            This is a page where appears generated contracts by AI (ussualy only one). <br />
-                            Default workflow with contracts: <br />
+                            This page displays AI-generated contracts (usually only one). <br />
+                            <br />
+                            <span className="font-semibold">Default workflow with contracts:</span> <br />
                             <div className="pl-4">
                               1. Ask AI to create a new contract <br />
-                              2. Build newly created contract (takes from 5 minutes) <br />
-                              3. Deploy builded contract <br />
+                              2. Build the newly created contract (takes approximately 5 minutes) <br />
+                              3. Deploy the built contract <br />
                             </div>
                             <br />
-                            If you want to <span className="font-semibold">test your app</span> with contracts —
-                            there is some a few pitfalls. Check this guide to make it more clear: <br />
-                            We will need to use Phantom for testing. It will not be possible to test contracts in
-                            other wallets. <br />
+                            If you want to <span className="font-semibold">test your app</span> with contracts, there
+                            are a few pitfalls. Follow this guide for clarity: <br />
+                            <br />
+                            <span className="font-semibold">Testing Requirements:</span> <br />
+                            You must use Phantom wallet for testing. Other wallets will not work with contracts. <br />
+                            <br />
+                            <span className="font-semibold">Setup Instructions:</span> <br />
                             <div className="pl-4">
-                              • It is recommended to use a new wallet or a wallet without money in the mainnet. Just
-                              to be on the side of caution <br />• Go to the faucet, connect your GitHub account,
-                              and receive test SOL to your address (any amount will do) <br />• Open{' '}
-                              <span className="font-semibold">Phantom</span> → in the upper left corner, select{' '}
-                              <span className="font-semibold">Accounts</span> → at the bottom left, select{' '}
-                              <span className="font-semibold">Settings</span> → scroll down →{' '}
-                              <span className="font-semibold">Developer settings</span> →{' '}
-                              <span className="font-semibold">Testnet mode</span> and make sure Solana Devnet is
-                              selected <br />• Now you can test contracts. During transactions in preview, Phantom
-                              may warn you about a danger and this is normal. The application is running locally, so
-                              the wallet considers this to be atypical behavior <br />
+                              • It is recommended to use a new wallet or one without funds on mainnet, just to be safe{' '}
+                              <br />
+                              • Go to the faucet, connect your GitHub account, and receive test SOL to your address (any
+                              amount will work) <br />• Open <span className="font-semibold">Phantom</span> → click the
+                              menu in the upper left corner → select <span className="font-semibold">Accounts</span> →
+                              at the bottom left, select <span className="font-semibold">Settings</span> → scroll down
+                              to <span className="font-semibold">Developer Settings</span> →{' '}
+                              <span className="font-semibold">Testnet Mode</span> and ensure Solana Devnet is selected{' '}
+                              <br />
+                              • You can now test contracts. During transactions, Phantom may display security
+                              warnings—this is normal. Since the application runs locally, the wallet flags this as
+                              atypical behavior <br />
                             </div>
                           </p>
-
-                          <div className="space-x-1 mb-3">
+                          <div className="flex items-center justify-center gap-2 mb-3">
                             <Checkbox
                               onCheckedChange={(checked) => {
                                 const key = 'doNotShowWarningPopup';
                                 checked ? localStorage.setItem(key, 'true') : localStorage.removeItem(key);
                               }}
                               defaultChecked
+                              className="size-3.5"
                             />
-                            <label>Do not show again</label>
+                            <label className="text-bolt-elements-textTertiary text-sm">Do not show this again</label>
                           </div>
-
                           <ButtonWithTimer
                             onClick={() => {
                               setShowWarningPopup((val) => !val);
@@ -761,12 +763,11 @@ export const Workbench = memo(
                             className="max-w-36 w-full"
                             startTimer={selectedView === 'contracts'}
                             timeToWait={4}
-                            variant="secondary"
                           >
-                            Close
+                            Confirm
                           </ButtonWithTimer>
                         </Popup>
-                      )}*/}
+                      )}
                       <SmartContractView postMessage={postMessage} />
                     </>
                   </View>

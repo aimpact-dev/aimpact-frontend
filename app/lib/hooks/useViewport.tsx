@@ -31,10 +31,12 @@ export const ViewportProvider = ({ children }: { children: ReactNode }) => {
   const isSmallViewport = width < 1024;
   const isMobile = width < 768;
 
-  if (chatStarted && (isMobile || !isSmallViewport)) {
-    chatStore.setKey('showChat', true);
-    workbenchStore.setShowWorkbench(isMobile ? false : true);
-  }
+  useEffect(() => {
+    if (chatStarted && (isMobile || !isSmallViewport)) {
+      chatStore.setKey('showChat', true);
+      workbenchStore.setShowWorkbench(!isMobile);
+    }
+  }, [chatStarted, isMobile, isSmallViewport]);
 
   return <ViewportContext.Provider value={{ width, isSmallViewport, isMobile }}>{children}</ViewportContext.Provider>;
 };

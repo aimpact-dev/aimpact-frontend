@@ -46,7 +46,10 @@ export default function PublishView() {
                 <>
                   {deployUrls.map((url) => {
                     return (
-                      <Card className="p-3 text-sm flex items-center justify-between !bg-bolt-elements-background-depth-4">
+                      <Card
+                        key={url.url}
+                        className="p-3 text-sm flex items-center justify-between !bg-bolt-elements-background-depth-4"
+                      >
                         <div className="flex gap-2 items-center">
                           <div className="i-ph:circle-fill color-accent-500 w-2 h-2"></div>
                           <span>{url.name}</span>

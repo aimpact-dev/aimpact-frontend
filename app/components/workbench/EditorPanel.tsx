@@ -191,7 +191,6 @@ export const EditorPanel = memo(
                         aria-pressed={isAutoSaveEnabled}
                         className="group "
                       >
-                        {/*<Tooltip content={`Auto-save: ${isAutoSaveEnabled ? `ON` : `OFF`}`}>*/}
                         <>
                           <div
                             className={twMerge(
@@ -210,19 +209,16 @@ export const EditorPanel = memo(
                             Auto-save
                           </span>
                         </>
-                        {/*</Tooltip>*/}
                       </PanelHeaderButton>
                       <PanelHeaderButton
                         onClick={() => {
                           workbenchStore.downloadZip();
                         }}
                       >
-                        {/*<Tooltip content={`Download code `}>*/}
                         <>
                           <div className="i-ph:box-arrow-up size-4"></div>
                           Export
                         </>
-                        {/*</Tooltip>*/}
                       </PanelHeaderButton>
                     </div>
                   </>
