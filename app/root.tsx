@@ -71,11 +71,40 @@ const inlineThemeCode = stripIndents`
   }
 `;
 
+export const OpenGraphMeta = () => {
+  const baseUrl = process.env.PUBLIC_BASE_URL || 'https://aimpact.dev';
+
+  return (
+    <>
+      <meta property="og:site_name" content="AImpact" />
+      <meta property="og:title" content="AImpact | Your AI co-founder" />
+      <meta
+        property="og:description"
+        content="Launch app, token and marketing campaign, faster than your tea gets cold"
+      />
+      <meta property="og:image" content={`${baseUrl}/aimpact-banner.png`} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:url" content={baseUrl} />
+      <meta property="og:type" content="website" />
+
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="AImpact | Your AI co-founder" />
+      <meta
+        name="twitter:description"
+        content="Launch app, token and marketing campaign, faster than your tea gets cold"
+      />
+      <meta name="twitter:image" content={`${baseUrl}/aimpact-banner.png`} />
+    </>
+  );
+};
+
 export const Head = createHead(() => (
   <>
     <meta charSet="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <Meta />
+    <OpenGraphMeta />
     <Links />
     <script dangerouslySetInnerHTML={{ __html: inlineThemeCode }} />
     <script src="https://app.youform.com/embed.js" async></script>
