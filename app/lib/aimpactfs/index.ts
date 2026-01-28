@@ -1,5 +1,5 @@
 ﻿import { HybridFs } from '~/lib/aimpactfs/hybridFs';
-import { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl';
+import { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl.client';
 import { getSandbox } from '~/lib/daytona';
 import type { AimpactFs } from '~/lib/aimpactfs/filesystem';
 
