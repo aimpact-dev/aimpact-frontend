@@ -36,7 +36,7 @@ import ButtonWithTimer from '../ui/ButtonWithTimer';
 import ConvexView from './integrations/ConvexTab';
 import { someActionsFinishedTime } from '~/lib/stores/chat';
 import { twMerge } from 'tailwind-merge';
-import PublishView from './PublishView';
+import PublishView from './PublishView.client';
 import DeployTokenButton from '../chat/DeployTokenButton';
 import { useParams } from '@remix-run/react';
 import { useGetHeavenToken } from '~/lib/hooks/tanstack/useHeaven';
