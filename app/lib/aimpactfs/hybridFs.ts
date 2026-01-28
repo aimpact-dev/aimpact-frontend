@@ -7,7 +7,7 @@ import type {
   TextSearchOptions, WatchPathsOptions
 } from "@webcontainer/api";
 import type { PathWatcherEvent } from './types';
-import type { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl';
+import type { ZenfsImpl } from '~/lib/aimpactfs/zenfsimpl.client';
 import { WatchPathsCallbacks } from '~/lib/aimpactfs/WatchPathsCallbacks';
 import { AimpactSandbox } from '~/lib/daytona/aimpactSandbox';
 
